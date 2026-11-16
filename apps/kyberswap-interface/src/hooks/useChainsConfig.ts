@@ -1,11 +1,10 @@
 import { ChainId } from '@kyberswap/ks-sdk-core'
 import { useMemo } from 'react'
-import { useGetChainsConfigurationQuery } from 'services/ksSetting'
+import { useGetKyberswapGlobalConfigurationQuery } from 'services/ksSetting'
 
 import { IS_TESTING_DEPLOYMENT } from 'constants/deployment'
 import { MAINNET_NETWORKS, NETWORKS_INFO as NETWORKS_INFO_HARDCODE } from 'constants/networks'
 import { NetworkInfo } from 'constants/networks/type'
-import { useKyberswapGlobalConfig } from 'hooks/useKyberSwapConfig'
 
 export enum ChainState {
   NEW = 'new',
@@ -42,21 +41,16 @@ export const NETWORKS_INFO = new Proxy(NETWORKS_INFO_HARDCODE, {
 const defaultData = MAINNET_NETWORKS.map(chainId => NETWORKS_INFO_HARDCODE[chainId])
 
 export default function useChainsConfig() {
-  const { data, isError } = useGetChainsConfigurationQuery()
-  const globalConfig = useKyberswapGlobalConfig()
+  // Chain states live in the ks-setting `kyberswap` config, so that request alone decides when the lists are final
+  const { data, isError } = useGetKyberswapGlobalConfigurationQuery(undefined)
+  const chainStates = data?.data?.config?.chainStates
 
   return useMemo(() => {
-    const hasBeConfig = !!data
     const chains: NetworkInfo[] = defaultData.map(chain => {
-      const chainId = +chain.chainId as ChainId
-      const chainState = hasBeConfig ? globalConfig?.chainStates?.[chainId] : ChainState.ACTIVE
-      const info = {
-        ...NETWORKS_INFO_HARDCODE[chainId],
-        ...chain, // BE config
-        chainId,
-        state: chainState,
-      }
-      cacheInfo[chainId] = info
+      // Without the states (still loading, failed, or absent from the config) every hardcoded mainnet
+      // counts as active; once they arrive, a chain they do not list falls out of both lists.
+      const info = { ...chain, state: chainStates ? chainStates[chain.chainId] : ChainState.ACTIVE }
+      cacheInfo[chain.chainId] = info
       return info
     })
 
@@ -64,8 +58,7 @@ export default function useChainsConfig() {
       activeChains: chains.filter(chain => ENABLED_STATES.includes(chain.state)),
       supportedChains: chains.filter(chain => SUPPORTED_STATES.includes(chain.state)),
       allChains: chains,
-      // Until the BE config arrives the lists hold every hardcoded mainnet; a failed fetch keeps them.
-      isLoaded: hasBeConfig || isError,
+      isLoaded: !!data || isError,
     }
-  }, [data, isError, globalConfig])
+  }, [data, chainStates, isError])
 }
