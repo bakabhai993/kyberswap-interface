@@ -338,10 +338,14 @@ type TransactionHistoryItemProps = {
   mobile: boolean
 }
 
+/** Renders retained transaction data without history metadata or execution lookups. */
+export const LocalTransactionHistoryItem = ({ tx, mobile }: TransactionHistoryItemProps) =>
+  mobile ? <TransactionCard tx={tx} /> : <TransactionRow tx={tx} />
+
 export const TransactionHistoryItem = ({ tx, mobile }: TransactionHistoryItemProps) => {
   const sourceToken = useHistoryToken(tx.sourceToken, tx.sourceChain)
   const targetToken = useHistoryToken(tx.targetToken, tx.targetChain)
   const gasDropStatus = useHistoryGasDrop(tx)
   const resolved = { ...tx, sourceToken, targetToken, gasDropStatus }
-  return mobile ? <TransactionCard tx={resolved} /> : <TransactionRow tx={resolved} />
+  return <LocalTransactionHistoryItem tx={resolved} mobile={mobile} />
 }

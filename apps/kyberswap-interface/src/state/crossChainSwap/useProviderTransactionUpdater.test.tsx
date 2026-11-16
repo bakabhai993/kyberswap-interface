@@ -211,3 +211,22 @@ it('persists a completed transaction without waiting for another provider reques
   expect(mocks.transactions[0].status).toBe('Success')
   expect(mocks.track).toHaveBeenCalledTimes(2)
 })
+
+it('returns all local history and polls processing transactions across adapters', async () => {
+  mocks.transactions = [
+    transaction('active', 'Processing'),
+    transaction('done', 'Success'),
+    transaction('other', 'Processing', 'Relay'),
+  ]
+  let history: NormalizedTxResponse[] = []
+  const DirectHistory = () => {
+    history = useProviderTransactionUpdater()
+    return null
+  }
+  await act(async () => root.render(<DirectHistory />))
+  expect(history.map(tx => tx.id)).toEqual(['active', 'done', 'other'])
+  expect(mocks.poll.mock.calls.map(([tx]) => tx.id)).toEqual(['active', 'other'])
+  expect(mocks.scan.mock.calls.map(([hash]) => hash)).toEqual(['0xdone'])
+  await act(async () => vi.advanceTimersByTimeAsync(10_000))
+  expect(mocks.poll.mock.calls.map(([tx]) => tx.id)).toEqual(['active', 'other', 'active', 'other'])
+})

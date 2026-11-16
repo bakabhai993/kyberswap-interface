@@ -63,4 +63,11 @@ Quote routing selects same-chain, direct or stream mode explicitly.
 Transaction views share local/indexed history projections. Verified terminal
 backend data owns settlement; pending or incomplete records retain local execution
 data. Closing History, detail or review must not stop persistence for a submitted
-transaction. Detail requests have their own query lifecycle and do not own settlement.
+transaction. Wallet history polls while History is open or the input wallet has
+known processing transactions from local state or loaded history pages. Closing
+History stops list polling once none remain; unloaded pages are not scanned for
+pending transactions. History follows the input signer, using the connected EVM
+wallet before cross-chain wallet context is activated. The separate Direct page
+shows all local cross-chain transactions and updates each through its provider; it does
+not subscribe to wallet history, backend sync or row-level execution enrichment.
+Detail requests have their own query lifecycle and do not own settlement.

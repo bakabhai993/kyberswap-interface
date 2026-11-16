@@ -20,13 +20,12 @@ import { SwapAction } from 'pages/KyberCross/components/SwapAction'
 import TransactionHistoryList from 'pages/KyberCross/components/TransactionHistoryList'
 import { useGasDrop } from 'pages/KyberCross/hooks/useGasDrop'
 import { KyberCrossProvider, useKyberCrossSwap } from 'pages/KyberCross/hooks/useKyberCrossSwap'
-import { useCrossChainTransactions } from 'state/crossChainSwap'
+import { useProviderTransactionUpdater } from 'state/crossChainSwap/useProviderTransactionUpdater'
 import { Field } from 'state/swap/actions'
 import { SwapPair, getTradeLocation } from 'utils/swapFlow'
 
 const Settings = lazy(() => import('components/SwapForm/Settings/SwapSettingsPanel'))
 const Sources = lazy(() => import('components/SwapForm/Settings/SwapSettingsPanel/CrossChainSwapSources'))
-const HistoryUpdater = lazy(() => import('components/SwapTransactions/TransactionUpdater'))
 
 const KyberCrossContent = ({ pair }: { pair: ReturnType<typeof useSwapFormPair> }) => {
   const controller = useTradeController(TAB.KYBER_CROSS)
@@ -34,15 +33,12 @@ const KyberCrossContent = ({ pair }: { pair: ReturnType<typeof useSwapFormPair> 
   const { lowGas } = useGasDrop()
   const [showBitcoin, setShowBitcoin] = useState(false)
   const walletIntentModal = useCrossChainWalletIntent(swap.fromChainId, () => setShowBitcoin(true))
-  const localTransactions = useCrossChainTransactions()
+  const localTransactions = useProviderTransactionUpdater()
   const transactions = localTransactions.map(localTransactionToHistory)
   const { activeTab, onTabChange, onBackToMainTab } = controller
 
   return (
     <Stack className="w-full max-w-[1464px] gap-6 px-9 py-6 max-sm:gap-4 max-sm:px-4 max-sm:py-5">
-      <Suspense fallback={null}>
-        <HistoryUpdater />
-      </Suspense>
       <HStack className="w-full items-start justify-center gap-12 max-lg:flex-col max-lg:items-center max-lg:gap-6">
         <Stack as="section" className="relative z-[1] w-full max-w-[425px] shrink-0 gap-4 lg:sticky lg:top-4">
           <Header activeTab={activeTab} activeMainTab={TAB.KYBER_CROSS} onTabChange={onTabChange} isCrossChainMode />

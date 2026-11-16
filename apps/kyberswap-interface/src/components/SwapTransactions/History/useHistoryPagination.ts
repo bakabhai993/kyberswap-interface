@@ -6,7 +6,7 @@ import { selectLocalSwapHistory } from 'components/SwapTransactions/localTransac
 import { useAppDispatch, useAppSelector } from 'state/hooks'
 
 // The page owns only cursor navigation. The page-level updater owns the cache
-// subscription and polling, so closing History does not stop KD refreshes.
+// subscription and polling while History is open or known transactions are processing.
 export const useHistoryPagination = (sender: string, searching = false) => {
   const dispatch = useAppDispatch()
   const local = useAppSelector(selectLocalSwapHistory)

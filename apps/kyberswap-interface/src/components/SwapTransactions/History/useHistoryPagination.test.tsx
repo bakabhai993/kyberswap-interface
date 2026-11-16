@@ -9,7 +9,7 @@ import api, { useGetTransactionsInfiniteQuerySubscription } from 'services/walle
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 
 import { useHistoryPagination } from 'components/SwapTransactions/History/useHistoryPagination'
-import TransactionUpdater from 'components/SwapTransactions/TransactionUpdater'
+import { WalletHistorySubscriptions } from 'components/SwapTransactions/TransactionUpdater'
 import { getLoadedHistory, localTransactionToHistory } from 'components/SwapTransactions/history'
 import type { LocalTransaction } from 'state/crossChainSwap/model'
 import { addTransaction, finalizeTransaction } from 'state/transactions/actions'
@@ -17,9 +17,6 @@ import transactionsReducer from 'state/transactions/reducer'
 import { TRANSACTION_TYPE } from 'state/transactions/type'
 import type { NormalizedTxResponse } from 'types/crossChain'
 
-vi.mock('@near-wallet-selector/react-hook', () => ({ useWalletSelector: () => ({}) }))
-vi.mock('@solana/wallet-adapter-react', () => ({ useWallet: () => ({}) }))
-vi.mock('components/Web3Provider/BitcoinProvider', () => ({ useBitcoinWallet: () => ({}) }))
 vi.mock('hooks', () => ({ useActiveWeb3React: () => ({}) }))
 vi.mock('components/SwapWallets/SwapWalletContext', () => ({
   useSwapWallets: () => ({ inputAddress: sender, inputConnection: { family: 'evm' } }),
@@ -148,7 +145,7 @@ const fetcher = vi.fn()
 const Harness = ({ sender }: { sender: string }) => {
   useGetTransactionsInfiniteQuerySubscription(sender, { skip: !sender })
   history = useHistoryPagination(sender)
-  return autoPoll ? <TransactionUpdater /> : null
+  return autoPoll ? <WalletHistorySubscriptions showHistory /> : null
 }
 const render = () =>
   act(async () => {

@@ -1,16 +1,16 @@
 import { Suspense, lazy } from 'react'
 import { useGetTransactionsInfiniteQuerySubscription } from 'services/walletTransactionsApi'
 
+import { useProcessingTransactions } from 'components/SwapTransactions/Processing/useProcessingTransactions'
 import { useSwapWallets } from 'components/SwapWallets/SwapWalletContext'
 import { useActiveWeb3React } from 'hooks'
 import { useCrossChainTransactions } from 'state/crossChainSwap'
 import { useBackendTransactionUpdater } from 'state/crossChainSwap/useBackendTransactionUpdater'
 import { useRestoreMyNearWalletTransaction } from 'state/crossChainSwap/useRestoreMyNearWalletTransaction'
 
-const LegacyWalletHistorySubscriptions = lazy(() => import('./LegacyWalletHistorySubscriptions'))
 const ProviderTransactionUpdater = lazy(() => import('./ProviderTransactionUpdater'))
 
-export const WalletHistorySubscription = ({ sender }: { sender: string }) => {
+const WalletHistorySubscription = ({ sender }: { sender: string }) => {
   useGetTransactionsInfiniteQuerySubscription(sender, {
     skip: !sender,
     pollingInterval: 10_000,
@@ -31,30 +31,16 @@ export const TransactionStatusUpdater = () => {
   return <Suspense fallback={null}>{transactions.length > 0 && <ProviderTransactionUpdater />}</Suspense>
 }
 
-export const WalletHistorySubscriptions = ({ evmOnly = false }: { evmOnly?: boolean }) => {
+/** Swap polls only its input wallet while History or Processing needs fresh data. */
+export const WalletHistorySubscriptions = ({ showHistory }: { showHistory: boolean }) => {
   const { account } = useActiveWeb3React()
   const wallets = useSwapWallets()
-  const sender = wallets?.inputAddress ?? account ?? ''
+  const processing = useProcessingTransactions()
+  const sender = wallets
+    ? wallets.inputConnection?.family === 'evm'
+      ? wallets.inputAddress.toLowerCase()
+      : wallets.inputAddress
+    : account?.toLowerCase() ?? ''
 
-  if (evmOnly || wallets) {
-    return (
-      <WalletHistorySubscription
-        sender={wallets?.inputConnection?.family !== 'evm' && wallets ? sender : sender.toLowerCase()}
-      />
-    )
-  }
-  return (
-    <Suspense fallback={null}>
-      <LegacyWalletHistorySubscriptions />
-    </Suspense>
-  )
+  return showHistory || processing.length > 0 ? <WalletHistorySubscription sender={sender} /> : null
 }
-
-const TransactionUpdater = ({ evmOnly = false }: { evmOnly?: boolean }) => (
-  <>
-    <TransactionStatusUpdater />
-    <WalletHistorySubscriptions evmOnly={evmOnly} />
-  </>
-)
-
-export default TransactionUpdater

@@ -78,7 +78,7 @@ const SwapPage = () => {
               toChain={pair.outputChain}
             >
               <Suspense fallback={null}>
-                <WalletHistorySubscriptions />
+                <WalletHistorySubscriptions showHistory={showHistory} />
               </Suspense>
               <SwapPageContent {...contentProps} />
             </CrossChainProviders>
@@ -86,7 +86,7 @@ const SwapPage = () => {
         ) : (
           <>
             <Suspense fallback={null}>
-              <WalletHistorySubscriptions evmOnly />
+              <WalletHistorySubscriptions showHistory={showHistory} />
             </Suspense>
             <SwapPageContent {...contentProps} />
           </>
