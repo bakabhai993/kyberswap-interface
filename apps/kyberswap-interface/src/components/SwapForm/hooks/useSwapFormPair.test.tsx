@@ -15,7 +15,7 @@ import { LegacyCrossChainRedirect } from 'pages/Swap/redirects'
 import { WrappedTokenInfo } from 'state/lists/wrappedTokenInfo'
 import { Field } from 'state/swap/actions'
 import { NonEvmChain } from 'types/crossChain'
-import { getEmbeddedSwapPair, getTradeLocation } from 'utils/swapFlow'
+import { getEmbeddedSwapPair, getSwapChains, getTradeLocation } from 'utils/swapFlow'
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
 i18n.loadAndActivate({ locale: 'en', messages: {} })
@@ -193,7 +193,11 @@ describe('unified swap pair navigation', () => {
     const previousUrl = '/swap/ethereum/eth-to-usdc'
     await mount(`/cross-chain${search}#history`, previousUrl)
 
-    expect(url()).toBe(`/swap${search}#history`)
+    expect(url()).toBe(
+      `/swap${search
+        .replace(`from=${from}`, `from=${from === '1' ? 'ethereum' : from}`)
+        .replace('to=8453', 'to=base')}#history`,
+    )
     expect(pairText()).toBe(`${from}:${tokenIn} → 8453:${usdc.address}`)
     await click('Back')
     expect(url()).toBe(previousUrl)
@@ -203,7 +207,7 @@ describe('unified swap pair navigation', () => {
     await mount(
       `/cross-chain?from=1&to=8453&tokenIn=ETH&tokenOut=${usdc.address}&chainId=10&toChain=1&inputCurrency=DAI&outputCurrency=ETH&input=12`,
     )
-    expect(url()).toBe(`/swap?from=1&to=8453&tokenIn=ETH&tokenOut=${usdc.address}&input=12`)
+    expect(url()).toBe(`/swap?from=ethereum&to=base&tokenIn=ETH&tokenOut=${usdc.address}&input=12`)
     expect(pairText()).toBe(`1:ETH → 8453:${usdc.address}`)
   })
 
@@ -273,6 +277,33 @@ describe('unified swap pair navigation', () => {
     },
   )
 
+  it.each([
+    ['from=base&to=ethereum', ChainId.BASE, ChainId.MAINNET],
+    ['from=8453&to=ethereum', ChainId.BASE, ChainId.MAINNET],
+    ['from=BASE&to=solana', ChainId.BASE, NonEvmChain.Solana],
+    ['from=bitcoin&to=near', NonEvmChain.Bitcoin, NonEvmChain.Near],
+    ['from=8453&to=1', ChainId.BASE, ChainId.MAINNET],
+    ['from=unknown&to=999999', ChainId.MAINNET, ChainId.MAINNET],
+    ['', ChainId.MAINNET, ChainId.MAINNET],
+  ])('resolves public chain parameters %s', (search, fromChain, toChain) => {
+    expect(getSwapChains(new URLSearchParams(search), ChainId.MAINNET)).toEqual({
+      fromChain,
+      toChain,
+      isCrossChain: fromChain !== toChain || typeof fromChain !== 'number',
+    })
+  })
+
+  it('normalizes EVM slug parameters while preserving the pair and amount', async () => {
+    await mount(`/swap?from=ethereum&to=base&tokenIn=ETH&tokenOut=${usdc.address}&input=12`)
+    expect(pairText()).toBe(`1:ETH → 8453:${usdc.address}`)
+    expect(url()).toBe(`/swap?from=ethereum&to=base&tokenIn=ETH&tokenOut=${usdc.address}&input=12`)
+  })
+
+  it('normalizes matching EVM slugs to the single-chain path', async () => {
+    await mount('/swap?from=base&to=base&tokenIn=weth&tokenOut=usdc&input=12')
+    expect(url()).toBe('/swap/base/weth-to-usdc?input=12')
+  })
+
   it('reads the complete partner schema without borrowing conflicting public fields', () => {
     const pair = getEmbeddedSwapPair(
       new URLSearchParams('chainId=8453&inputCurrency=ETH&outputCurrency=USDC&from=1&to=10&tokenIn=DAI&tokenOut=ETH'),
@@ -321,8 +352,8 @@ describe('unified swap pair navigation', () => {
       new URLSearchParams('chainId=1&toChain=10&inputCurrency=ETH&outputCurrency=DAI&clientId=partner&feeAmount=25'),
     )
     const params = new URLSearchParams(location.search)
-    expect(params.get('from')).toBe('1')
-    expect(params.get('to')).toBe('8453')
+    expect(params.get('from')).toBe('ethereum')
+    expect(params.get('to')).toBe('base')
     expect(params.has('chainId')).toBe(false)
     expect(params.has('toChain')).toBe(false)
     expect(params.has('inputCurrency')).toBe(false)
@@ -336,8 +367,8 @@ describe('unified swap pair navigation', () => {
     await click('Select Base WETH')
     const selectedUrl = new URL(url(), 'https://kyberswap.com')
     expect(selectedUrl.pathname).toBe('/kybercross')
-    expect(selectedUrl.searchParams.get('from')).toBe('8453')
-    expect(selectedUrl.searchParams.get('to')).toBe('8453')
+    expect(selectedUrl.searchParams.get('from')).toBe('base')
+    expect(selectedUrl.searchParams.get('to')).toBe('base')
     expect(selectedUrl.searchParams.get('input')).toBe('12')
     await click('Reverse')
     expect(new URL(url(), 'https://kyberswap.com').pathname).toBe('/kybercross')
@@ -356,7 +387,7 @@ describe('unified swap pair navigation', () => {
     await mount(`/swap/base/${weth.address}-to-usdc?input=12`)
     await click('Select Ethereum')
     const swapUrl = url()
-    expect(swapUrl).toBe(`/swap?input=12&from=1&to=8453&tokenIn=ETH&tokenOut=${usdc.address}`)
+    expect(swapUrl).toBe(`/swap?input=12&from=ethereum&to=base&tokenIn=ETH&tokenOut=${usdc.address}`)
     await click('Select Base WETH')
     expect(url()).toBe(`/swap/base/${weth.address.toLowerCase()}-to-usdc?input=12`)
     await click('Back')
@@ -375,7 +406,7 @@ describe('unified swap pair navigation', () => {
 
   it('normalizes an old mixed cross-chain URL without retaining its stale path', async () => {
     await mount(`/swap/ethereum/eth-to-usdt?from=1&to=8453&tokenIn=ETH&tokenOut=${usdc.address}`)
-    expect(url()).toBe(`/swap?from=1&to=8453&tokenIn=ETH&tokenOut=${usdc.address}`)
+    expect(url()).toBe(`/swap?from=ethereum&to=base&tokenIn=ETH&tokenOut=${usdc.address}`)
   })
 
   it('preserves case-sensitive non-EVM token IDs in both directions', async () => {
@@ -387,6 +418,8 @@ describe('unified swap pair navigation', () => {
     expect(url()).toBe(crossUrl)
     await click('Reverse')
     expect(pairText()).toBe(`8453:${usdc.address} → ${NonEvmChain.Solana}:${token}`)
+    expect(new URL(url(), 'https://kyberswap.com').searchParams.get('from')).toBe('base')
+    expect(new URL(url(), 'https://kyberswap.com').searchParams.get('to')).toBe('solana')
     await click('Reverse')
     expect(url()).toBe(crossUrl)
   })

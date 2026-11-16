@@ -20,6 +20,9 @@ quote/review is invalidated while recipient drafts remain intact.
 
 Unified Swap defaults to the native input token and an empty output selection.
 Explicit URL pairs take precedence; pair edits and reversal preserve empty selections.
+Public `from`/`to` query parameters accept EVM chain IDs or network route slugs
+(for example, `from=base&to=ethereum`), as well as `solana`, `bitcoin` and `near`.
+URLs normalize to network slugs for cross-chain pairs and network paths for same-chain EVM pairs.
 
 Partner/User Swap retain their embedded URL parameters. Limit and Stop Market
 retain their forms in `LimitPage.tsx`. Transaction controllers stay outside mode

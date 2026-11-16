@@ -5,6 +5,7 @@ import { APP_PATHS } from 'constants/index'
 import { NETWORKS_INFO, isSupportedChainId } from 'constants/networks'
 import { DEFAULT_OUTPUT_TOKENS, NativeCurrencies } from 'constants/tokens'
 import { Chain, NonEvmChain, isNonEvmChain } from 'types/crossChain'
+import { getChainIdFromSlug } from 'utils/string'
 
 export type SwapPair = { fromChain: Chain; toChain: Chain; tokenIn: string; tokenOut: string }
 
@@ -25,8 +26,8 @@ export const getTradeLocation = (
   let pathname: string
   if (crossChain) {
     pathname = page === 'kybercross' ? APP_PATHS.KYBER_CROSS : APP_PATHS.SWAP
-    search.set('from', String(pair.fromChain))
-    search.set('to', String(pair.toChain))
+    search.set('from', typeof pair.fromChain === 'number' ? NETWORKS_INFO[pair.fromChain].route : pair.fromChain)
+    search.set('to', typeof pair.toChain === 'number' ? NETWORKS_INFO[pair.toChain].route : pair.toChain)
     search.set('tokenIn', pair.tokenIn)
     search.set('tokenOut', pair.tokenOut)
   } else {
@@ -44,7 +45,7 @@ export const getTradeLocation = (
 export const getSwapChains = (params: URLSearchParams, fallback: ChainId) => {
   const readChain = (value: string | null): Chain => {
     if (isNonEvmChain(value as NonEvmChain)) return value as NonEvmChain
-    const chainId = Number(value) as ChainId
+    const chainId = getChainIdFromSlug(value?.toLowerCase()) ?? (Number(value) as ChainId)
     return isSupportedChainId(chainId) ? chainId : fallback
   }
   const fromChain = readChain(params.get('from'))
