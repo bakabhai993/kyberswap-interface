@@ -26,6 +26,7 @@ import { formatDisplayNumber } from 'utils/numbers'
 
 type Props = {
   selectorChain?: Chain
+  priorityChainIds?: Chain[]
   chain: NonEvmChain
   currency?: Currency
   value: string
@@ -43,6 +44,7 @@ type Props = {
 export const CrossChainCurrencyPanel = ({
   chain,
   selectorChain,
+  priorityChainIds,
   currency,
   value,
   amountUsd,
@@ -178,6 +180,7 @@ export const CrossChainCurrencyPanel = ({
         isOpen={open}
         onDismiss={() => setOpen(false)}
         customChainId={typeof selectorChain === 'number' ? selectorChain : undefined}
+        priorityChainIds={priorityChainIds}
         initialNonEvmChain={typeof selectorChain === 'number' ? undefined : selectorChain ?? chain}
         selectedNonEvmCurrency={currency && !('chainId' in currency) ? currency : undefined}
         chainSelectionMode="form"

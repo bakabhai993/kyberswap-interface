@@ -1,6 +1,11 @@
 import { type QuoteParams } from 'services/crossChain/adapters/types'
 import { normalizeStreamQuote, parseQuoteResponse } from 'services/crossChain/quote/parseStreamQuote'
-import { getMinimumOutputAmount, sortQuotesByOutput } from 'services/crossChain/quote/utils'
+import {
+  getMinimumOutputAmount,
+  rankRouteOptions,
+  sortQuotesByNetOutput,
+  sortQuotesByOutput,
+} from 'services/crossChain/quote/utils'
 import type { Quote } from 'services/crossChain/registry'
 import { describe, expect, it } from 'vitest'
 
@@ -229,5 +234,78 @@ describe('aggregator quote response', () => {
     const quotes = [lower, higher]
     expect(sortQuotesByOutput(quotes)).toEqual([higher, lower])
     expect(quotes).toEqual([lower, higher])
+  })
+
+  it('ranks net output including Gas Drop value and fees, preserving ties and the source list', () => {
+    const makeQuote = (
+      outputAmount: bigint,
+      additionalFeeUsd: number,
+      gasDrop?: { amount: string; amountUsd?: number },
+    ) =>
+      ({
+        quote: {
+          ...normalize(),
+          quoteParams: { ...params, tokenOutUsd: 2, gasDropTokenUsd: 2000, toToken: { decimals: 0 } as Currency },
+          outputAmount,
+          additionalFeeUsd,
+          gasDrop,
+        },
+      } as Quote)
+    const ordinary = makeQuote(100n, 6) // 97 tokens net
+    const betterOrdinary = makeQuote(98n, 0)
+    const gasDrop = makeQuote(95n, 2, { amount: '1000000000000000', amountUsd: 10 }) // 99 net
+    const fallback = makeQuote(98n, 0, { amount: '1000000000000000' }) // 99 net via native price
+    const quotes = [ordinary, betterOrdinary, gasDrop, fallback]
+    expect(sortQuotesByNetOutput(quotes)).toEqual([gasDrop, fallback, betterOrdinary, ordinary])
+    expect(quotes).toEqual([ordinary, betterOrdinary, gasDrop, fallback])
+
+    fallback.quote.quoteParams = { ...fallback.quote.quoteParams, gasDropTokenUsd: undefined }
+    expect(sortQuotesByNetOutput([fallback, gasDrop])).toEqual([gasDrop, fallback])
+    ordinary.quote.quoteParams = { ...ordinary.quote.quoteParams, tokenOutUsd: 0 }
+    expect(sortQuotesByNetOutput([gasDrop, ordinary])).toEqual([ordinary, gasDrop])
+  })
+})
+
+describe('route badge priority', () => {
+  const route = (outputAmount: bigint, timeEstimate: number, gasDrop = false) =>
+    ({ quote: { ...normalize(), outputAmount, timeEstimate, quoteParams: { ...params, gasDrop } } } as Quote)
+
+  it('keeps Gas Drop above global winners and pins Best Return before Fastest', () => {
+    const gas = route(50n, 10, true)
+    const best = route(100n, 5)
+    const middle = route(90n, 4)
+    const fastest = route(80n, 0)
+    const input = [middle, fastest, best, gas]
+    expect(rankRouteOptions(input)).toEqual({
+      rankedQuotes: [gas, best, fastest, middle],
+      bestReturnQuote: best,
+      fastestQuote: fastest,
+    })
+    expect(input).toEqual([middle, fastest, best, gas])
+  })
+
+  it('awards both badges to one Gas Drop route without duplicating it', () => {
+    const ordinary = route(90n, 1)
+    const winner = route(100n, 0, true)
+    const otherGas = route(80n, 2, true)
+    expect(rankRouteOptions([ordinary, otherGas, winner])).toEqual({
+      rankedQuotes: [winner, otherGas, ordinary],
+      bestReturnQuote: winner,
+      fastestQuote: winner,
+    })
+  })
+
+  it('promotes a Gas Drop Fastest within its group and breaks time ties by output', () => {
+    const best = route(100n, NaN)
+    const higherGas = route(90n, 2, true)
+    const fastestGas = route(80n, 0, true)
+    const tied = route(70n, 0)
+    expect(rankRouteOptions([higherGas, tied, best, fastestGas])).toEqual({
+      rankedQuotes: [fastestGas, higherGas, best, tied],
+      bestReturnQuote: best,
+      fastestQuote: fastestGas,
+    })
+    expect(rankRouteOptions([route(10n, -1), route(20n, Infinity)]).fastestQuote).toBeUndefined()
+    expect(rankRouteOptions([]).rankedQuotes).toEqual([])
   })
 })

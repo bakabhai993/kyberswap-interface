@@ -238,7 +238,7 @@ export const useCrossChainQuote = (input: CrossChainQuoteInput) => {
           ...sortQuotesByNetOutput(session.quotes),
           ...sortQuotesByNetOutput(routeOrdinaryQuotes.filter(quote => !gasDropProviders.has(providerKey(quote)))),
         ]
-      : session.quotes,
+      : sortQuotesByNetOutput(session.quotes),
     amountInWei: request.params?.amount,
     slippage,
     warning,

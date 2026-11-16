@@ -30,6 +30,7 @@ type Props = {
   chainSelectionMode?: 'wallet' | 'form'
   onSelectNonEvmCurrency?: (chain: NonEvmChain, currency: NonEvmCurrency) => void
   selectorChain?: Chain
+  priorityChainIds?: Chain[]
   customChainId?: ChainId
   routeLoading: boolean
 }
@@ -51,6 +52,7 @@ const OutputCurrencyPanel = ({
   onChangeCurrencyOut,
   customChainId,
   selectorChain,
+  priorityChainIds,
   chainSelectionMode,
   onSelectNonEvmCurrency,
   routeLoading,
@@ -134,6 +136,7 @@ const OutputCurrencyPanel = ({
         }
         positionLabel="in"
         customChainId={customChainId}
+        priorityChainIds={priorityChainIds}
         selectorChain={selectorChain}
         chainSelectionMode={chainSelectionMode}
         onSelectNonEvmCurrency={onSelectNonEvmCurrency}

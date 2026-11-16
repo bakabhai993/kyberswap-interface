@@ -30,6 +30,7 @@ type CrossChainQuoteSummaryProps = {
   tokenOut?: Currency
   loading?: boolean
   full?: boolean
+  showEstimatedTime?: boolean
   showSlippage?: boolean
 }
 
@@ -39,6 +40,7 @@ export const CrossChainQuoteSummaryRows = ({
   slippage,
   warning,
   full,
+  showEstimatedTime = true,
   showSlippage = true,
   loading = false,
 }: CrossChainQuoteSummaryProps) => {
@@ -71,13 +73,15 @@ export const CrossChainQuoteSummaryRows = ({
           ? `${formatDisplayNumber(minimumReceived, { significantDigits: 8 })} ${tokenOut.symbol}`
           : '--'}
       </QuoteDetailRow>
-      <QuoteDetailRow
-        loading={initialLoading}
-        label={t`Est. Time`}
-        tooltip={t`Estimated processing time for your transaction.`}
-      >
-        {quote ? `${quote.quote.timeEstimate === 0 ? '' : '~'}${formatTime(quote.quote.timeEstimate)}` : '--'}
-      </QuoteDetailRow>
+      {showEstimatedTime && (
+        <QuoteDetailRow
+          loading={initialLoading}
+          label={t`Est. Time`}
+          tooltip={t`Estimated processing time for your transaction.`}
+        >
+          {quote ? `${quote.quote.timeEstimate === 0 ? '' : '~'}${formatTime(quote.quote.timeEstimate)}` : '--'}
+        </QuoteDetailRow>
+      )}
 
       <QuoteDetailRow
         loading={initialLoading}

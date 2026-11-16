@@ -4,6 +4,7 @@ import { ChevronDown } from 'react-feather'
 import { BuildRouteData } from 'services/route/types/buildRoute'
 
 import { Collapse } from 'components/Collapse'
+import CopyHelper from 'components/Copy'
 import Divider from 'components/Divider'
 import { HStack, Stack } from 'components/Stack'
 import { SwapFeeLabel, TooltipTextOfSwapFee, formatSwapFeePercent } from 'components/SwapForm/Quote/SwapFee'
@@ -21,8 +22,19 @@ import { calculateFeeFromBuildData } from 'utils/fee'
 import { formatDisplayNumber } from 'utils/numbers'
 import { isInSafeApp } from 'utils/safeApp'
 
-const AddressLink = ({ children, href }: { children: ReactNode; href: string }) => (
-  <ExternalLinkNoLineHeight href={href} className="text-text underline [text-decoration-style:dotted]">
+const AddressLink = ({
+  children,
+  href,
+  highlight = false,
+}: {
+  children: ReactNode
+  href: string
+  highlight?: boolean
+}) => (
+  <ExternalLinkNoLineHeight
+    href={href}
+    className={cn('underline [text-decoration-style:dotted]', highlight ? 'text-primary' : 'text-text')}
+  >
     <span className="text-xs">{children}</span>
   </ExternalLinkNoLineHeight>
 )
@@ -129,7 +141,7 @@ export const SwapFeeAndRecipientDetails = ({
   isLoading: boolean
   buildData: BuildRouteData | undefined
 }) => {
-  const { chainId, networkInfo } = useActiveWeb3React()
+  const { account, chainId, networkInfo } = useActiveWeb3React()
   const { routeSummary, recipient: recipientAddressOrName } = useSwapFormContext()
   const feeERC8056Info = useFeeERC8056Info()
   const { address: recipient } = useENS(recipientAddressOrName)
@@ -209,7 +221,7 @@ export const SwapFeeAndRecipientDetails = ({
         </DetailRow>
       )}
 
-      <Divider />
+      <Divider className="my-1 bg-border/40" />
       {recipient && (
         <DetailRow
           label={
@@ -219,10 +231,14 @@ export const SwapFeeAndRecipientDetails = ({
           }
         >
           <div className="flex items-center gap-1 text-xs font-medium">
-            <img src={networkInfo.icon} alt="network icon" width="12px" height="12px" />
-            <AddressLink href={`${networkInfo.etherscanUrl}/address/${recipient}`}>
+            <img src={networkInfo.icon} alt="network icon" width="14px" height="14px" />
+            <AddressLink
+              href={`${networkInfo.etherscanUrl}/address/${recipient}`}
+              highlight={!!account && recipient.toLowerCase() !== account.toLowerCase()}
+            >
               {shortenAddress(chainId, recipient)}
             </AddressLink>
+            <CopyHelper toCopy={recipient} margin="0" />
           </div>
         </DetailRow>
       )}
@@ -241,10 +257,12 @@ export const SwapFeeAndRecipientDetails = ({
         }
       >
         {buildData?.routerAddress && (
-          <div className="flex items-center">
+          <div className="flex items-center gap-1 text-xs font-medium">
+            <img src={networkInfo.icon} alt="network icon" width="14px" height="14px" />
             <AddressLink href={`${networkInfo.etherscanUrl}/address/${buildData.routerAddress}`}>
               {shortenAddress(chainId, buildData.routerAddress)}
             </AddressLink>
+            <CopyHelper toCopy={buildData.routerAddress} margin="0" />
           </div>
         )}
       </DetailRow>

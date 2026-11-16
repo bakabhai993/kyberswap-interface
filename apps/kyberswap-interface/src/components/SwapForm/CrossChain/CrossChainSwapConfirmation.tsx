@@ -1,11 +1,15 @@
 import { Trans, t } from '@lingui/macro'
-import { isEvmCurrency } from 'services/crossChain/quote/utils'
+import { useState } from 'react'
+import { Repeat } from 'react-feather'
+import { isEvmCurrency, isStableCurrency } from 'services/crossChain/quote/utils'
 import { getNetworkInfo } from 'services/crossChain/utils'
 import { formatUnits } from 'viem'
 
 import { ButtonPrimary } from 'components/Button'
+import IconButton from 'components/Button/IconButton'
 import CopyHelper from 'components/Copy'
 import CurrencyLogo from 'components/CurrencyLogo'
+import Divider from 'components/Divider'
 import { GasDropAmount } from 'components/GasDrop/GasDropAmount'
 import { HStack, Stack } from 'components/Stack'
 import {
@@ -17,11 +21,36 @@ import { getQuoteWarning } from 'components/SwapForm/CrossChain/hooks/getQuoteWa
 import type { ReviewedQuote } from 'components/SwapForm/CrossChain/hooks/useQuoteSession'
 import { SwapReviewAmountCard, SwapReviewHeader } from 'components/SwapForm/SwapModal/SwapReviewLayout'
 import TransactionConfirmationModal, { TransactionErrorContent } from 'components/TransactionConfirmationModal'
-import { ExternalLink } from 'theme'
+import { ExternalLinkNoLineHeight } from 'theme'
 import { Chain, Currency, GasDropQuote, NonEvmChain, isEvmChain } from 'types/crossChain'
 import { shortenHash } from 'utils/address'
+import { cn } from 'utils/cn'
 import { getEtherscanLink } from 'utils/explorer'
 import { formatDisplayNumber } from 'utils/numbers'
+
+const CrossChainReviewRate = ({ quote }: { quote: ReviewedQuote }) => {
+  const [inverted, setInverted] = useState(false)
+  const { fromToken, toToken, fromChain, toChain } = quote.quote.quoteParams
+  const defaultInverted = isStableCurrency(fromToken, fromChain) && !isStableCurrency(toToken, toChain)
+  const showInverted = defaultInverted !== inverted
+  const baseCurrency = showInverted ? toToken : fromToken
+  const quoteCurrency = showInverted ? fromToken : toToken
+  const rate = showInverted ? 1 / quote.quote.rate : quote.quote.rate
+
+  return (
+    <HStack className="min-h-6 items-center gap-1 text-xs">
+      <span className="min-w-max font-normal text-subText">
+        <Trans>Rate:</Trans>
+      </span>
+      <span className="whitespace-nowrap font-medium text-text">
+        1 {baseCurrency.symbol} = {formatDisplayNumber(rate, { significantDigits: 8 })} {quoteCurrency.symbol}
+      </span>
+      <IconButton variant="compact" aria-label="Invert exchange rate" onClick={() => setInverted(value => !value)}>
+        <Repeat size={12} className="text-text" />
+      </IconButton>
+    </HStack>
+  )
+}
 
 type CrossChainReviewAmountProps = {
   chainId: Chain
@@ -104,8 +133,14 @@ export const CrossChainSwapConfirmation = ({
     toToken: currencyOut,
     amount: amountInWei,
     recipient,
+    sender,
     slippage,
   } = reviewedQuote.quote.quoteParams
+  const hasDifferentRecipient =
+    !!sender &&
+    (isEvmChain(fromChainId) && isEvmChain(toChainId)
+      ? recipient.toLowerCase() !== sender.toLowerCase()
+      : recipient !== sender)
   const amount = formatUnits(BigInt(amountInWei), currencyIn.decimals)
 
   const warning = getQuoteWarning({
@@ -146,70 +181,77 @@ export const CrossChainSwapConfirmation = ({
               subtitle={t`Please review the details of your swap`}
               onDismiss={() => onDismiss?.()}
             />
-            <Stack className="min-w-0 gap-2">
-              <CrossChainReviewAmount
-                label={t`Input Amount`}
-                chainId={fromChainId}
-                currency={currencyIn}
-                amount={amount}
-                amountUsd={reviewedQuote.quote.inputUsd}
-              />
-              <CrossChainReviewAmount
-                label={t`Output Amount`}
-                isOutput
-                chainId={toChainId}
-                currency={currencyOut}
-                amount={reviewedQuote.quote.formattedOutputAmount}
-                amountUsd={reviewedQuote.quote.outputUsd}
-                gasDrop={reviewedQuote.quote.gasDrop}
-              />
+            <Stack className="gap-1">
+              <CrossChainReviewRate quote={reviewedQuote} />
+              <Stack className="min-w-0 gap-2">
+                <CrossChainReviewAmount
+                  label={t`Input Amount`}
+                  chainId={fromChainId}
+                  currency={currencyIn}
+                  amount={amount}
+                  amountUsd={reviewedQuote.quote.inputUsd}
+                />
+                <CrossChainReviewAmount
+                  label={t`Output Amount`}
+                  isOutput
+                  chainId={toChainId}
+                  currency={currencyOut}
+                  amount={reviewedQuote.quote.formattedOutputAmount}
+                  amountUsd={reviewedQuote.quote.outputUsd}
+                  gasDrop={reviewedQuote.quote.gasDrop}
+                />
+              </Stack>
             </Stack>
-            <HStack className="min-h-5 flex-wrap items-center justify-between gap-3 rounded-2xl border border-border px-4 py-3">
-              <span className="text-xs text-subText">{t`Recipient`}</span>
-              <HStack className="min-w-0 items-center gap-1 text-xs font-medium text-subText">
-                <ExternalLink
-                  className="min-w-0 break-all text-text no-underline"
-                  href={
-                    toChainId === NonEvmChain.Solana
-                      ? `https://solscan.io/account/${recipient}`
-                      : toChainId === NonEvmChain.Near
-                      ? `https://nearblocks.io/address/${recipient}`
-                      : toChainId === NonEvmChain.Bitcoin
-                      ? `https://mempool.space/address/${recipient}`
-                      : getEtherscanLink(toChainId, recipient, 'address')
-                  }
-                >
-                  {recipient.includes('.near') ? recipient : shortenHash(recipient)} ↗
-                </ExternalLink>
-                <CopyHelper toCopy={recipient} />
-              </HStack>
-            </HStack>
-            <Stack className="gap-2 rounded-2xl border border-border px-4 py-3 text-xs">
+            <Stack className="gap-2 px-2 py-1 text-xs">
               <CrossChainQuoteSummaryRows
                 quote={reviewedQuote}
                 tokenOut={currencyOut}
                 slippage={slippage}
                 warning={warning}
-                full
+                showEstimatedTime={false}
               />
+              <Divider className="my-1 bg-border/40" />
+              <HStack className="min-h-5 flex-wrap items-center justify-between gap-3">
+                <span className="text-xs text-subText">{t`Recipient`}</span>
+                <HStack className="min-w-0 items-center gap-1 text-xs font-medium">
+                  <img src={getNetworkInfo(toChainId).icon} alt="network icon" width="14px" height="14px" />
+                  <ExternalLinkNoLineHeight
+                    className={cn(
+                      'min-w-0 break-all underline [text-decoration-style:dotted]',
+                      hasDifferentRecipient ? 'text-primary' : 'text-text',
+                    )}
+                    href={
+                      toChainId === NonEvmChain.Solana
+                        ? `https://solscan.io/account/${recipient}`
+                        : toChainId === NonEvmChain.Near
+                        ? `https://nearblocks.io/address/${recipient}`
+                        : toChainId === NonEvmChain.Bitcoin
+                        ? `https://mempool.space/address/${recipient}`
+                        : getEtherscanLink(toChainId, recipient, 'address')
+                    }
+                  >
+                    {recipient.includes('.near') ? recipient : shortenHash(recipient, 4)}
+                  </ExternalLinkNoLineHeight>
+                  <CopyHelper toCopy={recipient} margin="0" />
+                </HStack>
+              </HStack>
             </Stack>
 
             <CrossChainPriceImpactWarning warning={warning} />
 
-            <span className="flex items-center gap-1 text-xs font-medium text-gray">
-              <span>
-                <Trans>Routed via</Trans>
-              </span>
-              <QuoteProviderName quote={reviewedQuote} />
-            </span>
+            <Stack className="gap-2">
+              <ButtonPrimary
+                disabled={isSubmitting}
+                onClick={onConfirm}
+                className={hasVeryHighPriceImpact && !isSubmitting ? '!bg-red !text-text' : undefined}
+              >
+                {hasVeryHighPriceImpact ? t`Swap Anyway` : t`Confirm Swap`}
+              </ButtonPrimary>
 
-            <ButtonPrimary
-              disabled={isSubmitting}
-              onClick={onConfirm}
-              className={hasVeryHighPriceImpact && !isSubmitting ? '!bg-red !text-text' : undefined}
-            >
-              {hasVeryHighPriceImpact ? t`Swap Anyway` : t`Confirm Swap`}
-            </ButtonPrimary>
+              <span className="block text-center text-xs font-medium text-gray">
+                <Trans>Routed via</Trans> <QuoteProviderName quote={reviewedQuote} showIcon={false} />
+              </span>
+            </Stack>
           </Stack>
         )
       }}

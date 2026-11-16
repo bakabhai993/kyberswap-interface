@@ -4,7 +4,7 @@ import { BitcoinConnectModal } from 'components/Header/web3/WalletModal/BitcoinC
 import LocalLoader from 'components/LocalLoader'
 import { HStack, Stack } from 'components/Stack'
 import { CrossChainRecipientInput } from 'components/SwapForm/CrossChain/CrossChainRecipient'
-import { CrossChainSwapForm } from 'components/SwapForm/CrossChain/CrossChainSwapForm'
+import { KyberCrossSwapForm } from 'components/SwapForm/CrossChain/KyberCrossSwapForm'
 import { useSwapFormPair } from 'components/SwapForm/hooks/useSwapFormPair'
 import { useSwapInputAmount } from 'components/SwapForm/hooks/useSwapInputAmount'
 import { localTransactionToHistory } from 'components/SwapTransactions/history'
@@ -43,7 +43,7 @@ const KyberCrossContent = ({ pair }: { pair: ReturnType<typeof useSwapFormPair> 
         <Stack as="section" className="relative z-[1] w-full max-w-[425px] shrink-0 gap-4 lg:sticky lg:top-4">
           <Header activeTab={activeTab} activeMainTab={TAB.KYBER_CROSS} onTabChange={onTabChange} isCrossChainMode />
           <Stack className="relative w-full gap-4 rounded-[20px] bg-background p-4">
-            <CrossChainSwapForm
+            <KyberCrossSwapForm
               hidden={activeTab !== TAB.KYBER_CROSS}
               amount={swap.amount}
               onAmountChange={swap.setAmount}

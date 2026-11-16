@@ -9,6 +9,7 @@ import { CrossChainSwapAction } from 'components/SwapForm/CrossChain/CrossChainS
 import { CrossChainQuoteDetails } from 'components/SwapForm/CrossChain/Quote/CrossChainQuoteDetails'
 import { CrossChainPriceImpactWarning } from 'components/SwapForm/CrossChain/Quote/CrossChainQuoteSummary'
 import { GasDropOption } from 'components/SwapForm/CrossChain/Quote/GasDrop'
+import { QuoteProviderName } from 'components/SwapForm/CrossChain/Quote/QuoteProviderName'
 import { useCrossChainSwap } from 'components/SwapForm/CrossChain/hooks/useCrossChainSwap'
 import { useCrossChainWalletIntent } from 'components/SwapWallets/useCrossChainWalletIntent'
 import { isEvmChain } from 'types/crossChain'
@@ -56,7 +57,7 @@ const CrossChainSwap = () => {
         <CrossChainSwapAction />
         {!loading && selectedQuote && (
           <span className="text-center text-xs font-medium text-gray">
-            <Trans>Routed via</Trans> {selectedQuote.adapter.getName()}
+            <Trans>Routed via</Trans> <QuoteProviderName quote={selectedQuote} showIcon={false} />
           </span>
         )}
       </Stack>

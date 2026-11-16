@@ -66,10 +66,14 @@ the estimate avoids unnecessary calls but cannot eliminate this fallback.
 
 ## Comparison and selection
 
-Route Options places Gas Drop routes first and sorts each group by net output.
+Route Options places Gas Drop routes first. Within each group, the global Best Return
+route comes before the global Fastest route, then remaining routes sort by net output.
+Net output includes the priced native Gas Drop received and subtracts additional fees,
+converted to output-token units. Unpriced adjustments are omitted; without an output-token
+price, ranking falls back to output amount. Equal net outputs preserve their input order.
 It omits an ordinary provider once that provider has a Gas Drop route. Best Return
 compares net output across the whole list; Fastest uses valid nonnegative estimates,
-breaking ties by output. Selection changes both provider and mode.
+breaking ties by output. Both badges can appear on Gas Drop routes or on the same route. Selection changes both provider and mode.
 
 Refreshing alternatives take precedence over the previous full ordinary snapshot.
 Once settled, the later completion deadline determines which ordinary result is

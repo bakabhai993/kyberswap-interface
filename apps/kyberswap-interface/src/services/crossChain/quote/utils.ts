@@ -1,5 +1,6 @@
 import { ChainId, Currency as EvmCurrency } from '@kyberswap/ks-sdk-core'
 import { NormalizedQuote } from 'services/crossChain/adapters/types'
+import { getGasDropUsd } from 'services/crossChain/quote/normalizeQuote'
 import { Quote } from 'services/crossChain/registry'
 import { NEAR_STABLE_COINS, SOLANA_STABLE_COINS } from 'services/crossChain/utils'
 import { isAbstractStableToken } from 'services/crossChainTokens'
@@ -75,27 +76,59 @@ const getNetOutputAmount = (quote: NormalizedQuote): bigint => {
   const { outputAmount, additionalFeeUsd, quoteParams } = quote
   const { tokenOutUsd, toToken } = quoteParams
 
-  if (additionalFeeUsd && tokenOutUsd && tokenOutUsd > 0) {
-    const decimals = toToken?.decimals || 18
-    const additionalFeeInTokens = additionalFeeUsd / tokenOutUsd
+  const gasDropUsd = getGasDropUsd(quote)
+  const adjustmentUsd =
+    (Number.isFinite(gasDropUsd) && gasDropUsd > 0 ? gasDropUsd : 0) -
+    (Number.isFinite(additionalFeeUsd) ? additionalFeeUsd ?? 0 : 0)
+
+  if (adjustmentUsd && tokenOutUsd && Number.isFinite(tokenOutUsd) && tokenOutUsd > 0) {
+    const decimals = toToken?.decimals ?? 18
+    const adjustmentInTokens = adjustmentUsd / tokenOutUsd
 
     try {
-      const additionalFeeInSmallestUnit = parseUnits(additionalFeeInTokens.toFixed(decimals), decimals)
-      return outputAmount - additionalFeeInSmallestUnit
+      return outputAmount + parseUnits(adjustmentInTokens.toFixed(decimals), decimals)
     } catch (error) {
-      console.error('Error converting additional fee:', error)
+      console.error('Error converting net output adjustment:', error)
     }
   }
   return outputAmount
 }
 
 export const sortQuotesByNetOutput = (quotes: Quote[]) =>
-  [...quotes].sort((a, b) => (getNetOutputAmount(a.quote) < getNetOutputAmount(b.quote) ? 1 : -1))
+  [...quotes].sort((a, b) => {
+    const aNetOutput = getNetOutputAmount(a.quote)
+    const bNetOutput = getNetOutputAmount(b.quote)
+    return aNetOutput === bNetOutput ? 0 : aNetOutput < bNetOutput ? 1 : -1
+  })
 
 export const sortQuotesByOutput = (quotes: Quote[]) =>
   [...quotes].sort((a, b) =>
     a.quote.outputAmount === b.quote.outputAmount ? 0 : a.quote.outputAmount < b.quote.outputAmount ? 1 : -1,
   )
+
+/** Global badge winners, with Gas Drop grouping taking precedence over badge priority. */
+export const rankRouteOptions = (quotes: Quote[]) => {
+  const byNetOutput = sortQuotesByNetOutput(quotes)
+  const bestReturnQuote = byNetOutput[0]
+  const fastestQuote = quotes.reduce<Quote | undefined>((fastest, candidate) => {
+    const { timeEstimate, outputAmount } = candidate.quote
+    if (!Number.isFinite(timeEstimate) || timeEstimate < 0) return fastest
+    if (
+      !fastest ||
+      timeEstimate < fastest.quote.timeEstimate ||
+      (timeEstimate === fastest.quote.timeEstimate && outputAmount > fastest.quote.outputAmount)
+    )
+      return candidate
+    return fastest
+  }, undefined)
+  const badgePriority = (quote: Quote) => (quote === bestReturnQuote ? 0 : quote === fastestQuote ? 1 : 2)
+  const rankedQuotes = byNetOutput.sort(
+    (a, b) =>
+      Number(!!b.quote.quoteParams.gasDrop) - Number(!!a.quote.quoteParams.gasDrop) ||
+      badgePriority(a) - badgePriority(b),
+  )
+  return { rankedQuotes, bestReturnQuote, fastestQuote }
+}
 
 export const getMinimumOutputAmount = (quote: NormalizedQuote) =>
   quote.minimumOutputAmount !== undefined

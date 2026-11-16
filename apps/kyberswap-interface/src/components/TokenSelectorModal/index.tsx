@@ -14,7 +14,7 @@ import { useActiveWeb3React } from 'hooks'
 import useLast from 'hooks/useLast'
 import useTracking, { TRACKING_EVENT_TYPE } from 'hooks/useTracking'
 import { MEDIA_WIDTHS } from 'theme'
-import type { NonEvmChain, NonEvmCurrency } from 'types/crossChain'
+import type { Chain, NonEvmChain, NonEvmCurrency } from 'types/crossChain'
 import { cn } from 'utils/cn'
 
 type Props = {
@@ -23,6 +23,7 @@ type Props = {
   selectedCurrency?: Currency | null
   otherSelectedCurrency?: Currency | null
   customChainId?: ChainId
+  priorityChainIds?: Chain[]
   /** Form mode delegates chain changes to the caller. Defaults to form with onSelectChain, otherwise wallet. */
   chainSelectionMode?: 'wallet' | 'form'
   initialNonEvmChain?: NonEvmChain
@@ -64,6 +65,7 @@ const TokenSelectorModal = ({
   tooltip,
   onCurrencyImport,
   customChainId,
+  priorityChainIds,
   trackingSource,
   showDiscoveryTabs = true,
   networkSortBy = 'priority',
@@ -147,6 +149,7 @@ const TokenSelectorModal = ({
             onDismiss={selection.dismiss}
             onRequestSelect={selection.requestSelection}
             anchorChainId={anchorChainId}
+            priorityChainIds={priorityChainIds}
             chainSelectionMode={selection.chainSelectionMode}
             initialNonEvmChain={supportsNonEvm ? initialNonEvmChain : undefined}
             selectedNonEvmCurrency={supportsNonEvm ? selectedNonEvmCurrency : undefined}

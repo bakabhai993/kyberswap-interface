@@ -6,7 +6,7 @@ import { useBalanceAmountShortcuts } from 'components/CurrencyInputPanel/useBala
 import { useActiveWeb3React } from 'hooks'
 import useTracking, { TRACKING_EVENT_TYPE } from 'hooks/useTracking'
 import { WrapType } from 'hooks/useWrapCallback'
-import type { NonEvmChain, NonEvmCurrency } from 'types/crossChain'
+import type { Chain, NonEvmChain, NonEvmCurrency } from 'types/crossChain'
 import { getGasReservation } from 'utils/gasReserve'
 import { formatDisplayNumber } from 'utils/numbers'
 
@@ -28,6 +28,7 @@ type Props = {
   chainSelectionMode?: 'wallet' | 'form'
   onSelectNonEvmCurrency?: (chain: NonEvmChain, currency: NonEvmCurrency) => void
   customChainId?: ChainId
+  priorityChainIds?: Chain[]
 }
 /** Adapts form input/balance actions to the shared field. Token loading is supplied by the pair resolver. */
 const InputCurrencyPanel = ({
@@ -46,6 +47,7 @@ const InputCurrencyPanel = ({
   currencyLoading,
   onChangeCurrencyIn,
   customChainId,
+  priorityChainIds,
   chainSelectionMode,
   onSelectNonEvmCurrency,
 }: Props) => {
@@ -97,6 +99,7 @@ const InputCurrencyPanel = ({
       highlightCurrencySelect={highlightToken}
       estimatedUsd={inputUsd ? formatDisplayNumber(inputUsd, { style: 'currency', significantDigits: 4 }) : undefined}
       customChainId={customChainId}
+      priorityChainIds={priorityChainIds}
       chainSelectionMode={chainSelectionMode}
       onSelectNonEvmCurrency={onSelectNonEvmCurrency}
       trackingSource="swap"

@@ -101,7 +101,7 @@ const SwapReviewSummary = ({
         </PriceUpdateWarning>
       )}
 
-      <Stack className="gap-2">
+      <Stack className="gap-1">
         <HStack className="min-h-6 items-center gap-1">
           <span className="min-w-max text-xs font-normal text-subText">
             <Trans>Rate:</Trans>

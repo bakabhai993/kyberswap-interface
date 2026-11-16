@@ -154,6 +154,7 @@ export const UnifiedSwapForm = ({
           {typeof fromChainId !== 'number' ? (
             <Suspense fallback={<LocalLoader />}>
               <CrossChainCurrencyPanel
+                priorityChainIds={[fromChainId, toChainId]}
                 chain={fromChainId}
                 currency={currencyIn}
                 currencyLoading={isInputCurrencyLoading}
@@ -166,6 +167,7 @@ export const UnifiedSwapForm = ({
             </Suspense>
           ) : (
             <InputCurrencyPanel
+              priorityChainIds={[fromChainId, toChainId]}
               walletSelector={
                 typeof toChainId !== 'number' ? (
                   <div className="-my-1 -ml-2 flex">
@@ -200,6 +202,7 @@ export const UnifiedSwapForm = ({
           {toChainId && typeof toChainId !== 'number' ? (
             <Suspense fallback={<LocalLoader />}>
               <CrossChainCurrencyPanel
+                priorityChainIds={[fromChainId, toChainId]}
                 output
                 selectorChain={outputSelectorChain}
                 receiver={receiver}
@@ -216,6 +219,7 @@ export const UnifiedSwapForm = ({
             </Suspense>
           ) : (
             <OutputCurrencyPanel
+              priorityChainIds={[fromChainId, toChainId]}
               selectorChain={outputSelectorChain}
               footer={outputFooter}
               label={receiver}

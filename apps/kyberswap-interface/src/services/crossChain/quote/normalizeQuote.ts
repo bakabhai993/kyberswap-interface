@@ -6,17 +6,21 @@ import { NativeCurrencies } from 'constants/tokens'
 
 type QuoteInput = Omit<NormalizedQuote, 'formattedOutputAmount' | 'rate' | 'priceImpact'>
 
+export const getGasDropUsd = ({ gasDrop, quoteParams: params }: Pick<NormalizedQuote, 'gasDrop' | 'quoteParams'>) => {
+  const gasDropToken = NativeCurrencies[params.toChain as ChainId]
+  return gasDrop
+    ? gasDrop.amountUsd ??
+        (gasDropToken && params.gasDropTokenUsd && params.gasDropTokenUsd > 0
+          ? Number(formatUnits(BigInt(gasDrop.amount), gasDropToken.decimals)) * params.gasDropTokenUsd
+          : NaN)
+    : 0
+}
+
 export const normalizeQuote = (quote: QuoteInput): NormalizedQuote => {
-  const { quoteParams: params, outputAmount, inputUsd, outputUsd, gasDrop } = quote
+  const { quoteParams: params, outputAmount, inputUsd, outputUsd } = quote
   const formattedOutputAmount = formatUnits(outputAmount, params.toToken.decimals)
   const formattedInputAmount = formatUnits(BigInt(params.amount), params.fromToken.decimals)
-  const gasDropToken = NativeCurrencies[params.toChain as ChainId]
-  const gasDropUsd = gasDrop
-    ? gasDrop.amountUsd ??
-      (gasDropToken && params.gasDropTokenUsd && params.gasDropTokenUsd > 0
-        ? Number(formatUnits(BigInt(gasDrop.amount), gasDropToken.decimals)) * params.gasDropTokenUsd
-        : NaN)
-    : 0
+  const gasDropUsd = getGasDropUsd(quote)
   // Include native gas received only in price impact; outputUsd still describes the output token.
   const totalOutputUsd = outputUsd + gasDropUsd
   const hasPrices =

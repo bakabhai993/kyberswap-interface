@@ -40,7 +40,7 @@ import { isSupportStopMarket } from 'constants/networks'
 import { Z_INDEXS } from 'constants/styles'
 import { NativeCurrencies } from 'constants/tokens'
 import { CloseIcon } from 'theme'
-import { NonEvmChain, NonEvmChainInfo, NonEvmCurrency } from 'types/crossChain'
+import { Chain, NonEvmChain, NonEvmChainInfo, NonEvmCurrency } from 'types/crossChain'
 import { getTokenAddress } from 'utils/tokenInfo'
 
 const NonEvmTokenSelectorContent = lazy(
@@ -108,6 +108,7 @@ type Props = {
   selectedNonEvmCurrency?: NonEvmCurrency
   onSelectNonEvmCurrency?: (chain: NonEvmChain, currency: NonEvmCurrency) => void
   anchorChainId: ChainId
+  priorityChainIds?: Chain[]
   importChainId?: ChainId
   selectedCurrency?: Currency | null
   otherSelectedCurrency?: Currency | null
@@ -131,6 +132,7 @@ export const TokenSelectorContent = ({
   initialNonEvmChain,
   selectedNonEvmCurrency,
   anchorChainId,
+  priorityChainIds,
   importChainId,
   selectedCurrency,
   otherSelectedCurrency,
@@ -361,6 +363,7 @@ export const TokenSelectorContent = ({
         {showDiscoveryTabs && (
           <NetworkSidebar
             chains={networks}
+            priorityChainIds={priorityChainIds ?? [initialNonEvmChain ?? anchorChainId]}
             showAllNetworks={!requireOracle}
             selectedChainId={nonEvmChain ?? (allNetworks ? 'all' : selectedChainId)}
             onChange={selectNetwork}

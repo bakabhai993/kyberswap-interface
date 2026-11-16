@@ -84,6 +84,33 @@ const enableGas = async () => {
 }
 
 describe('Gas Drop route selection', () => {
+  it('sorts each route group by net output while keeping Gas Drop providers first', async () => {
+    mocks.getQuotes.mockImplementation(async (request: QuoteRequest) => {
+      const providers = request.params.gasDrop ? ['KyberCross', 'Mayan'] : ['KyberCross', 'Mayan', 'A', 'B']
+      request.onQuotes(
+        providers.map((provider, index) => {
+          const quote = makeQuote(request, provider)
+          quote.quote.quoteParams = { ...request.params, tokenOutUsd: 1 }
+          quote.quote.outputAmount = BigInt(100 - index) * 1_000_000n
+          quote.quote.additionalFeeUsd = index % 2 === 0 ? 5 : 0
+          if (quote.quote.gasDrop) quote.quote.gasDrop.amountUsd = 1
+          return quote
+        }),
+      )
+    })
+    await act(async () => render('100'))
+    await flushQuotes()
+    expect(state.routeOptions.map(({ adapter }) => adapter.getName())).toEqual(['Mayan', 'B', 'KyberCross', 'A'])
+
+    await enableGas()
+    expect(state.routeOptions.map(({ adapter, quote }) => [adapter.getName(), !!quote.quoteParams.gasDrop])).toEqual([
+      ['Mayan', true],
+      ['KyberCross', true],
+      ['B', false],
+      ['A', false],
+    ])
+  })
+
   it.each(['debounce', 'pending stream'])(
     'keeps confirmed Gas Drop through consecutive eligible edits during %s',
     async phase => {

@@ -32,11 +32,11 @@ type SwapReviewAmountCardProps = {
 
 /** Input/output cards share an 8px pair gap; the arrow sits at its midpoint. */
 export const SwapReviewAmountCard = ({ label, headerAside, isOutput, footer, children }: SwapReviewAmountCardProps) => (
-  <Stack className="relative min-w-0 gap-2 rounded-2xl border border-border px-4 py-3">
+  <Stack className="relative min-w-0 gap-2 rounded-2xl bg-white/[0.04] px-4 py-3">
     {isOutput && (
       <div
         aria-hidden
-        className="absolute -top-1 left-1/2 z-[1] flex size-5 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-buttonGray"
+        className="absolute -top-1 left-1/2 z-[1] flex size-5 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-tabActive"
       >
         <ArrowDown size={12} className="text-subText" />
       </div>

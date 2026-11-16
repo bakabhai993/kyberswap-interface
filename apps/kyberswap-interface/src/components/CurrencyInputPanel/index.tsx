@@ -86,6 +86,7 @@ interface CurrencyInputPanelProps {
   loadingText?: string
   selectClassName?: string
   selectorChain?: Chain
+  priorityChainIds?: Chain[]
   customChainId?: ChainId
   trackingSource?: string
   /** Show the selected tokens' ERC-8056 balances in display units in the token selector. */
@@ -132,6 +133,7 @@ const CurrencyInputPanel = ({
   selectClassName,
   customChainId,
   selectorChain,
+  priorityChainIds,
   trackingSource,
   scaleERC8056Balances,
   balanceActionsEnabled: balanceActionsEnabledProp,
@@ -233,6 +235,7 @@ const CurrencyInputPanel = ({
             scaleERC8056Balances={scaleERC8056Balances}
             showPinnedTokens={showPinnedTokens}
             customChainId={typeof selectorChain === 'number' ? selectorChain : customChainId}
+            priorityChainIds={priorityChainIds}
             initialNonEvmChain={typeof selectorChain === 'string' ? selectorChain : undefined}
             trackingSource={trackingSource}
             requireOracle={requireOracle}

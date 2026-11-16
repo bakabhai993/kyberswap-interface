@@ -52,7 +52,7 @@ const SwapDetails = ({ isLoading, gasUsd, minimumAmountOut, priceImpact, buildDa
   const slippageStatus = checkRangeSlippage(rawSlippage, cat)
 
   return (
-    <Stack className="gap-2 rounded-2xl border border-border px-4 py-3">
+    <Stack className="gap-2 px-2 py-1">
       <DetailRow
         isLoading={isLoading}
         skeletonWidth="108px"

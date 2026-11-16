@@ -4,7 +4,7 @@ import { AnimatePresence, type HTMLMotionProps, motion, useReducedMotion } from 
 import { type ReactNode, useState } from 'react'
 import { Clock } from 'react-feather'
 import { useMedia } from 'react-use'
-import { sortQuotesByNetOutput } from 'services/crossChain/quote/utils'
+import { rankRouteOptions } from 'services/crossChain/quote/utils'
 import { Quote, getQuoteId } from 'services/crossChain/registry'
 import { formatUnits } from 'viem'
 
@@ -77,17 +77,8 @@ const RouteOptionsContent = ({
 }: RouteOptionsContentProps) => {
   const prefersReducedMotion = useReducedMotion()
   const FeeTooltip = upToLarge ? ClickTooltip : MouseoverTooltip
-  const bestReturnQuote = sortQuotesByNetOutput(quotes)[0]
-  const fastestQuoteIndex = quotes.reduce((fastestIndex, { quote }, index) => {
-    if (!Number.isFinite(quote.timeEstimate) || quote.timeEstimate < 0) return fastestIndex
-    if (fastestIndex === -1) return index
-
-    const fastestQuote = quotes[fastestIndex].quote
-    return quote.timeEstimate < fastestQuote.timeEstimate ||
-      (quote.timeEstimate === fastestQuote.timeEstimate && quote.outputAmount > fastestQuote.outputAmount)
-      ? index
-      : fastestIndex
-  }, -1)
+  const { rankedQuotes, bestReturnQuote, fastestQuote } = rankRouteOptions(quotes)
+  const displayedQuotes = routeBadge ? quotes : rankedQuotes
 
   return (
     <Stack className="size-full gap-3 text-text">
@@ -105,7 +96,7 @@ const RouteOptionsContent = ({
           className="flex max-h-full flex-col gap-3 overflow-y-auto"
         >
           <AnimatePresence initial={false}>
-            {quotes.map((quote, index) => {
+            {displayedQuotes.map((quote, index) => {
               const gasDrop = quote.quote.gasDrop
               const native = NativeCurrencies[quote.quote.quoteParams.toChain as ChainId]
               const formattedOutputAmount = formatDisplayNumber(quote.quote.formattedOutputAmount, {
@@ -178,7 +169,7 @@ const RouteOptionsContent = ({
                               {t`Best Return`}
                             </div>
                           )}
-                          {!quote.quote.quoteParams.gasDrop && index === fastestQuoteIndex && (
+                          {quote === fastestQuote && (
                             <div className="shrink-0 rounded-full bg-blue px-2 py-1 text-xs font-medium text-white">
                               {t`Fastest`}
                             </div>

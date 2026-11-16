@@ -21,7 +21,7 @@ Shared token picker for Swap, Limit Order, Pool, Earn, Wallet and other token in
 
 The selector starts on `customChainId`, falling back to the app chain. Single-chain browsing combines configured tokens and native currency with imports, favorites, wallet discoveries and catalog search. Local imports, native tokens and held discoveries remain searchable when the catalog omits them. RPC address lookup is a fallback where allowed.
 
-Networks use fixed priority by default; `networkSortBy="api"` opts into volume ordering. Pinned networks appear first. Form callers with non-EVM support also expose Blast and configured cross-chain-only EVM networks.
+Networks use fixed priority by default; `networkSortBy="api"` opts into volume ordering. The sidebar shows All Networks first, then the form's input and output networks (input first, without duplicates), pinned networks, and the remaining networks. Form callers with non-EVM support also expose Blast and configured cross-chain-only EVM networks.
 
 **All Networks** aggregates only the EVM networks exposed by the caller. All, Imported and Favorites observe each participating chain; Trending and New use their catalog sources and price fallback policy. Catalog and local rows merge before search, wrap/unwrap exclusion and ordering. Inventory discovers unknown holdings on supported chains; balance lookups on other chains cover known tokens only. Aggregate search does not run an all-chain RPC address scan.
 

@@ -19,11 +19,18 @@ const MotionScrollableWithSignal = motion.create(ScrollableWithSignal)
 type Props = {
   showAllNetworks?: boolean
   chains: TokenSelectorNetwork[]
+  priorityChainIds: TokenSelectorChain[]
   selectedChainId: TokenSelectorChain
   onChange?: (chainId: TokenSelectorChain) => void
 }
 
-export const NetworkSidebar = ({ chains, selectedChainId, onChange, showAllNetworks = true }: Props) => {
+export const NetworkSidebar = ({
+  chains,
+  priorityChainIds,
+  selectedChainId,
+  onChange,
+  showAllNetworks = true,
+}: Props) => {
   const [query, setQuery] = useState('')
   const prefersReducedMotion = useReducedMotion()
   const dispatch = useAppDispatch()
@@ -33,6 +40,12 @@ export const NetworkSidebar = ({ chains, selectedChainId, onChange, showAllNetwo
 
   const search = query.trim().toLowerCase()
   const sortedChains = [...chains].sort((a, b) => {
+    const aPriority = priorityChainIds.indexOf(a.chainId)
+    const bPriority = priorityChainIds.indexOf(b.chainId)
+    if (aPriority !== -1 || bPriority !== -1) {
+      return (aPriority === -1 ? Infinity : aPriority) - (bPriority === -1 ? Infinity : bPriority)
+    }
+
     const aIndex = pinnedChains?.indexOf(String(a.chainId)) ?? -1
     const bIndex = pinnedChains?.indexOf(String(b.chainId)) ?? -1
 

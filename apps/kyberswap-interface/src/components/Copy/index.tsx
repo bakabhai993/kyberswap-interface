@@ -55,6 +55,7 @@ const CopyHelper = forwardRef<HTMLDivElement, Props>(function CopyHelper(
         e.preventDefault()
         e.stopPropagation()
       }}
+      // TODO: Remove the default margin and let wrappers own spacing; migrate existing callers first.
       style={{ marginLeft: margin || '4px', ...style }}
       className={cn(
         'relative flex h-fit shrink-0 cursor-pointer items-center self-center overflow-hidden no-underline hover:opacity-80 focus:opacity-80 active:opacity-80',

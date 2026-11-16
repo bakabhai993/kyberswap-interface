@@ -18,7 +18,7 @@ import { ApprovalState } from 'hooks/useApproveCallback'
 import { useNearBalances } from 'hooks/useNearBalances'
 import { restrictedTokenMessage, useIsTokenAddressRestricted } from 'hooks/useRestrictedTokens'
 import { useChangeNetwork } from 'hooks/web3/useChangeNetwork'
-import { ConfirmationPopup } from 'pages/KyberCross/components/ConfirmationPopup'
+import { KyberCrossSwapConfirmation } from 'pages/KyberCross/components/KyberCrossSwapConfirmation'
 import { useKyberCrossSwap } from 'pages/KyberCross/hooks/useKyberCrossSwap'
 import { useWalletModalToggle } from 'state/application/hooks'
 import { useCurrencyBalance } from 'state/wallet/hooks'
@@ -269,7 +269,7 @@ export const SwapAction = ({ setShowBtcModal }: { setShowBtcModal: (val: boolean
   return (
     <>
       {termAndPolicyModal}
-      <ConfirmationPopup
+      <KyberCrossSwapConfirmation
         quote={reviewQuote}
         isOpen={showPreview}
         onDismiss={() => {
