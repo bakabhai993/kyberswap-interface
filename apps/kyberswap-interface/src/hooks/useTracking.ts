@@ -290,6 +290,8 @@ export enum TRACKING_EVENT_TYPE {
 
   // Cross-chain execution flow
   CC_ROUTE_VIEWED,
+  CC_ROUTES_OPENED,
+  CC_ROUTES_SELECTED,
   CC_REVIEW_OPENED,
   CC_SWAP_INITIATED,
   CC_SWAP_COMPLETED,
@@ -307,6 +309,17 @@ export enum TRACKING_EVENT_TYPE {
   CC_SLIPPAGE_CHANGED,
   CC_ROUTING_SOURCE_TOGGLED,
   CC_SETTINGS_SAVED,
+  CC_SEND_TO_ANOTHER_WALLET_CLICKED,
+  CC_ANOTHER_WALLET_PASTED,
+  CC_SETTINGS_SEND_TO_ANOTHER_WALLET_CLICKED,
+  CC_SETTINGS_ANOTHER_WALLET_PASTED,
+  CC_HISTORY_VIEWED,
+  CC_GAS_DROP_SELECTED,
+  CC_GAS_DROP_UNSELECTED,
+
+  // Swap settings interactions
+  SWAP_SETTINGS_SEND_TO_ANOTHER_WALLET_CLICKED,
+  SWAP_SETTINGS_ANOTHER_WALLET_PASTED,
 
   // Earn: Add Liquidity
   LIQ_POOL_SELECTED,
@@ -1733,7 +1746,15 @@ export default function useTracking(currencies?: { [field in Field]?: Currency }
 
         // Cross-chain execution flow events
         case TRACKING_EVENT_TYPE.CC_ROUTE_VIEWED: {
-          formoTrack('Cross-Chain Route Viewed', payload)
+          formoTrack('Cross Chain Swap - Routes selected', payload)
+          break
+        }
+        case TRACKING_EVENT_TYPE.CC_ROUTES_OPENED: {
+          formoTrack('Cross Chain Swap - Routes opened', payload)
+          break
+        }
+        case TRACKING_EVENT_TYPE.CC_ROUTES_SELECTED: {
+          formoTrack('Cross Chain Swap - Routes selected', payload)
           break
         }
         case TRACKING_EVENT_TYPE.CC_REVIEW_OPENED: {
@@ -1781,7 +1802,7 @@ export default function useTracking(currencies?: { [field in Field]?: Currency }
           break
         }
         case TRACKING_EVENT_TYPE.CC_SLIPPAGE_CHANGED: {
-          formoTrack('Cross-Chain Slippage Changed', payload)
+          formoTrack('Cross Chain Swap - Slippage changed', payload)
           break
         }
         case TRACKING_EVENT_TYPE.CC_ROUTING_SOURCE_TOGGLED: {
@@ -1790,6 +1811,42 @@ export default function useTracking(currencies?: { [field in Field]?: Currency }
         }
         case TRACKING_EVENT_TYPE.CC_SETTINGS_SAVED: {
           formoTrack('Cross-Chain Settings Saved', payload)
+          break
+        }
+        case TRACKING_EVENT_TYPE.CC_SEND_TO_ANOTHER_WALLET_CLICKED: {
+          formoTrack('Cross Chain Swap - Send to another wallet clicked', payload)
+          break
+        }
+        case TRACKING_EVENT_TYPE.CC_ANOTHER_WALLET_PASTED: {
+          formoTrack('Cross Chain Swap - Another wallet pasted', payload)
+          break
+        }
+        case TRACKING_EVENT_TYPE.CC_SETTINGS_SEND_TO_ANOTHER_WALLET_CLICKED: {
+          formoTrack('Cross Chain Swap settings - Send to another wallet clicked', payload)
+          break
+        }
+        case TRACKING_EVENT_TYPE.CC_SETTINGS_ANOTHER_WALLET_PASTED: {
+          formoTrack('Cross Chain Swap settings - Another wallet pasted', payload)
+          break
+        }
+        case TRACKING_EVENT_TYPE.CC_HISTORY_VIEWED: {
+          formoTrack('Cross Chain Swap - History Viewed', payload)
+          break
+        }
+        case TRACKING_EVENT_TYPE.CC_GAS_DROP_SELECTED: {
+          formoTrack('Cross Chain Swap - Gas drop selected', payload)
+          break
+        }
+        case TRACKING_EVENT_TYPE.CC_GAS_DROP_UNSELECTED: {
+          formoTrack('Cross Chain Swap - Gas drop unselected', payload)
+          break
+        }
+        case TRACKING_EVENT_TYPE.SWAP_SETTINGS_SEND_TO_ANOTHER_WALLET_CLICKED: {
+          formoTrack('Swap settings - Send to another wallet clicked', payload)
+          break
+        }
+        case TRACKING_EVENT_TYPE.SWAP_SETTINGS_ANOTHER_WALLET_PASTED: {
+          formoTrack('Swap settings - Another wallet pasted', payload)
           break
         }
 

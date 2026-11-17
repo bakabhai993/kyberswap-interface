@@ -14,6 +14,7 @@ import { Header } from 'components/TradeLayout/Header'
 import { TAB } from 'components/TradeLayout/Tabs'
 import { LiquiditySourcesPanel, SwapSettingsPanel, TokenInfo } from 'components/TradeLayout/lazyPanels'
 import { TutorialIds } from 'components/Tutorial/TutorialSwap/constant'
+import useTracking, { TRACKING_EVENT_TYPE } from 'hooks/useTracking'
 import CrossChainRightPanel from 'pages/Swap/components/CrossChainRightPanel'
 import { SingleChainRightPanel } from 'pages/Swap/components/SingleChainRightPanel'
 import { Field } from 'state/swap/actions'
@@ -76,12 +77,19 @@ const SwapPageContent = ({
   onHistoryChange,
 }: Props) => {
   const crossChainReady = !!useOptionalCrossChainSwap()
+  const { trackingHandler } = useTracking()
   const reduceMotion = useReducedMotion()
   const wallets = useSwapWallets()
   const rightPanelRef = useRef<HTMLElement>(null)
 
   const handleHistoryChange = (visible: boolean) => {
     onHistoryChange(visible)
+    if (visible && isCrossChain) {
+      trackingHandler(TRACKING_EVENT_TYPE.CC_HISTORY_VIEWED, {
+        input_chain: inputChain,
+        output_chain: outputChain,
+      })
+    }
     if (!visible || !window.matchMedia(`(max-width: ${MEDIA_WIDTHS.upToLarge}px)`).matches) return
 
     // Use the persistent panel after React commits the new layout, independent of its entry animation.

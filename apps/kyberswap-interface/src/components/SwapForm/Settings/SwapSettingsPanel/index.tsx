@@ -48,6 +48,7 @@ const SingleChainSendToAnotherWalletSetting = ({ onApply }: { onApply: () => voi
   return (
     <SendToAnotherWalletSetting
       mode="evm"
+      trackingScope="swap"
       disabled={isWrapOrUnwrap}
       recipientInputValue={recipientInputValue}
       onApply={value => {

@@ -12,10 +12,12 @@ import { GasDropOption } from 'components/SwapForm/CrossChain/Quote/GasDrop'
 import { QuoteProviderName } from 'components/SwapForm/CrossChain/Quote/QuoteProviderName'
 import { useCrossChainSwap } from 'components/SwapForm/CrossChain/hooks/useCrossChainSwap'
 import { useCrossChainWalletIntent } from 'components/SwapWallets/useCrossChainWalletIntent'
+import useTracking, { TRACKING_EVENT_TYPE } from 'hooks/useTracking'
 import { isEvmChain } from 'types/crossChain'
 
 export const CrossChainOutputFooter = () => {
   const swap = useCrossChainSwap()
+  const { trackingHandler } = useTracking()
   if (!swap.gasDropAvailable) return null
   return (
     <GasDropOption
@@ -27,7 +29,13 @@ export const CrossChainOutputFooter = () => {
       unsupported={swap.gasDropUnsupported}
       loading={swap.gasDropEnabled && swap.loading && !swap.selectedQuote}
       onRequest={swap.prepareGasDrop}
-      onChange={swap.setGasDropEnabled}
+      onChange={enabled => {
+        trackingHandler(
+          enabled ? TRACKING_EVENT_TYPE.CC_GAS_DROP_SELECTED : TRACKING_EVENT_TYPE.CC_GAS_DROP_UNSELECTED,
+          { provider: swap.selectedQuote?.adapter.getName(), chain: swap.toChainId },
+        )
+        swap.setGasDropEnabled(enabled)
+      }}
     />
   )
 }

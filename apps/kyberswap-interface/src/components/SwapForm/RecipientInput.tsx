@@ -1,4 +1,5 @@
 import { Trans, t } from '@lingui/macro'
+import type { ClipboardEventHandler } from 'react'
 import { ChevronDown, X } from 'react-feather'
 
 import { ReactComponent as RecipientWalletIcon } from 'assets/svg/recipient_wallet.svg'
@@ -17,6 +18,7 @@ type RecipientInputProps = {
   error?: boolean
   onChange: (value: string) => void
   onToggle: () => void
+  onPaste?: ClipboardEventHandler<HTMLInputElement>
 } & RecipientAddressType
 
 export const RecipientToggle = ({ expanded, onToggle }: Pick<RecipientInputProps, 'expanded' | 'onToggle'>) => (
@@ -74,10 +76,11 @@ type RecipientAddressInputProps = RecipientAddressType & {
   autoFocus?: boolean
   placeholder?: string
   onChange: (value: string) => void
+  onPaste?: ClipboardEventHandler<HTMLInputElement>
 }
 
 export const RecipientAddressInput = (props: RecipientAddressInputProps) => {
-  const { value, error, disabled, autoFocus, placeholder, onChange } = props
+  const { value, error, disabled, autoFocus, placeholder, onChange, onPaste } = props
   const networkName = props.mode === 'evm' ? 'EVM' : props.networkName
   return (
     <AddressInput
@@ -92,6 +95,7 @@ export const RecipientAddressInput = (props: RecipientAddressInputProps) => {
         const input = event.target.value.replace(/\s+/g, '')
         onChange(props.mode === 'evm' ? normalizeEvmAddressInput(input) : input)
       }}
+      onPaste={onPaste}
       icon={
         value ? (
           <button

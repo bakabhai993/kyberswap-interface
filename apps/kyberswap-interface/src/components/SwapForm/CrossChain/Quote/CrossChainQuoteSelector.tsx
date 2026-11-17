@@ -270,13 +270,23 @@ export const CrossChainQuoteSelectorView = ({
     onChange(quote)
     setShow(false)
     if (routeKey(quote) !== (selectedQuote ? routeKey(selectedQuote) : null)) {
-      trackingHandler(TRACKING_EVENT_TYPE.CC_ROUTE_VIEWED, {
+      trackingHandler(TRACKING_EVENT_TYPE.CC_ROUTES_SELECTED, {
         routing_source: quote.adapter.getName(),
         amount_out: quote.quote.formattedOutputAmount,
         amount_out_usd: quote.quote.outputUsd,
         time_estimate: quote.quote.timeEstimate,
         from_chain: quote.quote.quoteParams.fromChain,
         to_chain: quote.quote.quoteParams.toChain,
+      })
+    }
+  }
+
+  const toggleRoutes = () => {
+    const nextShow = !show
+    setShow(nextShow)
+    if (nextShow) {
+      trackingHandler(TRACKING_EVENT_TYPE.CC_ROUTES_OPENED, {
+        route_count: quotes.length,
       })
     }
   }
@@ -295,7 +305,7 @@ export const CrossChainQuoteSelectorView = ({
   if (upToLarge) {
     return (
       <>
-        <CrossChainRoutesButton expanded={show} onClick={() => setShow(prev => !prev)} />
+        <CrossChainRoutesButton expanded={show} onClick={toggleRoutes} />
         <Modal
           isOpen={show}
           onDismiss={() => {
@@ -317,7 +327,7 @@ export const CrossChainQuoteSelectorView = ({
       isOpen={show}
       trigger={<CrossChainRoutesButton expanded={show} />}
       hasArrow={false}
-      toggle={() => setShow(prev => !prev)}
+      toggle={toggleRoutes}
       className="bg-background"
       style={{
         width: '425px',

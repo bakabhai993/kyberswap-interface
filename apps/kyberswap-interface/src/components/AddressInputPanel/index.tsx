@@ -22,13 +22,14 @@ type Props = {
   className?: string
   inputClassName?: string
   style?: CSSProperties
-} & Pick<DOMAttributes<HTMLInputElement>, 'onBlur' | 'onFocus' | 'onChange' | 'onClick'>
+} & Pick<DOMAttributes<HTMLInputElement>, 'onBlur' | 'onFocus' | 'onChange' | 'onClick' | 'onPaste'>
 
 export function AddressInput({
   onChange,
   onFocus,
   onBlur,
   onClick,
+  onPaste,
   value,
   error = false,
   placeholder,
@@ -71,6 +72,7 @@ export function AddressInput({
             onBlur={onBlur}
             onFocus={onFocus}
             onChange={onChange}
+            onPaste={onPaste}
             value={value || ''}
           />
           {icon}
