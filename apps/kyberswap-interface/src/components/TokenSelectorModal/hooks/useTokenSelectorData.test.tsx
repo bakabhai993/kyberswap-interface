@@ -14,8 +14,10 @@ vi.mock('hooks', () => ({ useActiveWeb3React: () => ({}) }))
 vi.mock('hooks/useBalanceWait', () => ({ useBalanceWait: () => false }))
 vi.mock('state/user/hooks', () => ({ useUserAddedTokens: () => [] }))
 vi.mock('state/wallet/hooks', () => ({ useNativeBalance: () => undefined, useTokenBalances: () => ({}) }))
+vi.mock('components/TokenSelectorModal/hooks/useSelectorInventory', () => ({
+  useSelectorInventory: () => ({ active: false }),
+}))
 vi.mock('state/walletInventory/hooks', () => ({
-  useWalletInventory: () => ({ active: false }),
   useInventoryTokenBalances: () => ({}),
 }))
 vi.mock('state/walletInventory/metadata', () => ({ ensureTokenMetadata: vi.fn() }))

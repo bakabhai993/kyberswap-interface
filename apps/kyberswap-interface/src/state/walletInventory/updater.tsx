@@ -1,4 +1,5 @@
 import { ChainId } from '@kyberswap/ks-sdk-core'
+import { QueryClient, QueryFilters, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react'
 import { UnsupportedChainError, fetchWalletInventory } from 'services/walletInventory'
 
@@ -15,6 +16,7 @@ import {
   readMeta,
   readSubscriptions,
   readTouchedTokens,
+  subscribeInventoryExpiry,
   subscribeStore,
 } from 'state/walletInventory/store'
 
@@ -78,12 +80,32 @@ export const selectDue = (now: number, windowVisible: boolean): DueTarget[] => {
   return due
 }
 
+/** Cancel even an initial fetch, so confirmation always starts a new snapshot. */
+export const refreshSelectorInventory = async (client: QueryClient, chainId: number, account: string) => {
+  const filters: QueryFilters = {
+    queryKey: ['token-selector-inventory', account.toLowerCase()],
+    predicate: query => query.queryKey[2] === 'uni' || query.queryKey[2] === chainId,
+  }
+  await client.cancelQueries(filters)
+  await client.invalidateQueries(filters)
+}
+
 /**
  * Owns every request to the wallet-balances endpoint. Consumers only subscribe (see ./store), so one
  * poll serves the selector, the token list and the wallet popup at once rather than each racing.
  */
 export default function Updater(): null {
   const windowVisible = useIsWindowVisible()
+  const queryClient = useQueryClient()
+
+  // Invalidate both selector pools even while the modal is closed.
+  useEffect(
+    () =>
+      subscribeInventoryExpiry((chainId, account) => {
+        void refreshSelectorInventory(queryClient, chainId, account)
+      }),
+    [queryClient],
+  )
 
   // useSyncExternalStore rather than state, so a burst of mounts coalesces into one sweep.
   const storeVersion = useSyncExternalStore(subscribeStore, getStoreVersion, getStoreVersion)

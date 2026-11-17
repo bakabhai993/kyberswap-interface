@@ -7,6 +7,7 @@ import { ChainSnapshot } from 'components/TokenSelectorModal/AllNetworks/types'
 import { TokenSelectorTab } from 'components/TokenSelectorModal/constants'
 import { useInventoryDiscoveries } from 'components/TokenSelectorModal/hooks/useInventoryDiscoveries'
 import { useLocalTokenMetrics } from 'components/TokenSelectorModal/hooks/useLocalTokenMetrics'
+import { useSelectorInventory } from 'components/TokenSelectorModal/hooks/useSelectorInventory'
 import { splitFavoriteTokens } from 'components/TokenSelectorModal/hooks/useTokenFavorites'
 import { tokenRowKey } from 'components/TokenSelectorModal/types'
 import { NativeCurrencies } from 'constants/tokens'
@@ -16,7 +17,7 @@ import { useTokenPrices } from 'state/tokenPrices/hooks'
 import { useUserAddedTokens, useUserFavoriteTokens } from 'state/user/hooks'
 import { useEvmBalanceAccount } from 'state/wallet/WalletBalanceContext'
 import { useNativeBalance, useTokenBalancesWithLoadingIndicator } from 'state/wallet/hooks'
-import { useInventoryTokenBalances, useWalletInventory } from 'state/walletInventory/hooks'
+import { useInventoryTokenBalances } from 'state/walletInventory/hooks'
 import { getTokenAddress, isTokenNative } from 'utils/tokenInfo'
 
 const EMPTY_TOKENS: Token[] = []
@@ -56,7 +57,7 @@ const ChainTokensSource = ({ chainId, activeTab, session, catalogTokens, onSnaps
   })
 
   // Imported/Favorites also need inventory for balances and imported-symbol impersonation checks.
-  const inventory = useWalletInventory(chainId)
+  const inventory = useSelectorInventory(chainId, true, true)
   const { tokens: discoveries, impersonators } = useInventoryDiscoveries(inventory, defaultTokens, imports, chainId)
 
   const currencies = useMemo<Currency[]>(() => {
@@ -91,7 +92,7 @@ const ChainTokensSource = ({ chainId, activeTab, session, catalogTokens, onSnaps
     [currencies],
   )
   const [rpc, rpcLoading] = useTokenBalancesWithLoadingIndicator(
-    account && !inventory.active ? tokens : EMPTY_TOKENS,
+    account && inventory.allowRpcFallback ? tokens : EMPTY_TOKENS,
     chainId,
   )
   const indexed = useInventoryTokenBalances(tokens, inventory)

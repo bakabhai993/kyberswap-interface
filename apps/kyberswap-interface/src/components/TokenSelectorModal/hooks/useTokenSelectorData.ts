@@ -4,6 +4,7 @@ import { useMedia } from 'react-use'
 
 import { TokenSelectorTab } from 'components/TokenSelectorModal/constants'
 import { useInventoryDiscoveries } from 'components/TokenSelectorModal/hooks/useInventoryDiscoveries'
+import { useSelectorInventory } from 'components/TokenSelectorModal/hooks/useSelectorInventory'
 import { useTokenFavorites } from 'components/TokenSelectorModal/hooks/useTokenFavorites'
 import { useTokenSearch } from 'components/TokenSelectorModal/hooks/useTokenSearch'
 import { useTokenSelectorSource } from 'components/TokenSelectorModal/hooks/useTokenSelectorSource'
@@ -16,7 +17,7 @@ import { useUserAddedTokens } from 'state/user/hooks'
 import { useEvmBalanceAccount } from 'state/wallet/WalletBalanceContext'
 import { useNativeBalance, useTokenBalances } from 'state/wallet/hooks'
 import { isTokenListReady } from 'state/walletInventory/assets'
-import { useInventoryTokenBalances, useWalletInventory } from 'state/walletInventory/hooks'
+import { useInventoryTokenBalances } from 'state/walletInventory/hooks'
 import { ensureTokenMetadata } from 'state/walletInventory/metadata'
 import { MEDIA_WIDTHS } from 'theme'
 import { filterTruthy } from 'utils/array'
@@ -83,7 +84,7 @@ export const useTokenSelectorData = ({
   )
 
   // Inventory replaces per-block balance reads on supported chains; the inactive source receives no tokens.
-  const inventory = useWalletInventory(primaryChainId, enabled)
+  const inventory = useSelectorInventory(primaryChainId, enabled && !isTrendingTab && !isNewTab)
 
   // Unlisted holdings remain searchable and require import when selected.
   const { tokens: discoveryTokens, impersonators } = useInventoryDiscoveries(
@@ -169,8 +170,8 @@ export const useTokenSelectorData = ({
     [showDiscoveries, balanceTokens, discoveryTokens],
   )
 
-  // Stop RPC reads once inventory becomes active; both sorting and display switch together.
-  const multicallTokens = inventory.active ? EMPTY_TOKENS : balanceTokensWithDiscoveries
+  // Supported pools trust the API; only unsupported single chains read ERC20 balances through RPC.
+  const multicallTokens = inventory.allowRpcFallback ? balanceTokensWithDiscoveries : EMPTY_TOKENS
   const multicallBalances = useTokenBalances(multicallTokens, primaryChainId)
   const inventoryBalances = useInventoryTokenBalances(balanceTokensWithDiscoveries, inventory)
   const balances = inventory.active ? inventoryBalances : multicallBalances

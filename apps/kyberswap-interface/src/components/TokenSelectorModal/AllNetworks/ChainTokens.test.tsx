@@ -39,8 +39,10 @@ vi.mock('state/wallet/hooks', () => ({
   useNativeBalance: () => undefined,
   useTokenBalancesWithLoadingIndicator: () => [{}, false],
 }))
+vi.mock('components/TokenSelectorModal/hooks/useSelectorInventory', () => ({
+  useSelectorInventory: () => ({ active: true, rows: mocks.rows, loading: false }),
+}))
 vi.mock('state/walletInventory/hooks', () => ({
-  useWalletInventory: (_chainId: number, enabled = true) => ({ active: enabled, rows: mocks.rows, loading: false }),
   useTokenMetadata: () => mocks.tokenMetadata,
   useInventoryTokenBalances: () => mocks.holdings,
 }))

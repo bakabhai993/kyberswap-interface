@@ -126,6 +126,15 @@ export const readSubscriptions = () => subscriptions
 export const readEntry = (key: string) => entries.get(key)
 export const readMeta = (key: string) => meta.get(key)
 
+type InventoryExpiryListener = (chainId: number, account: string) => void
+const expiryListeners = new Set<InventoryExpiryListener>()
+export const subscribeInventoryExpiry = (listener: InventoryExpiryListener) => {
+  expiryListeners.add(listener)
+  return () => {
+    expiryListeners.delete(listener)
+  }
+}
+
 /**
  * Marks the wallet's inventory due on the next sweep, e.g. after a transaction of theirs confirms.
  * `touched` names the tokens that transaction moved; they are read live while the watch is on.
@@ -136,6 +145,7 @@ export const expireInventory = (
   awaitingBlock?: number,
   touched: readonly string[] = NO_ADDRESSES,
 ) => {
+  expiryListeners.forEach(listener => listener(chainId, account))
   // Confirmed transactions arrive from every chain the app serves; only the indexed ones have an
   // inventory to refresh, and writing meta for the rest would accrete dead keys and wake subscribers
   // over data no sweep will ever fetch.
