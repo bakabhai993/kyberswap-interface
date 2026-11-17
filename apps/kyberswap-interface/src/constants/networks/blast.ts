@@ -1,6 +1,5 @@
 import { ChainId } from '@kyberswap/ks-sdk-core'
 
-import blastIcon from 'assets/networks/blast.svg'
 import ethereumIcon from 'assets/networks/ethereum.svg'
 import { NetworkInfo } from 'constants/networks/type'
 
@@ -14,7 +13,6 @@ const scroll: NetworkInfo = {
   priceRoute: 'blast',
   aggregatorRoute: 'blast',
   name: 'Blast',
-  icon: blastIcon,
 
   iconSelected: NOT_SUPPORT,
 

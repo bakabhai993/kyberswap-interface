@@ -12,6 +12,7 @@ import Divider from 'components/Divider'
 import Dots from 'components/Dots'
 import { Terms } from 'components/Header/web3/WalletModal/components'
 import InfoHelper from 'components/InfoHelper'
+import { NetworkLogo } from 'components/Logo'
 import Modal from 'components/Modal'
 import { wagmiConfig } from 'components/Web3Provider'
 import { NETWORKS_INFO } from 'constants/networks'
@@ -375,7 +376,7 @@ export default function InstantClaimModal({ onDismiss, phase }: { onDismiss: () 
                     <div className="mt-4 rounded-xl bg-tableHeader px-4 py-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1.5">
-                          <img alt="" src={network.icon} width={18} /> <div className="text-base">{network.name}</div>
+                          <NetworkLogo chainId={chain} width={18} /> <div className="text-base">{network.name}</div>
                         </div>
                         <ButtonPrimary
                           disabled={claimed[index]}
@@ -404,7 +405,7 @@ export default function InstantClaimModal({ onDismiss, phase }: { onDismiss: () 
                   ) : (
                     <div className={cn(TABLE_GRID, 'mt-0 items-center rounded-xl bg-buttonGray text-text')}>
                       <div className="flex items-center gap-1.5">
-                        <img alt="" src={network.icon} width={18} /> <div className="text-base">{network.name}</div>
+                        <NetworkLogo chainId={chain} width={18} /> <div className="text-base">{network.name}</div>
                       </div>
                       <div className="text-right text-lg font-medium">{format(totalValue)}</div>
                       <div className="text-right text-lg font-medium">{format(currentValue)}</div>

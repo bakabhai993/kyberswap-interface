@@ -2,7 +2,7 @@ import { Trans, t } from '@lingui/macro'
 import { useState } from 'react'
 import { Repeat } from 'react-feather'
 import { isEvmCurrency, isStableCurrency } from 'services/crossChain/quote/utils'
-import { getNetworkInfo } from 'services/crossChain/utils'
+import { getChainName } from 'services/crossChain/utils'
 import { formatUnits } from 'viem'
 
 import { ButtonPrimary } from 'components/Button'
@@ -11,6 +11,7 @@ import CopyHelper from 'components/Copy'
 import CurrencyLogo from 'components/CurrencyLogo'
 import Divider from 'components/Divider'
 import { GasDropAmount } from 'components/GasDrop/GasDropAmount'
+import { NetworkLogo } from 'components/Logo'
 import { HStack, Stack } from 'components/Stack'
 import {
   CrossChainPriceImpactWarning,
@@ -77,7 +78,7 @@ const CrossChainReviewAmount = ({
   label,
   isOutput,
 }: CrossChainReviewAmountProps) => {
-  const { name, icon } = getNetworkInfo(chainId)
+  const name = getChainName(chainId)
 
   return (
     <SwapReviewAmountCard
@@ -86,7 +87,13 @@ const CrossChainReviewAmount = ({
       footer={gasDrop && <GasDropAmount gasDrop={gasDrop} chain={chainId} />}
       headerAside={
         <HStack className="items-center gap-1">
-          <img src={icon} alt={chainId.toString()} width={16} height={16} className="shrink-0 rounded-full" />
+          <NetworkLogo
+            chainId={chainId}
+            alt={chainId.toString()}
+            width={16}
+            height={16}
+            className="shrink-0 rounded-full"
+          />
           <span>{name}</span>
         </HStack>
       }
@@ -230,7 +237,7 @@ export const CrossChainSwapConfirmation = ({
             <HStack className="min-h-5 flex-wrap items-center justify-between gap-3">
               <span className="text-xs text-subText">{t`Recipient`}</span>
               <HStack className="min-w-0 items-center gap-1 text-xs font-medium">
-                <img src={getNetworkInfo(toChainId).icon} alt="network icon" width="14px" height="14px" />
+                <NetworkLogo chainId={toChainId} alt="network icon" width="14px" height="14px" />
                 <ExternalLinkNoLineHeight
                   className={cn(
                     'min-w-0 break-all underline [text-decoration-style:dotted]',

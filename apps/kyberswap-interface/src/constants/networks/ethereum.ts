@@ -15,7 +15,6 @@ const ethereumInfo: NetworkInfo = {
   priceRoute: 'ethereum',
   aggregatorRoute: 'ethereum',
   name: 'Ethereum',
-  icon: ethereumIcon,
   iconSelected: NOT_SUPPORT,
 
   etherscanUrl: 'https://etherscan.io',

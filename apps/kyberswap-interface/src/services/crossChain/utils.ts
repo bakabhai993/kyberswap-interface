@@ -2,7 +2,7 @@ import { ChainId, WETH } from '@kyberswap/ks-sdk-core'
 import type { Quote } from 'services/crossChain/registry'
 
 import { NETWORKS_INFO } from 'constants/networks'
-import { type Chain, type Currency, NonEvmChain, NonEvmChainInfo, isEvmChain } from 'types/crossChain'
+import { type Currency, NonEvmChain, NonEvmChainInfo, isEvmChain } from 'types/crossChain'
 
 export const CROSS_CHAIN_FEE_RECEIVER = '0x1111115af63bfbcc151e5753e2ea1a29c79d2f01'
 export const CROSS_CHAIN_FEE_RECEIVER_SOLANA = '3htqHCEhYzU9cs3hKpAs7fZLA8QNFJ2g9n7QPRPHnfRq'
@@ -13,15 +13,6 @@ export const SOLANA_NATIVE = '11111111111111111111111111111111'
 
 export const normalizeAdapterName = (name?: string): string => {
   return name?.toLowerCase().replace(/[\s_-]+/g, '') ?? ''
-}
-
-export const getNetworkInfo = (chain: Chain) => {
-  if (isEvmChain(chain))
-    return {
-      name: NETWORKS_INFO[chain as ChainId].name,
-      icon: NETWORKS_INFO[chain as ChainId].icon,
-    }
-  return NonEvmChainInfo[chain as NonEvmChain]
 }
 
 export const CANONICAL_TOKENS: Record<string, Record<number, string>> = {

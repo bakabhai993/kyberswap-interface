@@ -1,6 +1,5 @@
 import { ChainId } from '@kyberswap/ks-sdk-core'
 
-import etherlinkIcon from 'assets/networks/etherlink.svg'
 import { NetworkInfo } from 'constants/networks/type'
 
 const EMPTY_ARRAY: any[] = []
@@ -13,7 +12,6 @@ const etherlinkInfo: NetworkInfo = {
   priceRoute: 'etherlink',
   aggregatorRoute: 'etherlink',
   name: 'Etherlink',
-  icon: etherlinkIcon,
 
   iconSelected: NOT_SUPPORT,
 

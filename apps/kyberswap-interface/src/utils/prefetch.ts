@@ -1,12 +1,14 @@
 import { ChainId } from '@kyberswap/ks-sdk-core'
 import earnServiceApi from 'services/earn'
+import ksSettingApi from 'services/ksSetting'
 import limitOrderApi from 'services/limitOrder'
 
 import { getInitialListOrdersArgs } from 'components/LimitOrder/listOrdersArgs'
 import { APP_PATHS } from 'constants/index'
-import { NETWORKS_INFO, SUPPORTED_NETWORKS, isSupportedChainId } from 'constants/networks'
+import { SUPPORTED_NETWORKS, isSupportedChainId } from 'constants/networks'
 import { getInitialPositionQueryParams } from 'pages/Earns/UserPositions/positionsQuery'
 import store from 'state'
+import { getPersistedChainLogos } from 'utils/chainLogo'
 
 type ChunkLoader = () => Promise<unknown>
 
@@ -104,19 +106,27 @@ export function preloadStaticRouteChunks() {
 
 /**
  * Warm every supported chain's network icon so opening the chain switcher shows them instantly.
- * Only the current chain's icon is visible at first paint, so the other ~two dozen icons (~200KB of
- * SVGs) are pure speculation — kept off the critical load window and warmed during idle after `load`,
- * mirroring `preloadStaticRouteChunks` (skips on save-data / 2g).
+ * Only the current chain's icon is visible at first paint, so the other ~two dozen icons are pure
+ * speculation — kept off the critical load window and warmed during idle after `load`, mirroring
+ * `preloadStaticRouteChunks` (skips on save-data / 2g).
+ *
+ * The icons come from the ks-setting `chains` config, so the warm-up waits for that request (shared
+ * with the app's own subscription) and then loads exactly what the switcher will render.
  */
 export function preloadChainIcons() {
   if (typeof window === 'undefined') return
 
-  const warm = () => {
+  const warm = async () => {
     if (shouldSkipPreload()) return
+    const request = store.dispatch(ksSettingApi.endpoints.getChainLogos.initiate())
+    const { data } = await request
+    request.unsubscribe()
+    const logos = data ?? getPersistedChainLogos()
+
     const run = () => {
       for (const chainId of SUPPORTED_NETWORKS) {
-        const icon = NETWORKS_INFO[chainId]?.icon
-        if (icon) new Image().src = icon
+        const logo = logos[chainId]
+        if (logo) new Image().src = logo
       }
     }
     if (window.requestIdleCallback) window.requestIdleCallback(run)

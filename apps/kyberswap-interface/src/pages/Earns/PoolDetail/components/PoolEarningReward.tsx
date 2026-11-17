@@ -6,6 +6,7 @@ import { CycleConfigResponse, useCycleConfigQuery } from 'services/kyberdata'
 import ProgressBar from 'components/ProgressBar'
 import TokenLogo from 'components/TokenLogo'
 import { NETWORKS_INFO } from 'constants/networks'
+import { useChainLogos } from 'hooks/useChainLogo'
 import {
   formatAmount,
   formatDateRange,
@@ -42,8 +43,11 @@ type RewardCardData = RewardCardItemProps & {
 
 type RewardTokenMetadata = WrappedTokenInfo | NativeCurrency
 type RewardTokenMap = Record<string, RewardTokenMetadata>
+type GetChainLogo = (chainId: ChainId) => string
+
 type BuildLmRewardCardsParams = {
   cycleConfig?: CycleConfigResponse
+  getChainLogo: GetChainLogo
   poolDexIcon: string
   poolDexName: string
   rewardTokensByAddress: RewardTokenMap
@@ -51,6 +55,7 @@ type BuildLmRewardCardsParams = {
 
 const buildLmRewardCards = ({
   cycleConfig,
+  getChainLogo,
   poolDexIcon,
   poolDexName,
   rewardTokensByAddress,
@@ -81,7 +86,7 @@ const buildLmRewardCards = ({
       name: poolDexName,
       icon: poolDexIcon,
       chainName: chainInfo?.name,
-      chainIcon: chainInfo?.icon,
+      chainIcon: getChainLogo(chainId),
       from: cycleConfig.startTime,
       to: cycleConfig.endTime,
       tokens: [tokenInfo],
@@ -91,20 +96,27 @@ const buildLmRewardCards = ({
   return Array.from(cardsByChain.values())
 }
 
-const buildMerklRewardCards = ({ merklOpportunity }: { merklOpportunity?: MerklOpportunity }): RewardCardData[] => {
+const buildMerklRewardCards = ({
+  getChainLogo,
+  merklOpportunity,
+}: {
+  getChainLogo: GetChainLogo
+  merklOpportunity?: MerklOpportunity
+}): RewardCardData[] => {
   if (!merklOpportunity?.campaigns.length) return []
 
   return merklOpportunity.campaigns.map(campaign => {
     const reward = merklOpportunity.rewardsRecord.breakdowns.find(item => item.campaignId === campaign.id)
     const dailyAmount = reward ? getParsedRewardAmount(reward.amount, reward.token.decimals) : 0
-    const chainInfo = NETWORKS_INFO[reward?.token.chainId as ChainId]
+    const rewardChainId = reward?.token.chainId as ChainId
+    const chainInfo = NETWORKS_INFO[rewardChainId]
 
     return {
       id: campaign.id,
       name: merklOpportunity.protocol.name,
       icon: merklOpportunity.protocol.icon,
       chainName: chainInfo?.name,
-      chainIcon: chainInfo?.icon,
+      chainIcon: getChainLogo(rewardChainId),
       from: campaign.startTimestamp,
       to: campaign.endTimestamp,
       tokens: [
@@ -150,19 +162,22 @@ const PoolEarningReward = () => {
     [rewardTokens],
   )
 
+  const getChainLogo = useChainLogos()
   const rewardCards = useMemo(() => {
     const lmRewardCards = buildLmRewardCards({
       cycleConfig,
+      getChainLogo,
       poolDexIcon: dexInfo.logo,
       poolDexName: dexInfo.name,
       rewardTokensByAddress,
     })
     const merklRewardCards = buildMerklRewardCards({
+      getChainLogo,
       merklOpportunity: pool?.merklOpportunity,
     })
 
     return [...lmRewardCards, ...merklRewardCards]
-  }, [cycleConfig, dexInfo.logo, dexInfo.name, pool?.merklOpportunity, rewardTokensByAddress])
+  }, [cycleConfig, dexInfo.logo, dexInfo.name, getChainLogo, pool?.merklOpportunity, rewardTokensByAddress])
 
   if (!rewardCards.length) return null
 

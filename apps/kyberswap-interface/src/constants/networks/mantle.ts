@@ -11,7 +11,6 @@ const mantle: NetworkInfo = {
   priceRoute: 'mantle',
   aggregatorRoute: 'mantle',
   name: 'Mantle',
-  icon: mantleIcon,
 
   iconSelected: NOT_SUPPORT,
 

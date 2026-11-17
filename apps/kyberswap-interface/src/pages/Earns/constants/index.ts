@@ -165,7 +165,6 @@ export interface EarnChainInfo {
   nativeAddress: string
   smartExitSupported: boolean
   univ4StateViewContract: string | null
-  logo: string
 }
 
 export enum EarnChain {

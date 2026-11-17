@@ -1,7 +1,6 @@
 import { ChainId } from '@kyberswap/ks-sdk-core'
 
 import ethereumIcon from 'assets/networks/ethereum.svg'
-import megaEthIcon from 'assets/networks/megaeth.svg'
 import { NetworkInfo } from 'constants/networks/type'
 
 const EMPTY_ARRAY: any[] = []
@@ -14,7 +13,6 @@ const monadInfo: NetworkInfo = {
   priceRoute: 'megaeth',
   aggregatorRoute: 'megaeth',
   name: 'MegaETH',
-  icon: megaEthIcon,
 
   iconSelected: NOT_SUPPORT,
 

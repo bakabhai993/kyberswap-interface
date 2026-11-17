@@ -13,7 +13,6 @@ const bera: NetworkInfo = {
   priceRoute: 'berachain',
   aggregatorRoute: 'berachain',
   name: 'Berachain',
-  icon: beraIcon,
 
   iconSelected: NOT_SUPPORT,
 

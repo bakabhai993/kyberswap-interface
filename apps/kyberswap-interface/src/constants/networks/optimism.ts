@@ -1,7 +1,6 @@
 import { ChainId } from '@kyberswap/ks-sdk-core'
 
 import ethereumIcon from 'assets/networks/ethereum.svg'
-import optimismIcon from 'assets/networks/optimism.svg'
 import { NetworkInfo } from 'constants/networks/type'
 
 const EMPTY_ARRAY: any[] = []
@@ -14,7 +13,6 @@ const optimismInfo: NetworkInfo = {
   priceRoute: 'optimism',
   aggregatorRoute: 'optimism',
   name: 'Optimism',
-  icon: optimismIcon,
   iconSelected: NOT_SUPPORT,
 
   etherscanUrl: 'https://optimistic.etherscan.io',

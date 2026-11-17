@@ -1,5 +1,5 @@
 import { NETWORKS_INFO, isSupportedChainId } from 'constants/networks'
-import { EARN_CHAINS, EARN_DEXES, EarnChain, Exchange, isSupportedExchange } from 'pages/Earns/constants'
+import { EARN_DEXES, Exchange, isSupportedExchange } from 'pages/Earns/constants'
 import { CoreProtocol } from 'pages/Earns/constants/coreProtocol'
 import { DEFAULT_PARSED_POSITION, ParsedPosition } from 'pages/Earns/types'
 import { getNftManagerContractAddress } from 'pages/Earns/utils'
@@ -434,7 +434,9 @@ const hasIndexedValueSettled = (indexedValue: number, cachedValue: number) => {
   return Math.abs(indexedValue - cachedValue) / scale <= VALUE_MATCH_TOLERANCE
 }
 
-const toPlaceholderPosition = (record: UnfinalizedPositionRecord): ParsedPosition => {
+type GetChainLogo = (chainId: number) => string
+
+const toPlaceholderPosition = (record: UnfinalizedPositionRecord, getChainLogo: GetChainLogo): ParsedPosition => {
   const networkInfo = NETWORKS_INFO[record.chainId as keyof typeof NETWORKS_INFO]
   const dexInfo = EARN_DEXES[record.dexId]
 
@@ -445,7 +447,7 @@ const toPlaceholderPosition = (record: UnfinalizedPositionRecord): ParsedPositio
     chain: {
       id: record.chainId,
       name: networkInfo.name,
-      logo: EARN_CHAINS[record.chainId as EarnChain]?.logo || networkInfo.icon,
+      logo: getChainLogo(record.chainId),
     },
     dex: {
       id: record.dexId,
@@ -500,10 +502,12 @@ export const resolveUnfinalizedPositions = ({
   records,
   positions,
   now,
+  getChainLogo,
 }: {
   records: readonly UnfinalizedPositionRecord[]
   positions: readonly ParsedPosition[]
   now: number
+  getChainLogo: GetChainLogo
 }): ResolvedUnfinalizedPositions => {
   const placeholders: ParsedPosition[] = []
   const placeholderByKey = new Map<string, ParsedPosition>()
@@ -533,7 +537,7 @@ export const resolveUnfinalizedPositions = ({
       return
     }
 
-    const placeholder = toPlaceholderPosition(record)
+    const placeholder = toPlaceholderPosition(record, getChainLogo)
     placeholderByKey.set(record.key, placeholder)
     if (record.isValueUpdating) valueUpdatingKeys.add(record.key)
     else placeholders.push(placeholder)

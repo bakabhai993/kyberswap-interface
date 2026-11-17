@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useUserPositionsQuery } from 'services/earn'
 import { useGetSmartExitOrdersQuery } from 'services/smartExit'
 
+import { useChainLogos } from 'hooks/useChainLogo'
 import { SmartExitDexType } from 'pages/Earns/components/SmartExit/constants'
 import { EARN_DEXES, Exchange } from 'pages/Earns/constants'
 import {
@@ -186,6 +187,7 @@ export function useSmartExitOrdersData({ account, filters, pageSize, updateFilte
     prevFiltersRef.current = filters
   }, [filters, account])
 
+  const getChainLogo = useChainLogos()
   const parsedPositionsById = useMemo(() => {
     if (!userPosition || !userPosition.positions.length) return {}
 
@@ -196,6 +198,7 @@ export function useSmartExitOrdersData({ account, filters, pageSize, updateFilte
           feeInfo: undefined,
           nftRewardInfo: undefined,
           isClosedFromRpc: false,
+          getChainLogo,
         })
         acc[pos.positionId.toLowerCase()] = parsedPos
       } catch (error) {
@@ -203,7 +206,7 @@ export function useSmartExitOrdersData({ account, filters, pageSize, updateFilte
       }
       return acc
     }, {} as Record<string, ParsedPosition>)
-  }, [userPosition])
+  }, [userPosition, getChainLogo])
 
   const enrichedOrders = useMemo(() => {
     return orders.map(order => {

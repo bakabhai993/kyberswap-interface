@@ -5,6 +5,7 @@ import { useGetKyberswapGlobalConfigurationQuery } from 'services/ksSetting'
 import { IS_TESTING_DEPLOYMENT } from 'constants/deployment'
 import { MAINNET_NETWORKS, NETWORKS_INFO as NETWORKS_INFO_HARDCODE } from 'constants/networks'
 import { NetworkInfo } from 'constants/networks/type'
+import { useChainLogos } from 'hooks/useChainLogo'
 
 export enum ChainState {
   NEW = 'new',
@@ -29,6 +30,9 @@ export type ChainStateMap = {
   [chain in ChainId]: ChainState
 }
 
+/** A chain as configured: its hardcoded info plus the state and logo set in ks-setting. */
+export type ChainConfig = NetworkInfo & { icon: string }
+
 const cacheInfo: { [chain: string]: NetworkInfo } = {}
 
 export const NETWORKS_INFO = new Proxy(NETWORKS_INFO_HARDCODE, {
@@ -44,12 +48,17 @@ export default function useChainsConfig() {
   // Chain states live in the ks-setting `kyberswap` config, so that request alone decides when the lists are final
   const { data, isError } = useGetKyberswapGlobalConfigurationQuery(undefined)
   const chainStates = data?.data?.config?.chainStates
+  const getChainLogo = useChainLogos()
 
   return useMemo(() => {
-    const chains: NetworkInfo[] = defaultData.map(chain => {
-      // Without the states (still loading, failed, or absent from the config) every hardcoded mainnet
-      // counts as active; once they arrive, a chain they do not list falls out of both lists.
-      const info = { ...chain, state: chainStates ? chainStates[chain.chainId] : ChainState.ACTIVE }
+    const chains: ChainConfig[] = defaultData.map(chain => {
+      const info = {
+        ...chain,
+        icon: getChainLogo(chain.chainId),
+        // Without the states (still loading, failed, or absent from the config) every hardcoded mainnet
+        // counts as active; once they arrive, a chain they do not list falls out of both lists.
+        state: chainStates ? chainStates[chain.chainId] : ChainState.ACTIVE,
+      }
       cacheInfo[chain.chainId] = info
       return info
     })
@@ -60,5 +69,5 @@ export default function useChainsConfig() {
       allChains: chains,
       isLoaded: !!data || isError,
     }
-  }, [data, chainStates, isError])
+  }, [data, chainStates, isError, getChainLogo])
 }

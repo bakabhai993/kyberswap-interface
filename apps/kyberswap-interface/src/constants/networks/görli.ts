@@ -1,7 +1,6 @@
 import { ChainId } from '@kyberswap/ks-sdk-core'
 
 import EthereumLogo from 'assets/images/ethereum-logo.png'
-import ethereumIcon from 'assets/networks/ethereum.svg'
 import { EnvKeys } from 'constants/env'
 import { NetworkInfo } from 'constants/networks/type'
 
@@ -16,7 +15,6 @@ const görliInfo: NetworkInfo = {
   priceRoute: 'ethereum',
   aggregatorRoute: EMPTY,
   name: 'Görli',
-  icon: ethereumIcon,
   iconSelected: NOT_SUPPORT,
 
   etherscanUrl: 'https://goerli.etherscan.io',

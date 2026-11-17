@@ -6,6 +6,7 @@ import { ButtonPrimary } from 'components/Button'
 import { CurrencyInputPanelView } from 'components/CurrencyInputPanel'
 import { Aligner, CurrencySelect, StyledTokenName } from 'components/CurrencyInputPanel/CurrencySelect'
 import CurrencyLogo from 'components/CurrencyLogo'
+import { NetworkLogo } from 'components/Logo'
 import Skeleton from 'components/Skeleton'
 import { HStack } from 'components/Stack'
 import { PendingCrossChainQuoteDetails } from 'components/SwapForm/CrossChain/Quote/CrossChainQuoteLayout'
@@ -63,8 +64,8 @@ export const PendingCurrencyPanel = ({
                   ) : (
                     <Skeleton width={20} height={20} />
                   )}
-                  <img
-                    src={network.icon}
+                  <NetworkLogo
+                    chainId={chain}
                     alt={network.name}
                     className="absolute -bottom-1 -right-1 size-3 rounded border border-background"
                   />

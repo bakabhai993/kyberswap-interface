@@ -1,6 +1,6 @@
 import { ClaimTransaction, RewardData, RewardType } from 'services/reward'
 
-import { NetworkInfo } from 'constants/networks/type'
+import { ChainConfig } from 'hooks/useChainsConfig'
 import { ChainRewardInfo, NftRewardInfo, RewardInfo, TokenInfo, TokenRewardInfo } from 'pages/Earns/types'
 
 // Rewards can live on more than one distributor contract at a time (an active one, plus any
@@ -126,7 +126,7 @@ export const parseReward = ({
 }: {
   data: RewardData | undefined
   tokens: TokenInfo[]
-  supportedChains: Array<NetworkInfo>
+  supportedChains: Array<ChainConfig>
   thresholdValue?: number | null
   tokenIds?: Set<string>
 }) => {
@@ -140,7 +140,7 @@ export const parseReward = ({
   })
 
   // Create chain lookup map
-  const chainLookup = new Map<number, NetworkInfo>()
+  const chainLookup = new Map<number, ChainConfig>()
   supportedChains.forEach(chain => {
     chainLookup.set(chain.chainId, chain)
   })

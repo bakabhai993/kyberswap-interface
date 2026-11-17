@@ -1,7 +1,6 @@
 import { ChainId } from '@kyberswap/ks-sdk-core'
 
 import EthereumLogo from 'assets/images/ethereum-logo.png'
-import zksyncIcon from 'assets/networks/zksync.svg'
 import { NetworkInfo } from 'constants/networks/type'
 
 const EMPTY_ARRAY: any[] = []
@@ -16,7 +15,6 @@ const zkSyncInfo: NetworkInfo = {
   priceRoute: 'zksync',
   aggregatorRoute: 'zksync',
   name: 'zkSync Era',
-  icon: zksyncIcon,
 
   iconSelected: NOT_SUPPORT,
 

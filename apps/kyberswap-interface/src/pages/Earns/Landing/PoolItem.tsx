@@ -4,7 +4,7 @@ import { ChainId } from '@kyberswap/ks-sdk-core'
 import { ReactComponent as FarmingIcon } from 'assets/svg/kyber/kem.svg'
 import { ReactComponent as FarmingLmIcon } from 'assets/svg/kyber/kemLm.svg'
 import TokenLogo from 'components/TokenLogo'
-import { NETWORKS_INFO } from 'hooks/useChainsConfig'
+import { useChainLogo } from 'hooks/useChainLogo'
 import { LargePoolRow, ProtocolTag, SmallPoolRow, Tag } from 'pages/Earns/Landing/styles'
 import AprDetailTooltip from 'pages/Earns/components/AprDetailTooltip'
 import { EARN_DEXES } from 'pages/Earns/constants'
@@ -29,6 +29,7 @@ const PoolItem = ({
   variant?: PoolItemVariant
   onClick: (pool: EarnPool) => void
 }) => {
+  const chainLogo = useChainLogo(pool.chainId as ChainId)
   const isFarming = pool.programs?.includes(ProgramType.EG) || pool.programs?.includes(ProgramType.LM)
   const isFarmingLm = pool.programs?.includes(ProgramType.LM)
   const dexInfo = EARN_DEXES[pool.exchange]
@@ -63,12 +64,7 @@ const PoolItem = ({
           <div className="flex min-w-0 flex-1 items-center gap-1">
             <TokenLogo src={pool.tokens?.[0]?.logoURI} size={24} />
             <TokenLogo src={pool.tokens?.[1]?.logoURI} size={24} translateLeft />
-            <TokenLogo
-              src={NETWORKS_INFO[pool.chainId as ChainId]?.icon}
-              size={12}
-              translateLeft
-              className="relative top-px self-end"
-            />
+            <TokenLogo src={chainLogo} size={12} translateLeft className="relative top-px self-end" />
 
             <span className="ml-1 min-w-0 truncate text-base" data-testid="earn-overview-pool-item-pair">
               {pool.tokens?.[0]?.symbol}
@@ -129,12 +125,7 @@ const PoolItem = ({
       <div className="flex min-w-0 flex-1 items-center gap-1">
         <TokenLogo src={pool.tokens?.[0]?.logoURI} size={24} />
         <TokenLogo src={pool.tokens?.[1]?.logoURI} size={24} translateLeft />
-        <TokenLogo
-          src={NETWORKS_INFO[pool.chainId as ChainId]?.icon}
-          size={12}
-          translateLeft
-          className="relative top-px self-end"
-        />
+        <TokenLogo src={chainLogo} size={12} translateLeft className="relative top-px self-end" />
 
         <span className="ml-1 min-w-0 truncate" data-testid="earn-overview-pool-item-pair">
           {pool.tokens?.[0]?.symbol}

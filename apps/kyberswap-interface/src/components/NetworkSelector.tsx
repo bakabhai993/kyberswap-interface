@@ -5,6 +5,7 @@ import { useSearchParams } from 'react-router-dom'
 
 import { ReactComponent as DropdownSVG } from 'assets/svg/down.svg'
 import NetworkModal from 'components/Header/web3/NetworkModal'
+import { NetworkLogo } from 'components/Logo'
 import { DEFAULT_OUTPUT_TOKENS, NativeCurrencies } from 'constants/tokens'
 import { NETWORKS_INFO } from 'hooks/useChainsConfig'
 import { type Chain, isNonEvmChain } from 'types/crossChain'
@@ -50,7 +51,7 @@ export const NetworkSelector = ({ chainId, customOnSelectNetwork }: NetworkSelec
           onClick={() => setIsOpenNetworkModal(true)}
           className="flex cursor-pointer items-center gap-2 rounded-full border-none bg-buttonBlack px-3 py-1.5 text-sm font-medium text-subText outline-none hover:text-text focus-visible:text-text"
         >
-          <img src={selectedNetwork.icon} alt="Network" className="size-5" />
+          <NetworkLogo chainId={chainId} alt="Network" className="size-5" />
           <span>{selectedNetwork.name}</span>
           <DropdownSVG className="text-inherit" />
         </button>

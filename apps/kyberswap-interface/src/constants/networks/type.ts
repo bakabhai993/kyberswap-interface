@@ -32,7 +32,6 @@ export interface NetworkInfo {
   readonly priceRoute: string
   readonly aggregatorRoute: string
   readonly name: string
-  readonly icon: string
   readonly iconSelected: string | null
   readonly etherscanUrl: string
   readonly etherscanName: string

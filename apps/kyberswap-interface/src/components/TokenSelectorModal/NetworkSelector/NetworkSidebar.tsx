@@ -45,7 +45,7 @@ export const NetworkSidebar = ({
   const search = query.trim().toLowerCase()
   const sortedChains = sortNetworks(chains, pinnedChains, priorityChainIds)
   const options = showAllNetworks
-    ? [{ chainId: 'all' as const, name: t`All Networks`, icon: '', unavailableReason: undefined }, ...sortedChains]
+    ? [{ chainId: 'all' as const, name: t`All Networks`, unavailableReason: undefined }, ...sortedChains]
     : sortedChains
   const matchingChains = options.filter(chain => chain.name.toLowerCase().includes(search))
 
@@ -73,7 +73,7 @@ export const NetworkSidebar = ({
           className="ks-scrollbar flex h-full flex-col gap-1 overflow-y-auto"
           aria-label="Select network"
         >
-          {matchingChains.map(({ chainId, name, icon, unavailableReason }) => (
+          {matchingChains.map(({ chainId, name, unavailableReason }) => (
             <motion.div
               key={chainId}
               layout={prefersReducedMotion ? false : 'position'}
@@ -102,7 +102,7 @@ export const NetworkSidebar = ({
                     onClick={() => onChange?.(chainId)}
                     className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-lg pl-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40"
                   >
-                    <NetworkIcon chainId={chainId} icon={icon} />
+                    <NetworkIcon chainId={chainId} />
                     <span className="min-w-0 flex-1 truncate font-medium">{name}</span>
                     {chainId === selectedChainId && (
                       <Check size={16} className="shrink-0 text-primary" aria-hidden="true" />

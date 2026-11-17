@@ -14,6 +14,7 @@ vi.mock('components/StopMarket/hooks/useStopMarketCurrency', () => ({
 }))
 vi.mock('state/tokenPrices/hooks', () => ({ useTokenPricesWithLoading: () => ({ data: {}, loading: false }) }))
 vi.mock('components/CurrencyLogo', () => ({ default: () => null }))
+vi.mock('components/Logo', () => ({ NetworkLogo: () => null }))
 vi.mock('components/Tooltip', () => ({ MouseoverTooltip: ({ children }: { children: ReactNode }) => children }))
 
 const order: StopMarket = {

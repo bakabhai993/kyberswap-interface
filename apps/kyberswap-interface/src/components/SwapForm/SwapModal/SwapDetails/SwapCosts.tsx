@@ -6,6 +6,7 @@ import { BuildRouteData } from 'services/route/types/buildRoute'
 import { Collapse } from 'components/Collapse'
 import CopyHelper from 'components/Copy'
 import Divider from 'components/Divider'
+import { NetworkLogo } from 'components/Logo'
 import { HStack, Stack } from 'components/Stack'
 import { SwapFeeLabel, TooltipTextOfSwapFee, formatSwapFeePercent } from 'components/SwapForm/Quote/SwapFee'
 import { useFeeERC8056Info, useSwapFormContext } from 'components/SwapForm/SwapFormContext'
@@ -231,7 +232,7 @@ export const SwapFeeAndRecipientDetails = ({
           }
         >
           <div className="flex items-center gap-1 text-xs font-medium">
-            <img src={networkInfo.icon} alt="network icon" width="14px" height="14px" />
+            <NetworkLogo chainId={chainId} alt="network icon" width="14px" height="14px" />
             <AddressLink
               href={`${networkInfo.etherscanUrl}/address/${recipient}`}
               highlight={!!account && recipient.toLowerCase() !== account.toLowerCase()}
@@ -258,7 +259,7 @@ export const SwapFeeAndRecipientDetails = ({
       >
         {buildData?.routerAddress && (
           <div className="flex items-center gap-1 text-xs font-medium">
-            <img src={networkInfo.icon} alt="network icon" width="14px" height="14px" />
+            <NetworkLogo chainId={chainId} alt="network icon" width="14px" height="14px" />
             <AddressLink href={`${networkInfo.etherscanUrl}/address/${buildData.routerAddress}`}>
               {shortenAddress(chainId, buildData.routerAddress)}
             </AddressLink>

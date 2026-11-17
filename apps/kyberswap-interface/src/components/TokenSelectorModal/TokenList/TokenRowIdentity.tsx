@@ -5,6 +5,7 @@ import { AlertTriangle, Info, Star } from 'react-feather'
 
 import CopyHelper from 'components/Copy'
 import CurrencyLogo from 'components/CurrencyLogo'
+import { NetworkLogo } from 'components/Logo'
 import { HStack, Stack } from 'components/Stack'
 import { getDisplayTokenInfo } from 'components/TokenSelectorModal/TokenList/PinnedTokens'
 import { AddressCopy, formatAgeBadge } from 'components/TokenSelectorModal/components'
@@ -69,8 +70,8 @@ export const TokenRowIdentity = ({
       <div className="relative shrink-0">
         <CurrencyLogo currency={currency} size="24px" />
         {showNetwork && (
-          <img
-            src={NETWORKS_INFO[currency.chainId]?.icon}
+          <NetworkLogo
+            chainId={currency.chainId}
             alt={NETWORKS_INFO[currency.chainId]?.name}
             title={NETWORKS_INFO[currency.chainId]?.name}
             className="absolute -bottom-1 -right-1 size-3 rounded-full ring-2 ring-background"

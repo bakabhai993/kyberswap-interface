@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useMedia } from 'react-use'
 
 import CopyHelper from 'components/Copy'
+import { NetworkLogo } from 'components/Logo'
 import Modal from 'components/Modal'
 import Pagination from 'components/Pagination'
 import { RowBetween } from 'components/Row'
@@ -17,7 +18,7 @@ import { getEtherscanLink } from 'utils/explorer'
 import { formatDisplayNumber } from 'utils/numbers'
 
 const EligibleTxModalContent = ({ closeModal }: { closeModal: () => void }) => {
-  const { chainId, networkInfo } = useActiveWeb3React()
+  const { chainId } = useActiveWeb3React()
   const [currentPage, setCurrentPage] = useState(1)
   const eligibleTxs = useEligibleTransactions(currentPage, 10)
   const upToExtraSmall = useMedia(`(max-width: ${MEDIA_WIDTHS.upToExtraSmall}px)`)
@@ -58,7 +59,7 @@ const EligibleTxModalContent = ({ closeModal }: { closeModal: () => void }) => {
                   <HeaderCell>
                     <HStack className="gap-2">
                       <div className="flex items-center justify-center bg-transparent max-md:items-end [&>img]:size-4 [&>span]:size-4">
-                        <img src={networkInfo.icon} />
+                        <NetworkLogo chainId={chainId} />
                       </div>
                       <span className="self-center text-sm font-normal">
                         {tx.tx.slice(0, 6)}...{tx.tx.slice(-4)}

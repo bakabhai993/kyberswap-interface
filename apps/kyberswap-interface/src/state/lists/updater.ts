@@ -1,7 +1,7 @@
 import { ChainId } from '@kyberswap/ks-sdk-core'
 import { useMemo } from 'react'
 import { useLocation } from 'react-router-dom'
-import { useGetChainsConfigurationQuery } from 'services/ksSetting'
+import { useGetChainLogosQuery } from 'services/ksSetting'
 
 import { APP_PATHS } from 'constants/index'
 import { LEGACY_POOL_APP_PATHS } from 'constants/legacyPools'
@@ -35,7 +35,7 @@ export default function Updater(): null {
   const { pathname } = useLocation()
   const pathChainId = useMemo(() => getPathChainId(pathname), [pathname])
 
-  useGetChainsConfigurationQuery()
+  useGetChainLogosQuery()
   useEnsureTokenList(chainId)
   useEnsureTokenList(pathChainId)
 

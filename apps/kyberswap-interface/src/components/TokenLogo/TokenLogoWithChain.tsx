@@ -1,6 +1,4 @@
-import { getNetworkInfo } from 'services/crossChain/utils'
-
-import Logo from 'components/Logo'
+import Logo, { NetworkLogo } from 'components/Logo'
 import { useTokenLogo } from 'components/TokenLogo/useTokenLogo'
 import { Chain, Currency } from 'types/crossChain'
 
@@ -20,8 +18,8 @@ export const TokenLogoWithChain = ({
   return (
     <div className="relative mr-1 flex">
       <Logo srcs={[tokenLogo]} width={size} height={size} className="rounded-full" alt={currency?.symbol} />
-      <img
-        src={getNetworkInfo(chainId).icon}
+      <NetworkLogo
+        chainId={chainId}
         className="absolute right-[-4px] top-[-2px] size-[10px] rounded-full"
         style={chainLogoStyle}
       />

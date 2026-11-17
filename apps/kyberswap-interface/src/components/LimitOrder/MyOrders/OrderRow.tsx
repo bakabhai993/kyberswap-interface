@@ -29,6 +29,7 @@ import {
   isActiveStatus,
   isLimitOrderNativeOutput,
 } from 'components/LimitOrder/utils'
+import { NetworkLogo } from 'components/Logo'
 import { NETWORKS_INFO, isSupportLimitOrder, isSupportedChainId } from 'constants/networks'
 import { useTokenBalance } from 'state/wallet/hooks'
 import { ExternalLink } from 'theme'
@@ -133,7 +134,7 @@ const OrderRow = ({ order, onCancelOrder, onSelectPair, isOrderCancelling, isAct
         className={cn('min-h-16 px-4 py-2 transition-colors duration-200', expand && 'bg-raisedBlack')}
       >
         <span className="flex items-center justify-center max-sm:row-span-2 max-sm:self-center">
-          {networkInfo?.icon && <img className="size-5" src={networkInfo.icon} alt="Network" />}
+          {networkInfo && <NetworkLogo className="size-5" chainId={order.chainId} alt="Network" />}
         </span>
         <SizeCell
           makerAmount={formatOrderDisplayAmount(order.makingAmount, order.makerAssetDecimals)}

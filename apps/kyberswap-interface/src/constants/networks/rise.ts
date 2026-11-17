@@ -1,7 +1,6 @@
 import { ChainId } from '@kyberswap/ks-sdk-core'
 
 import ethereumIcon from 'assets/networks/ethereum.svg'
-import riseIcon from 'assets/networks/rise.svg'
 import { NetworkInfo } from 'constants/networks/type'
 
 const EMPTY_ARRAY: any[] = []
@@ -14,7 +13,6 @@ const riseInfo: NetworkInfo = {
   priceRoute: 'rise',
   aggregatorRoute: 'rise',
   name: 'RISE',
-  icon: riseIcon,
 
   iconSelected: NOT_SUPPORT,
 

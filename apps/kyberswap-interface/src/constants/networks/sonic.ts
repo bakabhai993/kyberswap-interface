@@ -13,7 +13,6 @@ const sonic: NetworkInfo = {
   priceRoute: 'sonic',
   aggregatorRoute: 'sonic',
   name: 'Sonic',
-  icon: sonicIcon,
 
   iconSelected: NOT_SUPPORT,
 

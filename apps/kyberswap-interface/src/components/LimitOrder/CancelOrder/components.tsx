@@ -15,7 +15,7 @@ import {
   getLimitOrderDisplayTakerSymbol,
   isLimitOrderNativeOutput,
 } from 'components/LimitOrder/utils'
-import Logo from 'components/Logo'
+import Logo, { NetworkLogo } from 'components/Logo'
 import { HStack, Stack } from 'components/Stack'
 import { useBaseTradeInfoLimitOrder } from 'hooks/useBaseTradeInfo'
 import { NETWORKS_INFO } from 'hooks/useChainsConfig'
@@ -136,7 +136,7 @@ export const ChainFilter = ({ options, selectedChainId, totalOrders, disabled, o
                     <RadioButtonUnchecked size={18} />
                   )}
                 </span>
-                <img className="size-4 shrink-0" src={network.icon} alt={network.name} />
+                <NetworkLogo className="size-4 shrink-0" chainId={chainId} alt={network.name} />
                 <span className="min-w-0 truncate">{network.name}</span>
               </HStack>
               <span className="shrink-0">{count}</span>

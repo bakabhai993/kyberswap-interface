@@ -104,7 +104,7 @@ export default function NetworkModal({
   }
 
   const renderNetworkButton = (
-    networkInfo: Pick<NetworkInfo, 'state' | 'icon' | 'chainId' | 'name'> & { deprecatedSoon: boolean },
+    networkInfo: Pick<NetworkInfo, 'state' | 'chainId' | 'name'> & { deprecatedSoon: boolean },
   ) => {
     const chainId = networkInfo.chainId.toString()
     return (
@@ -134,7 +134,6 @@ export default function NetworkModal({
           return {
             chainId: item,
             name: NonEvmChainInfo[item as NonEvmChain].name,
-            icon: NonEvmChainInfo[item as NonEvmChain].icon,
             state: ChainState.ACTIVE,
             deprecatedSoon: deprecatedSoons?.includes(item as Chain) || false,
           }
@@ -256,7 +255,6 @@ export default function NetworkModal({
                       return renderNetworkButton({
                         chainId: chainId as any,
                         name: NonEvmChainInfo[chainId as NonEvmChain].name,
-                        icon: NonEvmChainInfo[chainId as NonEvmChain].icon,
                         state: ChainState.ACTIVE,
                         deprecatedSoon: deprecatedSoons?.includes(chainId as Chain) || false,
                       })

@@ -33,7 +33,7 @@ export const ChainSelector = memo(
 
     const sortedChains = sortNetworks(chains, pinnedChains)
     const options = showAllNetworks
-      ? [{ chainId: 'all' as const, name: t`All Networks`, icon: '', unavailableReason: undefined }, ...sortedChains]
+      ? [{ chainId: 'all' as const, name: t`All Networks`, unavailableReason: undefined }, ...sortedChains]
       : sortedChains
     const selectedChain = options.find(chain => chain.chainId === selectedChainId)
 
@@ -84,7 +84,7 @@ export const ChainSelector = memo(
           className="flex h-10 items-center gap-1 rounded-xl bg-black/20 pl-3 pr-2 text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
         >
           {selectedChain ? (
-            <NetworkIcon chainId={selectedChain.chainId} icon={selectedChain.icon} />
+            <NetworkIcon chainId={selectedChain.chainId} />
           ) : (
             <Globe size={20} className="text-subText" />
           )}
@@ -142,7 +142,7 @@ export const ChainSelector = memo(
                         !!chain.unavailableReason && 'opacity-40',
                       )}
                     >
-                      <NetworkIcon chainId={chain.chainId} icon={chain.icon} />
+                      <NetworkIcon chainId={chain.chainId} />
                       <span className="truncate">{chain.name}</span>
                     </div>
                   </MouseoverTooltip>

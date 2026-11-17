@@ -5,6 +5,7 @@ import { useGetAggregatedVolumeQuery, useGetChainVolumeQuery, useGetTokenVolumeQ
 import { isRecapAvailable } from 'components/Recap/utils'
 import { NETWORKS_INFO } from 'constants/networks'
 import { useActiveWeb3React } from 'hooks'
+import { useChainLogos } from 'hooks/useChainLogo'
 import useKemRewards from 'pages/Earns/hooks/useKemRewards'
 import useMerklRewards from 'pages/Earns/hooks/useMerklRewards'
 
@@ -34,6 +35,7 @@ export default function useRecapData() {
   })
 
   const [topTokens, setTopTokens] = useState<TopToken[]>([])
+  const getChainLogo = useChainLogos()
 
   const { tradingVolume, txCount, top } = useMemo(() => {
     if (aggregatedData?.data?.summary) {
@@ -58,13 +60,13 @@ export default function useRecapData() {
           return {
             chainId,
             name: networkInfo.name,
-            icon: networkInfo.icon,
+            icon: getChainLogo(chainId),
           }
         })
         .filter((chain): chain is NonNullable<typeof chain> => chain !== null)
     }
     return []
-  }, [chainVolumeData])
+  }, [chainVolumeData, getChainLogo])
 
   useEffect(() => {
     const tokensWithInfo = (tokenVolumeData?.data.tokens ?? [])
@@ -76,7 +78,7 @@ export default function useRecapData() {
         return {
           symbol: token.symbol,
           logo: token.logo,
-          chainLogo: networkInfo.icon,
+          chainLogo: getChainLogo(chainId),
           totalVolume: token.totalVolume,
         }
       })
@@ -89,7 +91,7 @@ export default function useRecapData() {
       .slice(0, 5)
 
     setTopTokens(sortedTokens)
-  }, [tokenVolumeData])
+  }, [tokenVolumeData, getChainLogo])
 
   const totalRewards = useMemo(
     () => (rewardInfo?.totalUsdValue ?? 0) + (totalMerklUsdValue ?? 0),

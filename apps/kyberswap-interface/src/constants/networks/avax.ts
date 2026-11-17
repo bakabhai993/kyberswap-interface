@@ -12,7 +12,6 @@ const avaxInfo: NetworkInfo = {
   priceRoute: 'avalanche',
   aggregatorRoute: 'avalanche',
   name: 'Avalanche',
-  icon: avalancheIcon,
   iconSelected: NOT_SUPPORT,
 
   etherscanUrl: 'https://snowscan.xyz',

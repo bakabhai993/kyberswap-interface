@@ -1,7 +1,6 @@
 import { ChainId } from '@kyberswap/ks-sdk-core'
 
 import ethereumIcon from 'assets/networks/ethereum.svg'
-import robinhoodIcon from 'assets/networks/robinhood.svg'
 import { NetworkInfo } from 'constants/networks/type'
 
 const EMPTY_ARRAY: any[] = []
@@ -14,7 +13,6 @@ const robinhoodInfo: NetworkInfo = {
   priceRoute: 'robinhood',
   aggregatorRoute: 'robinhood',
   name: 'Robinhood',
-  icon: robinhoodIcon,
 
   iconSelected: NOT_SUPPORT,
 

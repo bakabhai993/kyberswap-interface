@@ -6,6 +6,7 @@ import { ReactComponent as DropdownSVG } from 'assets/svg/down.svg'
 import { ReactComponent as SwitchIcon } from 'assets/svg/switch.svg'
 import TokenInfo from 'components/CurrencyInputPanel/TokenInfo'
 import CurrencyLogo from 'components/CurrencyLogo'
+import { NetworkLogo } from 'components/Logo'
 import Skeleton from 'components/Skeleton'
 import { HStack } from 'components/Stack'
 import TokenSymbol from 'components/TokenSymbol'
@@ -115,8 +116,8 @@ export const CurrencySelectContent = ({
           <div className="relative shrink-0">
             <CurrencyLogo currency={currency} size="20px" />
             {showChain && (
-              <img
-                src={NETWORKS_INFO[currency.chainId].icon}
+              <NetworkLogo
+                chainId={currency.chainId}
                 alt={NETWORKS_INFO[currency.chainId].name}
                 title={NETWORKS_INFO[currency.chainId].name}
                 className="absolute -bottom-1 -right-1 size-3 rounded border border-background"

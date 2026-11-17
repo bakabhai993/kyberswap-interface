@@ -10,6 +10,7 @@ import { ButtonPrimary } from 'components/Button'
 import CopyHelper from 'components/Copy'
 import CurrencyLogo from 'components/CurrencyLogo'
 import { GasDropAmount } from 'components/GasDrop/GasDropAmount'
+import { NetworkLogo } from 'components/Logo'
 import { Stack } from 'components/Stack'
 import { CrossChainQuoteSummaryRows } from 'components/SwapForm/CrossChain/Quote/CrossChainQuoteSummary'
 import { QuoteProviderName } from 'components/SwapForm/CrossChain/Quote/QuoteProviderName'
@@ -45,15 +46,13 @@ const TokenBoxInfo = ({
   usdValue: number
   title: string
 }) => {
-  const { name, icon } = isEvmChain(chainId)
-    ? NETWORKS_INFO[chainId as ChainId]
-    : NonEvmChainInfo[chainId as NonEvmChain]
+  const { name } = isEvmChain(chainId) ? NETWORKS_INFO[chainId as ChainId] : NonEvmChainInfo[chainId as NonEvmChain]
   return (
     <div className="rounded-2xl border border-border p-3">
       <div className="mb-2 flex justify-between text-xs font-medium text-subText">
         <span>{title}</span>
         <div className="flex items-center gap-1">
-          <img src={icon} alt={chainId.toString()} width={16} height={16} style={{ borderRadius: '50%' }} />
+          <NetworkLogo chainId={chainId} alt={chainId.toString()} width={16} height={16} className="rounded-full" />
           <span>{name}</span>
         </div>
       </div>

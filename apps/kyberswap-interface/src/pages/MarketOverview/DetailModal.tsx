@@ -7,6 +7,7 @@ import { AssetToken, TokenPricesResponse, useGetQuoteByChainQuery } from 'servic
 
 import { ButtonOutlined } from 'components/Button'
 import CopyHelper from 'components/Copy'
+import { NetworkLogo } from 'components/Logo'
 import Modal from 'components/Modal'
 import { HStack, Stack } from 'components/Stack'
 import { ETHER_ADDRESS } from 'constants/index'
@@ -187,8 +188,8 @@ export default function DetailModal({
                               className="rounded-full"
                             />
 
-                            <img
-                              src={NETWORKS_INFO[token.chainId as ChainId].icon}
+                            <NetworkLogo
+                              chainId={token.chainId as ChainId}
                               alt=""
                               width="16px"
                               height="16px"

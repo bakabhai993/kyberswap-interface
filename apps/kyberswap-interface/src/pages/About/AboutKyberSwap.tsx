@@ -1,3 +1,4 @@
+import { ChainId } from '@kyberswap/ks-sdk-core'
 import { Trans } from '@lingui/macro'
 import { Repeat } from 'react-feather'
 import { Link } from 'react-router-dom'
@@ -6,12 +7,6 @@ import aggregatorStatsApi from 'services/aggregatorStats'
 import ArbitrumDark from 'assets/images/Arbitrum_HorizontalLogo-dark.svg'
 import AboutBackground from 'assets/images/about_background.png'
 import KNCGraphic from 'assets/images/knc-graphic.png'
-import arcIcon from 'assets/networks/arc.svg'
-import elysiumIcon from 'assets/networks/elysium.svg'
-import megaEthIcon from 'assets/networks/megaeth.svg'
-import monadIcon from 'assets/networks/monad.svg'
-import riseIcon from 'assets/networks/rise.svg'
-import robinhoodIcon from 'assets/networks/robinhood.svg'
 import AboutAvalanche from 'assets/svg/about_icon_avalanche.svg'
 import BSC from 'assets/svg/about_icon_bsc.svg'
 import ForTraderImage from 'assets/svg/for_trader.svg'
@@ -20,6 +15,7 @@ import { ReactComponent as KNCSVG } from 'assets/svg/kyber/knc_black.svg'
 import { ButtonPrimary } from 'components/Button'
 import { BestPrice, Clock, LineaFull, LowestSlippage, OptimismLogoFull, PolygonLogoFull } from 'components/Icons'
 import Loader from 'components/Loader'
+import { NetworkLogo } from 'components/Logo'
 import RevealOnScroll from 'components/RevealOnScroll'
 import { Center, HStack, Stack } from 'components/Stack'
 import { APP_PATHS } from 'constants/index'
@@ -120,8 +116,8 @@ function AboutKyberSwap() {
                 </h1>
 
                 <HStack className="w-full flex-wrap justify-center gap-4">
-                  {supportedChains.map(({ chainId: chain, icon, name }) => (
-                    <img className="size-9 object-contain" src={icon} alt={name} key={chain} />
+                  {supportedChains.map(({ chainId: chain, name }) => (
+                    <NetworkLogo className="size-9 object-contain" chainId={chain} alt={name} key={chain} />
                   ))}
                 </HStack>
 
@@ -327,27 +323,27 @@ function AboutKyberSwap() {
                   <span>Plasma</span>
                 </HStack>
                 <HStack className="items-center justify-center gap-4">
-                  <img src={monadIcon} alt="Monad" width="80px" />
+                  <NetworkLogo chainId={ChainId.MONAD} alt="Monad" width="80px" />
                   <span>Monad</span>
                 </HStack>
                 <HStack className="items-center justify-center gap-4">
-                  <img src={megaEthIcon} alt="MegaETH" width="80px" />
+                  <NetworkLogo chainId={ChainId.MEGAETH} alt="MegaETH" width="80px" />
                   <span>MegaETH</span>
                 </HStack>
                 <HStack className="items-center justify-center gap-4">
-                  <img src={robinhoodIcon} alt="Robinhood" width="80px" />
+                  <NetworkLogo chainId={ChainId.ROBINHOOD} alt="Robinhood" width="80px" />
                   <span>Robinhood</span>
                 </HStack>
                 <HStack className="items-center justify-center gap-4">
-                  <img src={riseIcon} alt="RISE" width="80px" />
+                  <NetworkLogo chainId={ChainId.RISE} alt="RISE" width="80px" />
                   <span>RISE</span>
                 </HStack>
                 <HStack className="items-center justify-center gap-4">
-                  <img src={arcIcon} alt="Arc" width="80px" />
+                  <NetworkLogo chainId={ChainId.ARC} alt="Arc" width="80px" />
                   <span>Arc</span>
                 </HStack>
                 <HStack className="items-center justify-center gap-4">
-                  <img src={elysiumIcon} alt="Elysium" width="80px" />
+                  <NetworkLogo chainId={ChainId.ELYSIUM} alt="Elysium" width="80px" />
                   <span>Elysium</span>
                 </HStack>
               </div>

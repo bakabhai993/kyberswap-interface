@@ -6,6 +6,7 @@ import { ReactNode } from 'react'
 import { ChevronDown, ExternalLink as LinkIcon, RefreshCw } from 'react-feather'
 
 import CurrencyLogo from 'components/CurrencyLogo'
+import { NetworkLogo } from 'components/Logo'
 import TableCellSkeleton from 'components/Skeleton/TableCellSkeleton'
 import { HStack, Stack } from 'components/Stack'
 import { StopMarketRowLayout, StopMarketRowWrapper } from 'components/StopMarket/MyOrders/TableHeader'
@@ -64,11 +65,11 @@ export const StopMarketRowsSkeleton = ({ isActiveTab }: { isActiveTab: boolean }
 
 /** The list holds the wallet's orders on every chain, so each row names its own. */
 export const ChainCell = ({ chainId }: { chainId: ChainId }) => {
-  const { name, icon } = NETWORKS_INFO[chainId]
+  const { name } = NETWORKS_INFO[chainId]
   return (
     <span className="flex items-center justify-center" data-testid="stop-market-order-chain">
       <MouseoverTooltip text={name} placement="top" width="fit-content">
-        <img className="size-5" src={icon} alt={name} />
+        <NetworkLogo className="size-5" chainId={chainId} alt={name} />
       </MouseoverTooltip>
     </span>
   )

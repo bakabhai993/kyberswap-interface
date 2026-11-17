@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react'
 
+import { useChainLogos } from 'hooks/useChainLogo'
 import { ParsedPosition } from 'pages/Earns/types'
 import {
   UNFINALIZED_POSITION_TTL_MS,
@@ -31,9 +32,10 @@ const useUnfinalizedPositions = ({
   const getSnapshot = useCallback(() => getUnfinalizedPositionRecords(owner), [owner])
   const records = useSyncExternalStore(subscribeUnfinalizedPositions, getSnapshot, getServerSnapshot)
 
+  const getChainLogo = useChainLogos()
   const { placeholders, placeholderByKey, valueUpdatingKeys, staleKeys } = useMemo(
-    () => resolveUnfinalizedPositions({ records, positions, now: Date.now() }),
-    [positions, records],
+    () => resolveUnfinalizedPositions({ records, positions, now: Date.now(), getChainLogo }),
+    [positions, records, getChainLogo],
   )
 
   useEffect(() => {

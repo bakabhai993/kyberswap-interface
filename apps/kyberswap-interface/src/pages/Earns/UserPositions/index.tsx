@@ -22,6 +22,7 @@ import { HiddenH1, HiddenH2 } from 'components/Seo/components'
 import { HStack } from 'components/Stack'
 import { APP_PATHS } from 'constants/index'
 import { useActiveWeb3React } from 'hooks'
+import { useChainLogos } from 'hooks/useChainLogo'
 import useIsWalletRestoring from 'hooks/useIsWalletRestoring'
 import Filter from 'pages/Earns/UserPositions/Filter'
 import PositionBanner from 'pages/Earns/UserPositions/PositionBanner'
@@ -114,6 +115,7 @@ const UserPositions = () => {
     refetch()
   })
 
+  const getChainLogo = useChainLogos()
   const parsedPositions: Array<ParsedPosition> = useMemo(() => {
     return (userPositionsData?.positions || []).map(position => {
       const tokenId = position.tokenId.toString()
@@ -126,9 +128,10 @@ const UserPositions = () => {
         feeInfo,
         nftRewardInfo,
         isClosedFromRpc,
+        getChainLogo,
       })
     })
-  }, [feeInfoFromRpc, rewardInfo?.nfts, userPositionsData, closedPositionsFromRpc])
+  }, [feeInfoFromRpc, rewardInfo?.nfts, userPositionsData, closedPositionsFromRpc, getChainLogo])
 
   const { placeholders, valueUpdatingKeys } = useUnfinalizedPositions({
     owner: account || undefined,

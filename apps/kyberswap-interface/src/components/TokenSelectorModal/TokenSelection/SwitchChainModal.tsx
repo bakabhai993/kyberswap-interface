@@ -3,6 +3,7 @@ import { Trans, t } from '@lingui/macro'
 
 import { ButtonOutlined, ButtonPrimary } from 'components/Button'
 import CurrencyLogo from 'components/CurrencyLogo'
+import { NetworkLogo } from 'components/Logo'
 import Modal from 'components/Modal'
 import { HStack, Stack } from 'components/Stack'
 import { NETWORKS_INFO } from 'constants/networks'
@@ -43,7 +44,7 @@ export const SwitchChainModal = ({ token, onDismiss, onConfirm }: SwitchChainMod
           <div className="flex flex-wrap items-center gap-x-1.5 gap-y-2 text-sm font-medium text-text">
             <Trans>Switch to</Trans>
             <HStack className="items-center gap-1 rounded-full bg-white-08 px-2 py-1">
-              <img src={network.icon} alt={network.name} className="size-5 rounded-full" />
+              <NetworkLogo chainId={network.chainId} alt={network.name} className="size-5 rounded-full" />
               <span className="font-medium">{network.name}</span>
             </HStack>
             <Trans>to swap</Trans>

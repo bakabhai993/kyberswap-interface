@@ -27,6 +27,7 @@ import RefetchIndicator from 'components/RefetchIndicator'
 import SmartExitListSkeleton from 'components/RouteFallback/SmartExitListSkeleton'
 import { APP_PATHS } from 'constants/index'
 import { useActiveWeb3React } from 'hooks'
+import { useChainLogos } from 'hooks/useChainLogo'
 import useIsWalletRestoring from 'hooks/useIsWalletRestoring'
 import { useChangeNetwork } from 'hooks/web3/useChangeNetwork'
 import Filter from 'pages/Earns/SmartExitOrders/Filter'
@@ -159,6 +160,7 @@ const SmartExit = () => {
   const handleOpenTokenSelector = useCallback(() => setShowTokenSelector(true), [])
   const handleCloseTokenSelector = useCallback(() => setShowTokenSelector(false), [])
 
+  const getChainLogo = useChainLogos()
   const handleSelectPosition = useCallback(
     (
       _position: { exchange: string; poolId: string; positionId: string | number },
@@ -168,11 +170,11 @@ const SmartExit = () => {
       setShowTokenSelector(false)
       if (earnPosition) {
         // Cast EarnPosition to UserPosition (they have the same structure)
-        const parsed = parsePosition({ position: earnPosition as unknown as UserPosition })
+        const parsed = parsePosition({ position: earnPosition as unknown as UserPosition, getChainLogo })
         setSmartExitPosition(parsed)
       }
     },
-    [],
+    [getChainLogo],
   )
 
   const handleDismissSmartExit = useCallback(() => {

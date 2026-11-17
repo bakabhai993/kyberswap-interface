@@ -1,6 +1,5 @@
 import { ChainId } from '@kyberswap/ks-sdk-core'
 
-import abstractIcon from 'assets/networks/abstract.png'
 import ethereumIcon from 'assets/networks/ethereum.svg'
 import { NetworkInfo } from 'constants/networks/type'
 
@@ -14,7 +13,6 @@ const abstractInfo: NetworkInfo = {
   priceRoute: 'abstract',
   aggregatorRoute: 'abstract',
   name: 'Abstract',
-  icon: abstractIcon,
 
   iconSelected: NOT_SUPPORT,
 

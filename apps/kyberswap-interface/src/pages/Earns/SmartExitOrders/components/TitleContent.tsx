@@ -6,6 +6,7 @@ import UnknownToken from 'assets/svg/kyber/unknown-token.svg'
 import TokenLogo from 'components/TokenLogo'
 import TokenSymbol from 'components/TokenSymbol'
 import { APP_PATHS } from 'constants/index'
+import { useChainLogo } from 'hooks/useChainLogo'
 import { NETWORKS_INFO } from 'hooks/useChainsConfig'
 import type { ParsedSmartExitOrder } from 'pages/Earns/SmartExitOrders/useSmartExitOrdersData'
 import { Badge, BadgeType, ImageContainer } from 'pages/Earns/UserPositions/styles'
@@ -37,6 +38,8 @@ type TitleContentProps = {
 }
 
 const TitleContent = ({ order, tokenId }: TitleContentProps) => {
+  const chainLogo = useChainLogo(order.chainId as ChainId)
+
   if (!order.position) {
     // Show placeholder with order info when position is not available
     const chainInfo = NETWORKS_INFO[order.chainId as ChainId]
@@ -49,9 +52,7 @@ const TitleContent = ({ order, tokenId }: TitleContentProps) => {
           <ImageContainer className="shrink-0">
             <TokenLogo src={UnknownToken} size={24} className="opacity-60" />
             <TokenLogo src={UnknownToken} size={24} translateLeft className="opacity-60" />
-            {chainInfo?.icon && (
-              <TokenLogo src={chainInfo.icon} size={12} translateLeft translateTop className="opacity-60" />
-            )}
+            {chainInfo && <TokenLogo src={chainLogo} size={12} translateLeft translateTop className="opacity-60" />}
           </ImageContainer>
           <span className="min-w-0 truncate italic text-subText">
             <Trans>Position</Trans> #{tokenId}

@@ -4,7 +4,7 @@ import { PropsWithChildren, useMemo } from 'react'
 
 import TokenLogo from 'components/TokenLogo'
 import { MouseoverTooltipDesktopOnly } from 'components/Tooltip'
-import { NETWORKS_INFO } from 'constants/networks'
+import { useChainLogos } from 'hooks/useChainLogo'
 import { MerklOpportunity } from 'pages/Earns/types'
 
 type Props = PropsWithChildren<{
@@ -16,21 +16,22 @@ type Props = PropsWithChildren<{
 }>
 
 export default function PositionAprTooltip({ egApr, lmApr, dexLogo, dexName, merklOpportunity, children }: Props) {
+  const getChainLogo = useChainLogos()
   const campaignRows = useMemo(() => {
     if (!merklOpportunity?.campaigns.length) return []
 
     return merklOpportunity.campaigns.map(campaign => {
       const reward = merklOpportunity.rewardsRecord.breakdowns.find(item => item.campaignId === campaign.id)
-      const chainInfo = reward?.token.chainId ? NETWORKS_INFO[reward.token.chainId as ChainId] : undefined
+      const rewardChainId = reward?.token.chainId as ChainId | undefined
 
       return {
         id: campaign.id,
         name: merklOpportunity.protocol.name,
-        icon: merklOpportunity.protocol.icon || chainInfo?.icon,
+        icon: merklOpportunity.protocol.icon || (rewardChainId ? getChainLogo(rewardChainId) : undefined),
         apr: campaign.apr,
       }
     })
-  }, [merklOpportunity])
+  }, [merklOpportunity, getChainLogo])
 
   const hasContent = !!egApr || !!lmApr || campaignRows.length > 0
 

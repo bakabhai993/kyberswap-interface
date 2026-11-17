@@ -13,7 +13,6 @@ const plasmaInfo: NetworkInfo = {
   priceRoute: 'plasma',
   aggregatorRoute: 'plasma',
   name: 'Plasma',
-  icon: plasmaIcon,
 
   iconSelected: NOT_SUPPORT,
 

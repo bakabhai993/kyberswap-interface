@@ -1,6 +1,5 @@
 import { ChainId } from '@kyberswap/ks-sdk-core'
 
-import polygonIcon from 'assets/networks/polygon.svg'
 import { NetworkInfo } from 'constants/networks/type'
 
 const NOT_SUPPORT = null
@@ -12,7 +11,6 @@ const maticInfo: NetworkInfo = {
   priceRoute: 'polygon',
   aggregatorRoute: 'polygon',
   name: 'Polygon PoS',
-  icon: polygonIcon,
   iconSelected: NOT_SUPPORT,
 
   etherscanUrl: 'https://polygonscan.com',

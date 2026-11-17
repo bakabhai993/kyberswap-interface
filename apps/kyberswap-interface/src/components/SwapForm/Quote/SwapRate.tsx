@@ -1,8 +1,9 @@
 import { Trans } from '@lingui/macro'
 import { type ReactNode, useState } from 'react'
 import { Repeat } from 'react-feather'
-import { getNetworkInfo } from 'services/crossChain/utils'
+import { getChainName } from 'services/crossChain/utils'
 
+import { NetworkLogo } from 'components/Logo'
 import RefreshIndicator, { type RefreshIndicatorProps } from 'components/RefreshLoading/RefreshIndicator'
 import Skeleton from 'components/Skeleton'
 import { HStack } from 'components/Stack'
@@ -61,9 +62,9 @@ export const SwapRate = ({
                   1
                   <span className="relative inline-flex min-w-0 pr-3">
                     <span className="truncate">{baseCurrency?.symbol}</span>
-                    <img
-                      src={getNetworkInfo(baseChain).icon}
-                      alt={getNetworkInfo(baseChain).name}
+                    <NetworkLogo
+                      chainId={baseChain}
+                      alt={getChainName(baseChain)}
                       className="absolute -top-0.5 right-0 size-[10px] rounded-full"
                     />
                   </span>
@@ -73,9 +74,9 @@ export const SwapRate = ({
                   {value}
                   <span className="relative inline-flex min-w-0 pr-3">
                     <span className="truncate">{quoteCurrency?.symbol}</span>
-                    <img
-                      src={getNetworkInfo(quoteChain).icon}
-                      alt={getNetworkInfo(quoteChain).name}
+                    <NetworkLogo
+                      chainId={quoteChain}
+                      alt={getChainName(quoteChain)}
                       className="absolute -top-0.5 right-0 size-[10px] rounded-full"
                     />
                   </span>

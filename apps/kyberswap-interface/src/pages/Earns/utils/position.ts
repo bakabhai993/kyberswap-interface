@@ -12,7 +12,7 @@ import {
 import { ChainId, WETH } from '@kyberswap/ks-sdk-core'
 
 import { NETWORKS_INFO } from 'constants/networks'
-import { EARN_CHAINS, EARN_DEXES, EarnChain, Exchange } from 'pages/Earns/constants'
+import { EARN_DEXES, Exchange } from 'pages/Earns/constants'
 import { CoreProtocol } from 'pages/Earns/constants/coreProtocol'
 import {
   FeeInfo,
@@ -65,11 +65,13 @@ export const parsePosition = ({
   feeInfo,
   nftRewardInfo,
   isClosedFromRpc,
+  getChainLogo,
 }: {
   position: UserPosition
   feeInfo?: FeeInfo
   nftRewardInfo?: NftRewardInfo
   isClosedFromRpc?: boolean
+  getChainLogo: (chainId: number) => string
 }): ParsedPosition => {
   const forceClosed = isClosedFromRpc && position.status !== PositionStatus.CLOSED
 
@@ -301,7 +303,7 @@ export const parsePosition = ({
     chain: {
       id: position.chain?.id,
       name: position.chain?.name,
-      logo: EARN_CHAINS[position.chain?.id as EarnChain]?.logo ?? position.chain?.logo,
+      logo: getChainLogo(position.chain?.id),
     },
     priceRange: {
       min: minPrice,

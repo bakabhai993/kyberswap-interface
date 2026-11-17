@@ -21,6 +21,7 @@ whenever a step needs a product decision (default output token, day-1 products, 
 | --- | --- |
 | Chain id, display name, aggregator slug (`/<slug>/api/v1/routes` must answer) | SDK `ChainId`, `NetworkInfo.route` / `aggregatorRoute`, ks-setting |
 | Native token symbol, decimals, logo | `NetworkInfo.nativeToken` |
+| Chain logo (square; an SVG or an image of at least 128px) | ks-setting `chains` config — not this repo, see section 5 |
 | Wrapped native: address **and on-chain `symbol()`** — docs have been wrong (Elysium's is WHYPE, not WETH) | SDK `WETH[ChainId.X]` |
 | Whether the native asset has an ERC-20 interface sharing its balance (Arc: native USDC) | `NetworkInfo.nativeToken.erc20Interface` |
 | Multicall3 address (canonical `0xcA11bde05977b3631167028862bE2a173976CA11` or not) and block time | `NetworkInfo.multicall`, wagmi `contracts.multicall3` |
@@ -67,7 +68,8 @@ Turn a feature on only after its probe in section 5 passes; otherwise record wha
 - `components/Web3Provider/index.tsx`: `defineChain` (rpc, explorer, multicall3) and `withKyberRpc(<chain>)` in `wagmiChains`.
 - `packages/rpc-client/src/endpoints.ts`: `PUBLIC_RPC_ENDPOINTS[<id>]` — the benchmarked list, fastest zero-lag node first; that node is also `NetworkInfo.defaultRpcUrl`.
 - `utils/gasReserve.ts`: the native gas reserve.
-- `assets/networks/<chain>.svg`, and the chain grid in `pages/About/AboutKyberSwap.tsx`.
+- The chain logo is not bundled: the app reads it from the chain's entry in the ks-setting `chains` config (section 5). `assets/networks/<chain>.svg` is only needed for a native token logo the token list does not provide.
+- The chain grid in `pages/About/AboutKyberSwap.tsx`.
 - `packages/swap-widgets`: `src/constants/index.ts` (chain info, `MULTICALL`, aggregator path, `SCAN_LINK`, `DefaultRpcUrl`), `src/constants/tokens/<chain>.ts` plus its index, the README chain table, a version bump. Demos: `apps/swap-widgets-react-demo/src/App.tsx`, `apps/swap-widgets-nextjs-demo/pages/index.tsx`, `apps/iframe-embed-demo/src/constants.ts`.
 - Cross-chain (the cross-chain team owns it): `pages/CrossChainSwap/utils.ts` `CANONICAL_TOKENS`; a provider adapter only once that provider lists the chain.
 - Earn / Zap, only when in scope: `pages/Earns/constants/{index.ts, chains/<chain>.ts, dexes/*.ts}` and `packages/schema/src/{schema/chain.ts, constants/networks.ts, constants/networks/<chain>.ts, constants/dexes/*}`.
@@ -87,6 +89,7 @@ Turn a feature on only after its probe in section 5 passes; otherwise record wha
 | --- | --- | --- |
 | Aggregator | `GET https://aggregator-api.kyberswap.com/<slug>/api/v1/routes?tokenIn=0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE&tokenOut=<token>&amountIn=<wei>` | a route |
 | ks-setting | `GET https://ks-setting.kyberswap.com/api/v1/configurations/fetch?serviceCode=kyberswap` → `data.config.chainStates['<id>']` | `testing` on previews, `active` at launch |
+| Chain logo | `GET https://ks-setting.kyberswap.com/api/v1/configurations/fetch?serviceCode=chains` → the entry with `chainId: '<id>'` | a `logoUrl` under `https://storage.googleapis.com/ks-setting-…/`. Added in the admin (Dynamic Config → chains → Upload, which stores a 128×128 PNG). Previews read this production config too; without the entry the chain shows the unknown mark |
 | Price chart | `GET https://kd-api.kyberswap.com/api/v1/tokens/<id>/<token>/price-chart?stable=<stable>&quote=<quote>&timeFrame=1h` | `candles` non-empty |
 | Trending | `GET https://token-api.kyberswap.com/api/v1/public/tokens?chainIds=<id>&tag=kyberscore&page=1&pageSize=1` | `pagination.totalItems > 0` |
 | Wallet inventory | `GET https://kd-api.kyberswap.com/api/v1/wallets/<id>/<account>/balances` | 200 (a 400 `unsupported chain` means not yet) |

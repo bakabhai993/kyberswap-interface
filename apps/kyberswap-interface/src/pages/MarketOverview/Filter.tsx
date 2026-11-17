@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { Star } from 'react-feather'
 
 import { ListingFilterTag, ListingFilterTagContainer } from 'components/Listing/components'
+import { NetworkLogo } from 'components/Logo'
 import Search from 'components/Search'
 import { Center, HStack, Stack } from 'components/Stack'
 import { MouseoverTooltip } from 'components/Tooltip'
@@ -103,7 +104,7 @@ const MarketFilter = () => {
                   )}
                   onClick={() => handleChainChange(chainId)}
                 >
-                  <img src={network.icon} className="size-5" alt="" />
+                  <NetworkLogo chainId={chainId} className="size-5" />
                 </Center>
               </MouseoverTooltip>
             )

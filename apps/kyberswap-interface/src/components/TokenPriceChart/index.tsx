@@ -7,6 +7,7 @@ import { type TokenChartTimeFrame } from 'services/tokenChart'
 
 import { Collapse } from 'components/Collapse'
 import CurrencyLogo from 'components/CurrencyLogo'
+import { NetworkLogo } from 'components/Logo'
 import SegmentedControl from 'components/SegmentedControl'
 import Skeleton from 'components/Skeleton'
 import { HStack, Stack } from 'components/Stack'
@@ -173,8 +174,8 @@ const TokenPriceChart = ({ tokens, flatten, quoteCurrency, markerOverlay, header
                 >
                   <span className="relative shrink-0">
                     <CurrencyLogo currency={token} size="20px" />
-                    <img
-                      src={NETWORKS_INFO[token.chainId].icon}
+                    <NetworkLogo
+                      chainId={token.chainId}
                       alt={NETWORKS_INFO[token.chainId].name}
                       className="absolute -bottom-1 -right-1 size-2.5 rounded-full"
                     />

@@ -1,6 +1,5 @@
 import { ChainId } from '@kyberswap/ks-sdk-core'
 
-import arbitrumIcon from 'assets/networks/arbitrum.svg'
 import ethereumIcon from 'assets/networks/ethereum.svg'
 import { NetworkInfo } from 'constants/networks/type'
 
@@ -14,7 +13,6 @@ const arbitrumInfo: NetworkInfo = {
   priceRoute: 'arbitrum',
   aggregatorRoute: 'arbitrum',
   name: 'Arbitrum',
-  icon: arbitrumIcon,
   iconSelected: NOT_SUPPORT,
 
   etherscanUrl: 'https://arbiscan.io',

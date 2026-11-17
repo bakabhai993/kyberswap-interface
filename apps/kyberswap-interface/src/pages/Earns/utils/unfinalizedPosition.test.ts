@@ -61,7 +61,12 @@ const indexedPosition = (overrides: Partial<ParsedPosition> = {}): ParsedPositio
 })
 
 const resolve = (positions: ParsedPosition[] = [], now = Date.now()) =>
-  resolveUnfinalizedPositions({ records: getUnfinalizedPositionRecords(OWNER), positions, now })
+  resolveUnfinalizedPositions({
+    records: getUnfinalizedPositionRecords(OWNER),
+    positions,
+    now,
+    getChainLogo: () => '',
+  })
 
 describe('unfinalized position cache', () => {
   beforeEach(() => {

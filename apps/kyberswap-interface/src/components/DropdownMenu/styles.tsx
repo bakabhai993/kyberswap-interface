@@ -1,6 +1,7 @@
 import { type CSSProperties, forwardRef } from 'react'
 
 import { ReactComponent as DropdownSVG } from 'assets/svg/down.svg'
+import UnknownToken from 'assets/svg/kyber/unknown-token.svg'
 import { Collapse } from 'components/Collapse'
 import { cn } from 'utils/cn'
 
@@ -115,7 +116,14 @@ export const DropdownIcon = ({
 
 export const ItemIcon = ({ className, ...rest }: React.ImgHTMLAttributes<HTMLImageElement>) => (
   // eslint-disable-next-line jsx-a11y/alt-text
-  <img className={cn('h-[18px] w-[18px]', className)} {...rest} />
+  <img
+    className={cn('h-[18px] w-[18px] object-contain', className)}
+    onError={({ currentTarget }) => {
+      currentTarget.onerror = null // prevents looping
+      currentTarget.src = UnknownToken
+    }}
+    {...rest}
+  />
 )
 
 type DropdownContentWrapperProps = React.HTMLAttributes<HTMLDivElement> & { $usePortal?: boolean }

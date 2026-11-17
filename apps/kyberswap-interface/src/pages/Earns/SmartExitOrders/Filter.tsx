@@ -1,7 +1,8 @@
 import { ChainId } from '@kyberswap/ks-sdk-core'
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 
 import DropdownMenu from 'components/DropdownMenu'
+import { useChainLogos } from 'hooks/useChainLogo'
 import { NETWORKS_INFO } from 'hooks/useChainsConfig'
 import { EARN_CHAINS, EARN_DEXES } from 'pages/Earns/constants'
 import { AllChainsOption, AllProtocolsOption } from 'pages/Earns/hooks/useSupportedDexesAndChains'
@@ -15,13 +16,9 @@ const ORDER_STATUS = [
   { label: 'Cancelled', value: OrderStatus.OrderStatusCancelled },
 ]
 
-const SUPPORTED_CHAINS = Object.entries(EARN_CHAINS)
+const SUPPORTED_CHAIN_IDS = Object.entries(EARN_CHAINS)
   .filter(([_, chainInfo]) => chainInfo.smartExitSupported)
-  .map(([chainId, chainInfo]) => ({
-    label: NETWORKS_INFO[Number(chainId) as ChainId].name,
-    value: chainId,
-    icon: chainInfo.logo,
-  }))
+  .map(([chainId]) => Number(chainId) as ChainId)
 
 const SUPPORTED_DEXES = Object.entries(EARN_DEXES)
   .filter(([_, dexInfo]) => dexInfo.smartExitDexType)
@@ -31,7 +28,6 @@ const SUPPORTED_DEXES = Object.entries(EARN_DEXES)
     icon: dexInfo.logo,
   }))
 
-const CHAIN_OPTIONS = [AllChainsOption, ...SUPPORTED_CHAINS]
 const DEX_OPTIONS = [AllProtocolsOption, ...SUPPORTED_DEXES]
 
 export default function Filter({
@@ -41,6 +37,19 @@ export default function Filter({
   filters: SmartExitFilter
   updateFilters: (key: keyof SmartExitFilter, value: string | number) => void
 }) {
+  const getChainLogo = useChainLogos()
+  const chainOptions = useMemo(
+    () => [
+      AllChainsOption,
+      ...SUPPORTED_CHAIN_IDS.map(chainId => ({
+        label: NETWORKS_INFO[chainId].name,
+        value: String(chainId),
+        icon: getChainLogo(chainId),
+      })),
+    ],
+    [getChainLogo],
+  )
+
   const handleChainChange = useCallback(
     (value: string | number) => {
       const stringValue = String(value)
@@ -88,7 +97,7 @@ export default function Filter({
         <DropdownMenu
           mobileHalfWidth
           value={filters.chainIds || ''}
-          options={CHAIN_OPTIONS}
+          options={chainOptions}
           onChange={handleChainChange}
         />
         <DropdownMenu mobileHalfWidth value={filters.dexTypes || ''} options={DEX_OPTIONS} onChange={handleDexChange} />

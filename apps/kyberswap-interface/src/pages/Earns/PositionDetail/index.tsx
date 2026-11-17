@@ -15,6 +15,7 @@ import { ListingPageNavigateButton, ListingPageWrapper } from 'components/Listin
 import { wagmiConfig } from 'components/Web3Provider'
 import { APP_PATHS } from 'constants/index'
 import { useActiveWeb3React } from 'hooks'
+import { useChainLogos } from 'hooks/useChainLogo'
 import useIsWalletRestoring from 'hooks/useIsWalletRestoring'
 import PositionDetailHeader from 'pages/Earns/PositionDetail/Header'
 import LeftSection from 'pages/Earns/PositionDetail/LeftSection'
@@ -115,6 +116,7 @@ const PositionDetail = () => {
 
   const loadingInterval = isFetching
 
+  const getChainLogo = useChainLogos()
   const parsedPosition: ParsedPosition | undefined = useMemo(() => {
     const positionFromApi = userPositions[0]
     if (!positionFromApi) return undefined
@@ -124,8 +126,9 @@ const PositionDetail = () => {
       feeInfo: feeInfoFromRpc,
       nftRewardInfo: rewardInfoThisPosition,
       isClosedFromRpc: closedPositionsFromRpc.includes(positionFromApi.tokenId),
+      getChainLogo,
     })
-  }, [closedPositionsFromRpc, feeInfoFromRpc, rewardInfoThisPosition, userPositions])
+  }, [closedPositionsFromRpc, feeInfoFromRpc, getChainLogo, rewardInfoThisPosition, userPositions])
 
   const parsedPositions = useMemo(() => (parsedPosition ? [parsedPosition] : []), [parsedPosition])
   const { placeholderByKey, valueUpdatingKeys } = useUnfinalizedPositions({

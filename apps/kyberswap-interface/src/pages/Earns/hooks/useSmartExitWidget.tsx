@@ -4,6 +4,7 @@ import { ReactElement, useCallback, useEffect, useState } from 'react'
 import { useUserPositionsQuery } from 'services/earn'
 
 import { useActiveWeb3React } from 'hooks'
+import { useChainLogos } from 'hooks/useChainLogo'
 import { SmartExit } from 'pages/Earns/components/SmartExit'
 import { Exchange } from 'pages/Earns/constants'
 import { ParsedPosition, UserPosition } from 'pages/Earns/types'
@@ -60,17 +61,19 @@ export default function useSmartExitWidget(): {
     },
   )
 
+  const getChainLogo = useChainLogos()
+
   // Parse position when data arrives
   useEffect(() => {
     if (userPositionsData && userPositionsData.positions.length > 0 && !smartExitPosition && positionId) {
       const rawPosition = userPositionsData.positions[0] as UserPosition
-      const parsed = parsePosition({ position: rawPosition })
+      const parsed = parsePosition({ position: rawPosition, getChainLogo })
       // Verify the fetched position matches the requested positionId to avoid stale data
       if (parsed.positionId.toLowerCase() === positionId.toLowerCase()) {
         setSmartExitPosition(parsed)
       }
     }
-  }, [userPositionsData, smartExitPosition, positionId])
+  }, [userPositionsData, smartExitPosition, positionId, getChainLogo])
 
   const onOpenSmartExit = useCallback((params: SmartExitParams | ParsedPosition | undefined) => {
     if (!params) {

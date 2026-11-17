@@ -50,8 +50,8 @@ import ValueSkeleton from 'pages/Earns/components/ValueSkeleton'
 import VaultDepositModal from 'pages/Earns/components/VaultDeposit/VaultDepositModal'
 import VaultWithdrawModal from 'pages/Earns/components/VaultWithdraw/VaultWithdrawModal'
 import { VAULT_POLLING_INTERVAL } from 'pages/Earns/constants/vault'
-import { VAULT_CHAIN_OPTIONS } from 'pages/Earns/constants/vaultFilters'
 import { useRefreshOnVaultTx } from 'pages/Earns/hooks/useRefreshOnVaultTx'
+import useVaultChainOptions from 'pages/Earns/hooks/useVaultChainOptions'
 import { useVaultCardTracking } from 'pages/Earns/hooks/useVaultTracking'
 import { buildVaultDetailPath, safeBigInt, toUserVaultPosition } from 'pages/Earns/utils/vault'
 import { formatVaultApy, formatVaultTvl } from 'pages/Earns/utils/vaultFormat'
@@ -259,6 +259,7 @@ const MyVaults = () => {
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebounce(search, SEARCH_DEBOUNCE_MS)
   const [selectedChain, setSelectedChain] = useState('')
+  const vaultChainOptions = useVaultChainOptions()
   const upToSmall = useMedia(`(max-width: ${MEDIA_WIDTHS.upToSmall}px)`)
   const [depositVault, setDepositVault] = useState<UserVaultPosition | null>(null)
   const [withdrawVault, setWithdrawVault] = useState<UserVaultPosition | null>(null)
@@ -311,13 +312,13 @@ const MyVaults = () => {
           highlightOnSelect
           label={
             <SelectedOptionsLabel
-              options={VAULT_CHAIN_OPTIONS}
+              options={vaultChainOptions}
               value={selectedChain}
-              allLabel={VAULT_CHAIN_OPTIONS[0].label}
+              allLabel={vaultChainOptions[0].label}
               manyLabel={count => t`Selected: ${count} chains`}
             />
           }
-          options={VAULT_CHAIN_OPTIONS}
+          options={vaultChainOptions}
           value={selectedChain}
           onChange={value => setSelectedChain(value.toString())}
         />

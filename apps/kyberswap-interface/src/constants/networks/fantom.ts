@@ -14,7 +14,6 @@ const fantomInfo: NetworkInfo = {
   priceRoute: 'fantom',
   aggregatorRoute: 'fantom',
   name: 'Fantom',
-  icon: fantomIcon,
   iconSelected: NOT_SUPPORT,
 
   etherscanUrl: 'https://explorer.fantom.network',

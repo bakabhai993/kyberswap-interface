@@ -13,7 +13,6 @@ const arcInfo: NetworkInfo = {
   priceRoute: 'arc',
   aggregatorRoute: 'arc',
   name: 'Arc',
-  icon: arcIcon,
 
   iconSelected: NOT_SUPPORT,
 

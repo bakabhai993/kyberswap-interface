@@ -11,6 +11,7 @@ import UnknownToken from 'assets/svg/kyber/unknown-token.svg'
 import { useGasDropValue } from 'components/GasDrop/useGasDropValue'
 import GasStation from 'components/Icons/GasStation'
 import Loader from 'components/Loader'
+import { NetworkLogo } from 'components/Logo'
 import { Center } from 'components/Stack'
 import { TransactionDetailButton } from 'components/SwapTransactions/TransactionDetail/TransactionDetailProvider'
 import type { HistoryTransaction } from 'components/SwapTransactions/history'
@@ -69,8 +70,6 @@ const getTargetExplorerLink = (tx: HistoryTransaction) => {
   return NETWORKS_INFO[tx.targetChain] ? getEtherscanLink(tx.targetChain, tx.targetTxHash, 'transaction') : ''
 }
 
-const getChainLogo = (chain: Chain) =>
-  (isEvmChainId(chain) ? NETWORKS_INFO[chain]?.icon : NonEvmChainInfo[chain]?.icon) || UnknownToken
 const getChainName = (chain: Chain) =>
   (isEvmChainId(chain) ? NETWORKS_INFO[chain]?.name : NonEvmChainInfo[chain]?.name) || String(chain)
 
@@ -128,30 +127,23 @@ const TransactionTime = ({ tx }: { tx: HistoryTransaction }) => {
 }
 
 const ChainRoute = ({ tx }: { tx: HistoryTransaction }) => {
-  const sourceChainLogo = getChainLogo(tx.sourceChain)
-  const targetChainLogo = getChainLogo(tx.targetChain)
-
   return (
     <div className="flex items-center gap-1">
-      {sourceChainLogo && (
-        <img
-          src={sourceChainLogo}
-          alt={getChainName(tx.sourceChain)}
-          width={20}
-          height={20}
-          className="size-5 rounded-full"
-        />
-      )}
+      <NetworkLogo
+        chainId={tx.sourceChain}
+        alt={getChainName(tx.sourceChain)}
+        width={20}
+        height={20}
+        className="size-5 rounded-full"
+      />
       <ChevronRight size={14} className="shrink-0 text-subText" />
-      {targetChainLogo && (
-        <img
-          src={targetChainLogo}
-          alt={getChainName(tx.targetChain)}
-          width={20}
-          height={20}
-          className="size-5 rounded-full"
-        />
-      )}
+      <NetworkLogo
+        chainId={tx.targetChain}
+        alt={getChainName(tx.targetChain)}
+        width={20}
+        height={20}
+        className="size-5 rounded-full"
+      />
     </div>
   )
 }

@@ -43,6 +43,7 @@ import {
   Okx,
   Upbit,
 } from 'components/ExchangeIcons'
+import { NetworkLogo } from 'components/Logo'
 import RevealOnScroll from 'components/RevealOnScroll'
 import { Center, HStack, Stack } from 'components/Stack'
 import { APP_PATHS } from 'constants/index'
@@ -145,8 +146,8 @@ function AboutKNC() {
                     ChainId.OPTIMISM,
                     ChainId.LINEA,
                   ].map(item => (
-                    <img
-                      src={NETWORKS_INFO[item].icon}
+                    <NetworkLogo
+                      chainId={item}
                       width="36px"
                       alt={NETWORKS_INFO[item].name}
                       key={NETWORKS_INFO[item].name}

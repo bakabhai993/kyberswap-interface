@@ -4,6 +4,7 @@ import { ReactNode, useMemo } from 'react'
 
 import { ButtonPrimary } from 'components/Button'
 import CurrencyLogo from 'components/CurrencyLogo'
+import { NetworkLogo } from 'components/Logo'
 import { HStack, Stack } from 'components/Stack'
 import { TokenBalance } from 'components/TokenSelectorModal/TokenList/TokenBalance'
 import { NETWORKS_INFO } from 'constants/networks'
@@ -82,7 +83,7 @@ export const OtherChainTokens = ({
                 <Stack className={cn('min-w-0 items-start gap-0.5', isDimmed && 'opacity-50')}>
                   <span className="truncate font-medium text-text">{token.symbol}</span>
                   <HStack as="span" className="min-w-0 items-center gap-1">
-                    <img src={networkInfo.icon} alt={networkInfo.name} className="size-3 rounded-full" />
+                    <NetworkLogo chainId={token.chainId} alt={networkInfo.name} className="size-3 rounded-full" />
                     <span className="truncate text-xs font-light text-subText">{networkInfo.name}</span>
                   </HStack>
                 </Stack>

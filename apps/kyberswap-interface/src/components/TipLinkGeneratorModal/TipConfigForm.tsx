@@ -2,6 +2,7 @@ import { Token as TokenSchema } from '@kyber/schema'
 import { ChainId } from '@kyberswap/ks-sdk-core'
 import { ChevronDown, Repeat } from 'react-feather'
 
+import { NetworkLogo } from 'components/Logo'
 import { Center, HStack, Stack } from 'components/Stack'
 import {
   FieldShell,
@@ -66,7 +67,6 @@ export default function TipConfigForm({
         <SectionLabel>Network</SectionLabel>
         <HStack className="flex-wrap gap-2">
           {PRIMARY_CHAINS.map(item => {
-            const itemInfo = NETWORKS_INFO[item]
             return (
               <HStack
                 as="button"
@@ -79,7 +79,7 @@ export default function TipConfigForm({
                     : 'border-transparent bg-[#252525] text-subText hover:border-border hover:bg-[#303030] hover:text-text',
                 )}
               >
-                <img src={itemInfo.icon} alt="" className="size-4 rounded-full" />
+                <NetworkLogo chainId={item} className="size-4 rounded-full" />
                 {getChainLabel(item)}
               </HStack>
             )
@@ -97,7 +97,7 @@ export default function TipConfigForm({
                   : 'border-dashed border-border text-subText hover:border-primary hover:text-text',
               )}
             >
-              {selectedMoreChainInfo && <img src={selectedMoreChainInfo.icon} alt="" className="size-4 rounded-full" />}
+              {selectedMoreChainInfo && <NetworkLogo chainId={chainId} className="size-4 rounded-full" />}
               {selectedMoreChainInfo ? getChainLabel(chainId) : 'More'}
               <ChevronDown size={12} />
             </HStack>

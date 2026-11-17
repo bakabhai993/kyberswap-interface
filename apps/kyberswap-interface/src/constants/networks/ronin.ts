@@ -13,7 +13,6 @@ const ronin: NetworkInfo = {
   priceRoute: 'ronin',
   aggregatorRoute: 'ronin',
   name: 'Ronin',
-  icon: roninIcon,
 
   iconSelected: NOT_SUPPORT,
 

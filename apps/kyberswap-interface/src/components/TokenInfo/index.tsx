@@ -9,6 +9,7 @@ import { ReactComponent as SecurityInfoIcon } from 'assets/svg/security_info.svg
 import { ReactComponent as ZiczacIcon } from 'assets/svg/ziczac.svg'
 import IconButton from 'components/Button/IconButton'
 import CurrencyLogo from 'components/CurrencyLogo'
+import { NetworkLogo } from 'components/Logo'
 import SegmentedControl from 'components/SegmentedControl'
 import { HStack } from 'components/Stack'
 import { TextDashed } from 'components/Text'
@@ -40,8 +41,8 @@ const TokenTabLabel = ({ currency }: { currency: Currency }) => (
   <span className="flex h-[18px] min-w-16 items-center justify-center gap-1.5">
     <span className="relative flex size-[18px] shrink-0 items-center justify-center">
       <CurrencyLogo currency={currency} size="16px" />
-      <img
-        src={NETWORKS_INFO[currency.chainId].icon}
+      <NetworkLogo
+        chainId={currency.chainId}
         alt={NETWORKS_INFO[currency.chainId].name}
         title={NETWORKS_INFO[currency.chainId].name}
         className="absolute bottom-0 right-0 size-2 rounded-full ring-1 ring-tabBackground"

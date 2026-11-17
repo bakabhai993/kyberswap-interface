@@ -13,7 +13,6 @@ const hyperevmInfo: NetworkInfo = {
   priceRoute: 'hyperevm',
   aggregatorRoute: 'hyperevm',
   name: 'HyperEVM',
-  icon: hyperevmIcon,
 
   iconSelected: NOT_SUPPORT,
 

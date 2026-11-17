@@ -6,6 +6,7 @@ import { KS_SETTING_API } from 'constants/env'
 import { ChainStateMap } from 'hooks/useChainsConfig'
 import { TokenInfo, WrappedTokenInfo } from 'state/lists/wrappedTokenInfo'
 import { TopToken } from 'state/topTokens/type'
+import { ChainLogoMap, parseChainLogos, persistChainLogos, reusePersistedChainLogos } from 'utils/chainLogo'
 import { formatTokenInfo } from 'utils/tokenInfo'
 
 export type KyberSwapConfig = {
@@ -89,19 +90,23 @@ const ksSettingApi = createApi({
         },
       }),
     }),
-    getChainsConfiguration: builder.query<{ chainId: string; name: string; icon: string }[], void>({
+    getChainLogos: builder.query<ChainLogoMap, void>({
       query: () => ({
         url: '/configurations/fetch',
         params: {
           serviceCode: `chains`,
         },
+        // Logos show a placeholder until this settles, so a hung request must not hold it forever
+        timeout: 10_000,
       }),
-      transformResponse: (data: any) =>
-        data?.data?.config?.map((e: any) => ({
-          ...e,
-          name: e.displayName,
-          icon: e.logoUrl,
-        })),
+      transformResponse: (response: unknown) => reusePersistedChainLogos(parseChainLogos(response)),
+      onQueryStarted: async (_arg, { queryFulfilled }) => {
+        try {
+          persistChainLogos((await queryFulfilled).data)
+        } catch {
+          // A failed fetch keeps the logos saved by an earlier visit
+        }
+      },
     }),
 
     getDexList: builder.query<Dex[], { page: number; chainId: string }>({
@@ -249,7 +254,7 @@ export const {
   useGetKyberswapConfigurationQuery,
   useGetKyberswapGlobalConfigurationQuery,
   useLazyGetTokenListQuery,
-  useGetChainsConfigurationQuery,
+  useGetChainLogosQuery,
   useGetTokenByAddressesQuery,
   useLazySearchTokensBySymbolQuery,
 } = ksSettingApi

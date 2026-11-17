@@ -1,7 +1,6 @@
 import { ChainId } from '@kyberswap/ks-sdk-core'
 
 import ethereumIcon from 'assets/networks/ethereum.svg'
-import scrollIcon from 'assets/networks/scroll.svg'
 import { NetworkInfo } from 'constants/networks/type'
 
 const EMPTY_ARRAY: any[] = []
@@ -14,7 +13,6 @@ const scroll: NetworkInfo = {
   priceRoute: 'scroll',
   aggregatorRoute: 'scroll',
   name: 'Scroll',
-  icon: scrollIcon,
 
   iconSelected: NOT_SUPPORT,
 

@@ -13,7 +13,6 @@ const monadInfo: NetworkInfo = {
   priceRoute: 'monad',
   aggregatorRoute: 'monad',
   name: 'Monad',
-  icon: monadIcon,
 
   iconSelected: NOT_SUPPORT,
 

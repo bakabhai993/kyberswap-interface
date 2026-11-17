@@ -1,7 +1,6 @@
 import { ChainId } from '@kyberswap/ks-sdk-core'
 
 import ethereumIcon from 'assets/networks/ethereum.svg'
-import unichainIcon from 'assets/networks/unichain.svg'
 import { NetworkInfo } from 'constants/networks/type'
 
 const EMPTY_ARRAY: any[] = []
@@ -14,7 +13,6 @@ const unichain: NetworkInfo = {
   priceRoute: 'unichain',
   aggregatorRoute: 'unichain',
   name: 'Unichain',
-  icon: unichainIcon,
 
   iconSelected: NOT_SUPPORT,
 

@@ -1,7 +1,6 @@
 import { ChainId } from '@kyberswap/ks-sdk-core'
 
 import BnbLogo from 'assets/images/bnb-logo.png'
-import bnbIcon from 'assets/networks/bnb.svg'
 import { NetworkInfo } from 'constants/networks/type'
 
 const NOT_SUPPORT = null
@@ -13,7 +12,6 @@ const bnbInfo: NetworkInfo = {
   priceRoute: 'bsc',
   aggregatorRoute: 'bsc',
   name: 'BNB Chain',
-  icon: bnbIcon,
   iconSelected: NOT_SUPPORT,
 
   etherscanUrl: 'https://bscscan.com',

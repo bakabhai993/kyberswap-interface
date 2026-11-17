@@ -1,6 +1,5 @@
 import { ChainId } from '@kyberswap/ks-sdk-core'
 
-import elysiumIcon from 'assets/networks/elysium.svg'
 import hyperevmIcon from 'assets/networks/hyperevm.svg'
 import { NetworkInfo } from 'constants/networks/type'
 
@@ -14,7 +13,6 @@ const elysiumInfo: NetworkInfo = {
   priceRoute: 'elysium',
   aggregatorRoute: 'elysium',
   name: 'Elysium',
-  icon: elysiumIcon,
 
   iconSelected: NOT_SUPPORT,
 

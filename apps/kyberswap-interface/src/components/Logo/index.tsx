@@ -1,10 +1,11 @@
 import { ChainId, Currency } from '@kyberswap/ks-sdk-core'
-import { CSSProperties, ImgHTMLAttributes, useState } from 'react'
+import { ImgHTMLAttributes, useState } from 'react'
 
 import UnknownToken from 'assets/svg/kyber/unknown-token.svg'
-import { NETWORKS_INFO } from 'hooks/useChainsConfig'
+import { useChainLogoStatus } from 'hooks/useChainLogo'
 import { WrappedTokenInfo } from 'state/lists/wrappedTokenInfo'
-import { Chain, NonEvmChain, NonEvmChainInfo, isEvmChain } from 'types/crossChain'
+import { Chain } from 'types/crossChain'
+import { isKnownChain } from 'utils/chainLogo'
 import { cn } from 'utils/cn'
 import { isNativeAsset } from 'utils/nativeErc20'
 import { getNativeTokenLogo } from 'utils/tokenLogo'
@@ -37,11 +38,41 @@ export default function Logo({ srcs, alt, ...rest }: LogoProps) {
   )
 }
 
-export function NetworkLogo({ chainId, style = {} }: { chainId: Chain; style?: CSSProperties }) {
-  const chainInfo = isEvmChain(chainId) ? NETWORKS_INFO[chainId as ChainId] : NonEvmChainInfo[chainId as NonEvmChain]
+type NetworkLogoProps = Omit<ImgHTMLAttributes<HTMLImageElement>, 'src'> & { chainId: Chain }
 
-  if (!chainInfo?.icon) return null
-  return <img src={chainInfo.icon} alt="Switch Network" style={style} />
+/**
+ * The logo of a chain, as configured in ks-setting. Shows a placeholder of the same size until the
+ * config has answered, and the unknown-token mark when the chain has no logo or its image fails to
+ * load. Renders nothing for a chain the app has no entry for.
+ */
+export function NetworkLogo({ chainId, alt = '', className, ...rest }: NetworkLogoProps) {
+  const { logo, isPending } = useChainLogoStatus(chainId)
+  if (!isKnownChain(chainId)) return null
+
+  if (isPending) {
+    // The placeholder stands in for the image, so it keeps the chain's name: the tooltip, the
+    // accessible name and server-rendered markup all still say which chain it is
+    const label = alt || rest.title
+    return (
+      <span
+        {...(label ? { role: 'img', 'aria-label': label } : { 'aria-hidden': true })}
+        title={rest.title}
+        className={cn('inline-block shrink-0 animate-pulse rounded-full bg-white-08', className)}
+        // Callers size the image through either attributes or style; the placeholder honours both
+        style={{ width: rest.width, height: rest.height, ...rest.style }}
+      />
+    )
+  }
+
+  return (
+    <Logo
+      {...rest}
+      alt={alt}
+      // Configured logos are not guaranteed to be square
+      className={cn('object-contain', className)}
+      srcs={logo ? [logo] : []}
+    />
+  )
 }
 
 export function TokenLogoWithChain(data: {

@@ -60,7 +60,8 @@ import {
 import { VaultInfo, VaultSortBy, VaultViewMode } from 'pages/Earns/ExploreVaults/types'
 import ValueSkeleton from 'pages/Earns/components/ValueSkeleton'
 import VaultDepositModal from 'pages/Earns/components/VaultDeposit/VaultDepositModal'
-import { VAULT_CHAIN_OPTIONS, VAULT_PROTOCOL_OPTIONS } from 'pages/Earns/constants/vaultFilters'
+import { VAULT_PROTOCOL_OPTIONS } from 'pages/Earns/constants/vaultFilters'
+import useVaultChainOptions from 'pages/Earns/hooks/useVaultChainOptions'
 import { useVaultCardTracking } from 'pages/Earns/hooks/useVaultTracking'
 import { buildVaultDetailPath, toVaultInfo } from 'pages/Earns/utils/vault'
 import { formatVaultApy, formatVaultTvl } from 'pages/Earns/utils/vaultFormat'
@@ -367,6 +368,7 @@ const ExploreVaults = () => {
   // One request per keystroke would also re-render every card and its two sparklines.
   const debouncedSearch = useDebounce(search, SEARCH_DEBOUNCE_MS)
   const [selectedChain, setSelectedChain] = useState('')
+  const vaultChainOptions = useVaultChainOptions()
   const [selectedProtocol, setSelectedProtocol] = useState('')
   const [sortBy, setSortBy] = useState<VaultSortBy>(VaultSortBy.APY)
   // `stagger` travels with the mode so it is fixed for the life of a rendered list: a list that
@@ -444,13 +446,13 @@ const ExploreVaults = () => {
             highlightOnSelect
             label={
               <SelectedOptionsLabel
-                options={VAULT_CHAIN_OPTIONS}
+                options={vaultChainOptions}
                 value={selectedChain}
-                allLabel={VAULT_CHAIN_OPTIONS[0].label}
+                allLabel={vaultChainOptions[0].label}
                 manyLabel={count => t`Selected: ${count} chains`}
               />
             }
-            options={VAULT_CHAIN_OPTIONS}
+            options={vaultChainOptions}
             value={selectedChain}
             onChange={value => setSelectedChain(value.toString())}
           />

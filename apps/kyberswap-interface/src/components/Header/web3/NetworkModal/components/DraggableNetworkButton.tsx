@@ -5,6 +5,7 @@ import { isMobile } from 'react-device-detect'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
 import Icon from 'components/Icons/Icon'
+import { NetworkLogo } from 'components/Logo'
 import Row from 'components/Row'
 import { MouseoverTooltip } from 'components/Tooltip'
 import { APP_PATHS } from 'constants/index'
@@ -65,7 +66,7 @@ const DraggableNetworkButton = ({
   isComingSoon,
 }: {
   deprecatedSoon: boolean
-  networkInfo: Pick<NetworkInfo, 'state' | 'icon' | 'chainId' | 'name'>
+  networkInfo: Pick<NetworkInfo, 'state' | 'chainId' | 'name'>
   activeChainIds?: Chain[]
   isSelected?: boolean
   disabledMsg?: string
@@ -91,7 +92,7 @@ const DraggableNetworkButton = ({
   const qs = useParsedQueryString()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  const { state, icon, chainId, name } = networkInfo
+  const { state, chainId, name } = networkInfo
   const isMaintenance = state === ChainState.MAINTENANCE
   const disabled = isComingSoon || (activeChainIds ? !activeChainIds?.includes(chainId) : false) || isMaintenance
   const selected = isSelected && !isWrongNetwork
@@ -223,7 +224,7 @@ const DraggableNetworkButton = ({
             !selected && !disabled && 'hover:bg-tableHeader',
           )}
         >
-          <img src={icon} alt="Switch Network" className="size-5 min-w-5 rounded" />
+          <NetworkLogo chainId={chainId} alt="Switch Network" className="size-5 min-w-5 rounded" />
           <Row className={cn('grow gap-1.5', selected && 'text-text')}>
             <span className="relative text-left font-medium">
               {name}

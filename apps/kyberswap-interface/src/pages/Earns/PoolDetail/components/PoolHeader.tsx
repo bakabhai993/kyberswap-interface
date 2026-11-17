@@ -17,6 +17,7 @@ import TokenLogo from 'components/TokenLogo'
 import TokenSymbol from 'components/TokenSymbol'
 import { APP_PATHS } from 'constants/index'
 import { NetworkInfo } from 'constants/networks/type'
+import { useChainLogo } from 'hooks/useChainLogo'
 import { usePoolDetailContext } from 'pages/Earns/PoolDetail/context'
 import { IconArrowLeft, ShareButtonWrapper } from 'pages/Earns/PositionDetail/styles'
 import { getPoolDetailUrl } from 'pages/Earns/utils/url'
@@ -40,6 +41,7 @@ const TooltipAddressRow = ({ token, chainInfo }: { token: PoolDetailToken; chain
 const PoolHeaderPage = () => {
   const navigate = useNavigate()
   const { pool, chainInfo, dexInfo, exchange, chainId, primaryToken, secondaryToken } = usePoolDetailContext()
+  const chainLogo = useChainLogo(chainId)
   const [shareInfo, setShareInfo] = useState<ShareModalProps | undefined>()
 
   const isFarming = Boolean(pool.programs?.includes('eg') || pool.programs?.includes('lm'))
@@ -59,7 +61,7 @@ const PoolHeaderPage = () => {
         feeTier: pool.swapFee,
         address: pool.address,
         chainId,
-        chainLogo: chainInfo.icon,
+        chainLogo,
         dexLogo: dexInfo.logo,
         dexName: dexInfo.name,
         exchange,
@@ -107,7 +109,7 @@ const PoolHeaderPage = () => {
             <HStack className="flex-none items-end">
               <TokenLogo src={primaryToken.logoURI} size={28} />
               <TokenLogo src={secondaryToken.logoURI} size={28} translateLeft />
-              <TokenLogo src={chainInfo.icon} size={16} translateLeft translateTop />
+              <TokenLogo src={chainLogo} size={16} translateLeft translateTop />
             </HStack>
 
             <span className="whitespace-nowrap text-2xl font-medium text-text">

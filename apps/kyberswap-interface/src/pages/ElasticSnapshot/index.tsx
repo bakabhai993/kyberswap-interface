@@ -7,11 +7,11 @@ import { useMedia } from 'react-use'
 
 import { ButtonPrimary } from 'components/Button'
 import DoubleCurrencyLogo from 'components/DoubleLogo'
+import { NetworkLogo } from 'components/Logo'
 import { PoolsPageWrapper } from 'components/PageWrappers'
 import Tabs from 'components/Tabs'
 import { MouseoverTooltip } from 'components/Tooltip'
 import { useActiveWeb3React } from 'hooks'
-import { NETWORKS_INFO } from 'hooks/useChainsConfig'
 import useTheme from 'hooks/useTheme'
 import { useAllTokens } from 'hooks/useTokens'
 import TreasuryGrantAndInstantClaim from 'pages/ElasticSnapshot/components/TreasuryGrantAndInstantClaim'
@@ -492,13 +492,7 @@ const Logo = ({ chainId, address0, address1 }: { chainId: ChainId; address0: str
         currency1={allTokens[address1.toLowerCase()]}
       />
 
-      <img
-        src={NETWORKS_INFO[chainId].icon}
-        className="absolute bottom-0 right-1 z-[1]"
-        width="12px"
-        height="12px"
-        alt=""
-      />
+      <NetworkLogo chainId={chainId} className="absolute bottom-0 right-1 z-[1]" width="12px" height="12px" alt="" />
     </div>
   )
 }
