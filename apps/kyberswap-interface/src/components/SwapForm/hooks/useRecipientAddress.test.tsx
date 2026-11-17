@@ -34,6 +34,7 @@ const settled = () =>
 beforeEach(() => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
   vi.resetAllMocks()
+  mocks.resolve.mockResolvedValue(null)
   i18n.load('en', {})
   i18n.activate('en')
   client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
@@ -48,7 +49,7 @@ afterEach(async () => {
   vi.unstubAllGlobals()
 })
 it('does not refetch on focus after a minute, but resolves a changed recipient', async () => {
-  mocks.read.mockResolvedValueOnce(resolver).mockResolvedValueOnce(wallet)
+  mocks.resolve.mockResolvedValueOnce(wallet)
   await render('alice.eth')
   await settled()
   expect(result.address).toBe(wallet)
@@ -61,13 +62,14 @@ it('does not refetch on focus after a minute, but resolves a changed recipient',
   expect(result.address).toBe(wallet)
   expect(result.loading).toBe(false)
   expect(result.message).toBeUndefined()
-  expect(mocks.read).toHaveBeenCalledTimes(2)
+  expect(mocks.resolve).toHaveBeenCalledTimes(1)
 
-  mocks.read.mockResolvedValueOnce(resolver).mockResolvedValueOnce('0x0000000000000000000000000000000000000002')
+  mocks.resolve.mockResolvedValueOnce('0x0000000000000000000000000000000000000002')
   await render('bob.eth')
   await settled()
   expect(result.address).toBe('0x0000000000000000000000000000000000000002')
-  expect(mocks.read).toHaveBeenCalledTimes(4)
+  expect(mocks.resolve).toHaveBeenCalledTimes(2)
+  expect(mocks.read).not.toHaveBeenCalled()
 })
 
 it('keeps offline ENS pending and resolves automatically after reconnecting', async () => {
@@ -87,18 +89,42 @@ it('keeps offline ENS pending and resolves automatically after reconnecting', as
   expect(result.message).toBeUndefined()
 })
 
-it('resolves ENS directly even when the Universal Resolver is unavailable', async () => {
-  mocks.resolve.mockRejectedValue(new Error('Universal Resolver unavailable'))
-  mocks.read.mockResolvedValueOnce(resolver).mockResolvedValueOnce(wallet)
-  await render('jennie93.eth')
+it.each([null, '0x0000000000000000000000000000000000000000', new Error('Universal Resolver unavailable')])(
+  'falls back to the legacy resolver when Universal Resolver returns %s',
+  async response => {
+    if (response instanceof Error) mocks.resolve.mockRejectedValue(response)
+    else mocks.resolve.mockResolvedValue(response)
+    mocks.read.mockResolvedValueOnce(resolver).mockResolvedValueOnce(wallet)
+    await render('jennie93.eth')
+    await settled()
+    expect(result.address).toBe(wallet)
+    expect(mocks.read.mock.calls.map(([args]) => args.functionName)).toEqual(['resolver', 'addr'])
+    expect(mocks.resolve).toHaveBeenCalledWith({ name: 'jennie93.eth' })
+  },
+)
+
+it('resolves wildcard names without requiring a resolver on the exact node', async () => {
+  mocks.resolve.mockResolvedValue(wallet)
+  mocks.read.mockResolvedValue('0x0000000000000000000000000000000000000000')
+  await render('alice.example.eth')
   await settled()
   expect(result.address).toBe(wallet)
-  expect(mocks.read.mock.calls.map(([args]) => args.functionName)).toEqual(['resolver', 'addr'])
-  expect(mocks.resolve).not.toHaveBeenCalled()
+  expect(mocks.read).not.toHaveBeenCalled()
+})
+
+it('retries a failed wildcard lookup instead of caching a missing legacy record', async () => {
+  client = new QueryClient({ defaultOptions: { queries: { retryDelay: 0, gcTime: 0 } } })
+  mocks.resolve.mockRejectedValueOnce(new Error('RPC timeout')).mockResolvedValueOnce(wallet)
+  mocks.read.mockResolvedValue('0x0000000000000000000000000000000000000000')
+  await render('alice.example.eth')
+  await settled()
+  expect(result.address).toBe(wallet)
+  expect(result.error).toBe(false)
+  expect(mocks.resolve).toHaveBeenCalledTimes(2)
 })
 it('does not apply a late ENS result to a changed input', async () => {
   let finish!: (value: string) => void
-  mocks.read.mockResolvedValueOnce(resolver).mockImplementationOnce(
+  mocks.resolve.mockImplementationOnce(
     () =>
       new Promise(resolve => {
         finish = resolve

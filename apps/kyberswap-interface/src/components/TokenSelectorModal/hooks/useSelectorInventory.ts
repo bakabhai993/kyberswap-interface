@@ -19,7 +19,8 @@ export const useSelectorInventory = (chainId: ChainId, enabled = true, allNetwor
   const catchup = getSelectorInventoryCatchup(useQueryClient())
   const pool = allNetworks ? 'uni' : chainId
   const supported = !!KD_API_URL && (allNetworks || isInventoryChain(chainId))
-  const subscribed = enabled && supported && !!account
+  const canReadBalances = enabled && !!account
+  const subscribed = canReadBalances && supported
   const query = useQuery({
     queryKey: ['token-selector-inventory', account?.toLowerCase() ?? '', pool],
     queryFn: async ({ signal }) => {
@@ -40,8 +41,9 @@ export const useSelectorInventory = (chainId: ChainId, enabled = true, allNetwor
         ? { active: true, complete: query.data.complete, rows: query.data.chains[chainId] ?? EMPTY_ROWS }
         : INACTIVE_INVENTORY),
       loading: subscribed && query.isPending,
-      allowRpcFallback: subscribed && !query.data && query.error instanceof SelectorInventoryFirstPageError,
+      allowRpcFallback:
+        canReadBalances && (!supported || (!query.data && query.error instanceof SelectorInventoryFirstPageError)),
     }),
-    [subscribed, query.data, query.error, query.isPending, chainId],
+    [subscribed, canReadBalances, supported, query.data, query.error, query.isPending, chainId],
   )
 }

@@ -9,13 +9,13 @@ import { getSelectorInventoryCatchup } from 'state/walletInventory/selectorCatch
 
 import { useSelectorInventory } from './useSelectorInventory'
 
-const mocks = vi.hoisted(() => ({ account: 'wallet' }))
+const mocks = vi.hoisted(() => ({ account: 'wallet', supported: true }))
 vi.mock('constants/env', async importOriginal => ({
   ...(await importOriginal<typeof import('constants/env')>()),
   KD_API_URL: 'https://inventory.test/api',
 }))
 vi.mock('state/wallet/WalletBalanceContext', () => ({ useEvmBalanceAccount: () => mocks.account }))
-vi.mock('state/walletInventory/store', () => ({ isInventoryChain: () => true }))
+vi.mock('state/walletInventory/store', () => ({ isInventoryChain: () => mocks.supported }))
 const address = '0x0000000000000000000000000000000000000001'
 const fetchMock = vi.fn()
 let root: ReturnType<typeof createRoot>
@@ -41,10 +41,38 @@ afterEach(async () => {
   await act(async () => root?.unmount())
   client?.clear()
   mocks.account = 'wallet'
+  mocks.supported = true
   vi.useRealTimers()
   vi.unstubAllGlobals()
   fetchMock.mockReset()
 })
+it.each([
+  { enabled: true, account: 'wallet', allowRpcFallback: true },
+  { enabled: false, account: 'wallet', allowRpcFallback: false },
+  { enabled: true, account: '', allowRpcFallback: false },
+])('uses RPC for unsupported chains only when enabled and connected: %j', async scenario => {
+  vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
+  vi.stubGlobal('fetch', fetchMock)
+  mocks.supported = false
+  mocks.account = scenario.account
+  client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  root = createRoot(document.createElement('div'))
+  let observed: ReturnType<typeof useSelectorInventory> | undefined
+  const Probe = () => {
+    observed = useSelectorInventory(59144, scenario.enabled)
+    return null
+  }
+  await act(async () => {
+    root.render(
+      <QueryClientProvider client={client}>
+        <Probe />
+      </QueryClientProvider>,
+    )
+  })
+  expect(observed).toMatchObject({ active: false, loading: false, allowRpcFallback: scenario.allowRpcFallback })
+  expect(fetchMock).not.toHaveBeenCalled()
+})
+
 it('reads tokenAddress in both pools', async () => {
   vi.stubGlobal('fetch', fetchMock)
   fetchMock.mockResolvedValueOnce({ ok: true, json: async () => page('0x2a') })

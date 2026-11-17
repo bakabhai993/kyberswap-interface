@@ -48,7 +48,15 @@ export const useRecipientAddress = (value: string, type: RecipientAddressType) =
         } catch {
           return null
         }
-        // Resolve directly through the registered resolver, as the legacy swap form did.
+        // Universal resolution supports wildcard names; legacy resolvers remain a fallback.
+        let universalError: unknown
+        try {
+          const resolved = await client.getEnsAddress({ name })
+          if (resolved && resolved !== zeroAddress) return parseAddress(resolved) ?? null
+        } catch (error) {
+          universalError = error
+        }
+
         const node = namehash(name)
         const resolver = await client.readContract({
           address: '0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e',
@@ -56,15 +64,20 @@ export const useRecipientAddress = (value: string, type: RecipientAddressType) =
           functionName: 'resolver',
           args: [node],
         })
-        if (resolver === zeroAddress) return null
-        const resolved = await client.readContract({
-          address: resolver,
-          abi: parseAbi(['function addr(bytes32 node) view returns (address)']),
-          functionName: 'addr',
-          args: [node],
-        })
+        const resolved =
+          resolver === zeroAddress
+            ? zeroAddress
+            : await client.readContract({
+                address: resolver,
+                abi: parseAbi(['function addr(bytes32 node) view returns (address)']),
+                functionName: 'addr',
+                args: [node],
+              })
         // A zero ENS record means no destination, unlike an explicitly entered zero address.
-        return resolved === zeroAddress ? null : parseAddress(resolved) ?? null
+        const address = resolved === zeroAddress ? null : parseAddress(resolved) ?? null
+        // A failed wildcard lookup must retry even if the exact node has no legacy record.
+        if (!address && universalError) throw universalError
+        return address
       }
       if (network === 'Solana') {
         const sdk = await import('@solana/web3.js').catch(() => null)

@@ -80,7 +80,9 @@ receiver connection or pasted recipient owned by `useCrossChainRecipient`.
 Recipient popups own temporary edits and apply through the recipient owner.
 Clearing a draft restores the wallet receiver; collapsing preserves the draft.
 Resolution and validation belong to `useRecipientAddress`, including ENS and
-non-EVM checks. Pending or invalid recipients cannot execute.
+non-EVM checks. ENS uses the Universal Resolver first, with direct resolver reads
+as a legacy fallback; unresolved RPC failures retain query retries. Pending or
+invalid recipients cannot execute.
 
 Change form geometry in `UnifiedSwapForm`/`SwapFormLayout`, quote behavior in its
 mode's provider/hooks, and submission behavior in its execution owner. Keep lazy
