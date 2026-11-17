@@ -39,7 +39,7 @@ const SingleChainRoute = ({
   })
 
   const handleViewRoute = useCallback(() => {
-    trackingHandler(TRACKING_EVENT_TYPE.SWAP_ROUTE_VIEWED, {
+    trackingHandler(TRACKING_EVENT_TYPE.ROUTE_CHART_EXPANDED, {
       from_token: currencyIn?.symbol,
       from_token_address: currencyIn ? getTokenAddress(currencyIn) : undefined,
       to_token: currencyOut?.symbol,
@@ -79,8 +79,10 @@ const CrossChainTradeRouteSlot = lazy(() =>
 
 const CrossChainRoute = ({ defaultCollapsed }: { defaultCollapsed: boolean }) => {
   const route = useSwapRouteSnapshot()
+  const { trackingHandler } = useTracking()
   return (
     <TradeRoutePanel
+      onExpand={() => trackingHandler(TRACKING_EVENT_TYPE.ROUTE_CHART_EXPANDED, { mode: 'cross-chain' })}
       defaultCollapsed={defaultCollapsed}
       heading={
         !route ? (

@@ -3,6 +3,7 @@ import { PairCategory } from 'services/crossChain/quote/utils'
 import { Quote } from 'services/crossChain/registry'
 
 import type { useCrossChainQuoteRequest } from 'components/SwapForm/CrossChain/Quote/useCrossChainQuoteRequest'
+import { getQuoteTracking } from 'components/SwapForm/CrossChain/quoteTracking'
 import useTracking, { TRACKING_EVENT_TYPE } from 'hooks/useTracking'
 
 export type ReviewedQuote = Quote & { category: PairCategory }
@@ -259,17 +260,7 @@ export const useQuoteSession = ({
   }, [showPreview])
 
   const trackReviewOpened = useEffectEvent((reviewedQuote: Quote) => {
-    const { quote, adapter } = reviewedQuote
-
-    trackingHandler(TRACKING_EVENT_TYPE.CC_REVIEW_OPENED, {
-      from_token: quote.quoteParams.fromToken.symbol,
-      to_token: quote.quoteParams.toToken.symbol,
-      from_chain: quote.quoteParams.fromChain,
-      to_chain: quote.quoteParams.toChain,
-      amount_in: quote.inputUsd,
-      amount_out_estimated: quote.outputUsd,
-      routing_source: adapter.getName(),
-    })
+    trackingHandler(TRACKING_EVENT_TYPE.SWAP_REVIEW_SHOWN, getQuoteTracking(reviewedQuote))
   })
 
   // Analytics follows only accepted previews, independently of wallet/analytics context updates.

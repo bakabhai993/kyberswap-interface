@@ -56,21 +56,21 @@ const LiquiditySourcesPanel = ({ onBack, chainId }: Props) => {
     }
   }, [dexes?.length, selectedDexes.length])
 
-  const handleToggleDex = (id: string) => {
-    const isExclude = excludeDexes.find(item => item === id)
-    const dex = dexes?.find(item => item.id === id)
-    if (isExclude) {
-      setExcludeDexes(excludeDexes.filter(item => item !== id))
-    } else {
-      setExcludeDexes([...excludeDexes, id])
-    }
-    trackingHandler(TRACKING_EVENT_TYPE.LIQUIDITY_SOURCES_TOGGLED, {
-      source_name: dex?.name || id,
-      enabled: !!isExclude,
-      total_enabled: (dexes?.length || 0) - (isExclude ? excludeDexes.length - 1 : excludeDexes.length + 1),
-      total_available: dexes?.length || 0,
+  const applyExcludedDexes = (next: string[]) => {
+    setExcludeDexes(next)
+    dexes?.forEach(dex => {
+      if (excludeDexes.includes(dex.id) === next.includes(dex.id)) return
+      trackingHandler(TRACKING_EVENT_TYPE.SWAP_ROUTING_SOURCE_TOGGLED, {
+        source_type: 'liquidity_source',
+        mode: 'same-chain',
+        source_name: dex.name,
+        enabled: !next.includes(dex.id),
+        chain_id: chainId,
+      })
     })
   }
+  const handleToggleDex = (id: string) =>
+    applyExcludedDexes(excludeDexes.includes(id) ? excludeDexes.filter(item => item !== id) : [...excludeDexes, id])
 
   return (
     <Stack className="w-full gap-4">
@@ -90,9 +90,9 @@ const LiquiditySourcesPanel = ({ onBack, chainId }: Props) => {
                 className="cursor-pointer"
                 onChange={e => {
                   if (!e.currentTarget.checked) {
-                    setExcludeDexes(dexes?.map(item => item.id) || [])
+                    applyExcludedDexes(dexes?.map(item => item.id) || [])
                   } else {
-                    setExcludeDexes([])
+                    applyExcludedDexes([])
                   }
                 }}
               />
@@ -110,6 +110,7 @@ const LiquiditySourcesPanel = ({ onBack, chainId }: Props) => {
               return (
                 <LiquiditySourceGroup
                   tag={tag}
+                  onChange={applyExcludedDexes}
                   debouncedSearchText={debouncedSearchText}
                   chainId={chainId}
                   key={tag.id}

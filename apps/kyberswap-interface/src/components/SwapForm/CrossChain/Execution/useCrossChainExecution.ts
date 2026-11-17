@@ -17,6 +17,7 @@ import {
   observeEvmWalletSigning,
   observeWalletSigning,
 } from 'components/SwapForm/CrossChain/Execution/observeWalletSigning'
+import { getQuoteTracking } from 'components/SwapForm/CrossChain/quoteTracking'
 import { useSwapWallets } from 'components/SwapWallets/SwapWalletContext'
 import { getTipLinkAttribution } from 'components/TipLinkGeneratorModal/shared'
 import { useGatedWalletClient } from 'hooks/useGatedWalletClient'
@@ -138,9 +139,12 @@ export const useCrossChainExecution = (reviewedQuote: Quote | null, { onSubmit }
     activeSubmission.current = submissionId
     const isCurrentSubmission = () => activeSubmission.current === submissionId
 
+    const attempt = getQuoteTracking(selectedQuote)
+    trackingHandler(TRACKING_EVENT_TYPE.SWAP_CONFIRM_CLICKED, attempt)
     setSubmission({ phase: 'preparing' })
 
     let broadcastHash = ''
+    let acceptedOrderId: string | undefined
     let capturedOutboxKey: string | undefined
 
     const onSigning = (signing: boolean) => {
@@ -218,6 +222,7 @@ export const useCrossChainExecution = (reviewedQuote: Quote | null, { onSubmit }
       if (alreadyCaptured) return
 
       const swapDetails = {
+        ...attempt,
         ...getSwapTrackingData({
           ...transaction,
           inputAmount: amount,
@@ -235,7 +240,7 @@ export const useCrossChainExecution = (reviewedQuote: Quote | null, { onSubmit }
         timestamp: Date.now(),
       }
       crossChainMixpanelHandler(CROSS_CHAIN_MIXPANEL_TYPE.CROSS_CHAIN_SWAP_INIT, swapDetails)
-      trackingHandler(TRACKING_EVENT_TYPE.CC_SWAP_INITIATED, swapDetails)
+      trackingHandler(TRACKING_EVENT_TYPE.SWAP_SUBMITTED, swapDetails)
 
       // Tip is not charged on cross-chain swaps — attribute referral volume at initiation
       // (completion fires from an off-page poller that has lost the tip-link URL context).
@@ -262,9 +267,7 @@ export const useCrossChainExecution = (reviewedQuote: Quote | null, { onSubmit }
       if (isEvmChain(fromChainId)) {
         const blackjackRes = await checkBlackjack(sender)
         if (blackjackRes?.data?.blacklisted) {
-          if (isCurrentSubmission())
-            setSubmission({ phase: 'error', error: t`There was an error with your transaction.` })
-          return
+          throw new Error(t`There was an error with your transaction.`)
         }
       }
 
@@ -311,6 +314,8 @@ export const useCrossChainExecution = (reviewedQuote: Quote | null, { onSubmit }
         throw new Error(res.sourceTxHash)
       }
 
+      acceptedOrderId = res?.id
+      if (!res) throw new Error('Source transaction hash is unavailable')
       if (res) {
         const enriched = {
           ...res,
@@ -337,7 +342,9 @@ export const useCrossChainExecution = (reviewedQuote: Quote | null, { onSubmit }
 
       if (isCurrentSubmission()) setSubmission({ phase: 'error', error: errorMessage })
 
-      trackingHandler(TRACKING_EVENT_TYPE.CC_SWAP_FAILED, {
+      if (acceptedOrderId) return
+      trackingHandler(TRACKING_EVENT_TYPE.SWAP_FAILED, {
+        ...attempt,
         from_token: currencyIn.symbol,
         to_token: currencyOut.symbol,
         from_chain: fromChainId,

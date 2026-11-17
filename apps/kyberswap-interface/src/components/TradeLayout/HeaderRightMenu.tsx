@@ -84,16 +84,18 @@ export const HeaderRightMenu = ({
   const handleSettingsClick = () => {
     onToggleActionTab(TAB.SETTINGS)
 
+    // Unified Swap's form owns the full Settings session, including source subpanels and recipient edits.
+    if (pathname === APP_PATHS.SWAP || pathname.startsWith(`${APP_PATHS.SWAP}/`)) return
     if (isLimitPage || isStopMarketPage) return
 
     if (isCrossChainPage) {
-      trackingHandler(TRACKING_EVENT_TYPE.CC_SETTINGS_OPENED, {
+      trackingHandler(TRACKING_EVENT_TYPE.SWAP_SETTINGS_OPENED, {
         current_max_slippage: formatSlippage(slippage, false),
       })
       return
     }
 
-    trackingHandler(TRACKING_EVENT_TYPE.SWAP_SETTINGS_CLICK, {
+    trackingHandler(TRACKING_EVENT_TYPE.SWAP_SETTINGS_OPENED, {
       current_max_slippage: formatSlippage(slippage, false),
       current_transaction_time_limit: transactionTimeout / 60,
       current_gas_token: networkInfo.nativeToken.symbol,

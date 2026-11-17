@@ -48,6 +48,7 @@ export const SlippageSetting = ({ shouldShowPinButton = true, isCrossChain = fal
       </HStack>
 
       <SlippageControl
+        entryPoint="settings"
         isCrossChain={isCrossChain}
         rawSlippage={rawSlippage}
         setRawSlippage={setRawSlippage}

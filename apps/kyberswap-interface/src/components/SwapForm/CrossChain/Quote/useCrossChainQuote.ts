@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { KyberCross } from 'services/crossChain/adapters/KyberCrossAdapter/constants'
 import { registry } from 'services/crossChain/factory'
 import { getPairInfo } from 'services/crossChain/quote/getPairInfo'
@@ -19,6 +19,8 @@ import {
 } from 'components/SwapForm/CrossChain/Quote/useCrossChainQuoteRequest'
 import { useQuotePool } from 'components/SwapForm/CrossChain/Quote/useQuotePool'
 import { QuoteLoadContext, useQuoteSession } from 'components/SwapForm/CrossChain/Quote/useQuoteSession'
+import { getQuoteTracking } from 'components/SwapForm/CrossChain/quoteTracking'
+import useTracking, { TRACKING_EVENT_TYPE } from 'hooks/useTracking'
 import { useAppSelector } from 'state/hooks'
 import { useUserSlippageTolerance } from 'state/user/hooks'
 import { isEvmChain } from 'types/crossChain'
@@ -43,6 +45,8 @@ const providerKey = (quote: Quote) => quote.adapter.getName()
  */
 export const useCrossChainQuote = (input: CrossChainQuoteInput) => {
   const base = useCrossChainQuoteRequest(input)
+  const { trackingHandler } = useTracking()
+  const committedGasDrop = useRef<ReturnType<typeof getQuoteTracking> | null>(null)
   const excludedSources = useAppSelector(state => state.crossChainSwap.excludedSources) || EMPTY_SOURCES
   const selectionRequest = useMemo(() => ({ ...base, excludedSources }), [base, excludedSources])
   const { currencyOut, fromChainId, toChainId } = input.pair
@@ -222,6 +226,24 @@ export const useCrossChainQuote = (input: CrossChainQuoteInput) => {
     isEvmPair: isEvmChain(input.pair.fromChainId) && isEvmChain(input.pair.toChainId),
     slippage,
   })
+
+  useEffect(() => {
+    const quote = session.selectedQuote
+    const enabled = gasDropEnabled && quote?.adapter.getName() === KyberCross && !!quote.quote.gasDrop
+    if (enabled && quote) {
+      const payload = getQuoteTracking(quote)
+      if (!committedGasDrop.current) trackingHandler(TRACKING_EVENT_TYPE.SWAP_GAS_DROP_CHANGED, payload)
+      committedGasDrop.current = payload
+    } else if (!gasDropEnabled && committedGasDrop.current) {
+      trackingHandler(TRACKING_EVENT_TYPE.SWAP_GAS_DROP_CHANGED, {
+        ...committedGasDrop.current,
+        gas_drop_enabled: false,
+        gas_drop_amount: undefined,
+        gas_drop_unit: undefined,
+      })
+      committedGasDrop.current = null
+    }
+  }, [gasDropEnabled, session.selectedQuote, trackingHandler])
 
   const gasDropProviders = new Set(session.quotes.map(providerKey))
 

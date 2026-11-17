@@ -9,6 +9,7 @@ import Modal from 'components/Modal'
 import Skeleton from 'components/Skeleton'
 import { HStack, Stack } from 'components/Stack'
 import { MouseoverTooltip } from 'components/Tooltip'
+import useTracking, { TRACKING_EVENT_TYPE } from 'hooks/useTracking'
 import { CloseIcon } from 'theme'
 import { Chain, GasDropQuote } from 'types/crossChain'
 import { formatDisplayNumber } from 'utils/numbers'
@@ -94,11 +95,21 @@ type AddGasButtonProps = {
 // Confirmation belongs to the current provider; changing it resets only this pending action.
 const AddGasButton = ({ chain, provider, symbol, outputSymbol, onRequest, onAddGas }: AddGasButtonProps) => {
   const [showConfirmation, setShowConfirmation] = useState(false)
+  const { trackingHandler } = useTracking()
+  const trackSwitch = (action: 'shown' | 'accepted' | 'dismissed') =>
+    trackingHandler(TRACKING_EVENT_TYPE.SWAP_GAS_DROP_SWITCH, {
+      action,
+      current_provider: provider,
+      required_provider: KyberCross,
+      to_chain_id: chain,
+      mode: 'cross-chain',
+    })
   const chainName = getChainName(chain)
 
   const handleAddGas = () => {
     onRequest()
     if (provider && provider !== KyberCross) {
+      trackSwitch('shown')
       setShowConfirmation(true)
       return
     }
@@ -107,6 +118,7 @@ const AddGasButton = ({ chain, provider, symbol, outputSymbol, onRequest, onAddG
 
   const handleConfirm = () => {
     if (!showConfirmation) return
+    trackSwitch('accepted')
     setShowConfirmation(false)
     onAddGas()
   }
@@ -146,7 +158,10 @@ const AddGasButton = ({ chain, provider, symbol, outputSymbol, onRequest, onAddG
       {showConfirmation && provider && (
         <SwitchGasDropRouteModal
           provider={provider}
-          onDismiss={() => setShowConfirmation(false)}
+          onDismiss={() => {
+            trackSwitch('dismissed')
+            setShowConfirmation(false)
+          }}
           onConfirm={handleConfirm}
         />
       )}

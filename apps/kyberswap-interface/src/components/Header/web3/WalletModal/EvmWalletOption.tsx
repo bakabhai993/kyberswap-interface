@@ -7,14 +7,28 @@ import { WalletOption } from 'components/Header/web3/WalletModal/components'
 import { CONNECTION, CONNECTOR_ICON_OVERRIDE_MAP } from 'components/Web3Provider'
 import { NETWORKS_INFO, isSupportedChainId } from 'constants/networks'
 import { useActiveWeb3React } from 'hooks'
+import usePageLocation from 'hooks/usePageLocation'
+import useTracking, { TRACKING_EVENT_TYPE } from 'hooks/useTracking'
 import { useCloseModal, useNotify } from 'state/application/hooks'
 import { ApplicationModal } from 'state/application/types'
 import { useIsAcceptedTerm } from 'state/user/hooks'
+import { isSwapLikePath } from 'utils/routes'
 
 const EvmWalletOption = ({ connector }: { connector: Connector }) => {
   const [isAcceptedTerm] = useIsAcceptedTerm()
 
   const { chainId } = useActiveWeb3React()
+  const { pathname, isEmbeddedSwap } = usePageLocation()
+  const { trackingHandler } = useTracking()
+  const swapConnection = useRef(false)
+  const trackResult = (result: string) => {
+    if (swapConnection.current)
+      trackingHandler(TRACKING_EVENT_TYPE.SWAP_WALLET_CONNECTION_RESULT, {
+        chain_id: intendedChainIdRef.current,
+        wallet_type: connector.name,
+        result,
+      })
+  }
   const notify = useNotify()
 
   const { name } = connector
@@ -32,6 +46,7 @@ const EvmWalletOption = ({ connector }: { connector: Connector }) => {
   } = useConnect({
     mutation: {
       onSuccess: async data => {
+        trackResult('success')
         closeWalletModal()
         if (connector.id !== CONNECTION.WALLET_CONNECT_CONNECTOR_ID) return
         const intended = intendedChainIdRef.current
@@ -44,6 +59,7 @@ const EvmWalletOption = ({ connector }: { connector: Connector }) => {
         })
       },
       onError: e => {
+        trackResult('failed')
         console.log(e)
         // Surface a user-friendly notification when the wallet can't be used
         // on the current chain. Two known patterns:
@@ -85,6 +101,7 @@ const EvmWalletOption = ({ connector }: { connector: Connector }) => {
   const handleConnect = () => {
     if (!isAcceptedTerm) return
     intendedChainIdRef.current = chainId
+    swapConnection.current = isSwapLikePath(pathname) || isEmbeddedSwap
     // Skip the chainId hint for WalletConnect — wagmi's post-pair
     // switchChain rethrows UserRejectedRequestError, which rolls back the
     // whole connect mutation and leaves the WC session orphaned in its

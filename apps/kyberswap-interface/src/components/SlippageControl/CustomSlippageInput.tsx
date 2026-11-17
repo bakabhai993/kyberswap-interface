@@ -19,6 +19,7 @@ const getSlippageText = (value: number, options: number[], forceVisible = false)
 }
 
 export type Props = {
+  entryPoint?: string
   value: number
   isActive: boolean
   onActiveChange: (value: boolean) => void
@@ -32,6 +33,7 @@ export type Props = {
 
 const CustomSlippageInput: React.FC<Props> = ({
   value,
+  entryPoint,
   isActive,
   onActiveChange,
   onFocusChange,
@@ -89,18 +91,14 @@ const CustomSlippageInput: React.FC<Props> = ({
     const hasCustomText = rawText !== ''
     onActiveChange(hasCustomText || !options.includes(value))
     setRawText(getSlippageText(value, options, hasCustomText))
-    trackingHandler(TRACKING_EVENT_TYPE.SLIPPAGE_CHANGED, {
-      new_slippage: Number(formatSlippage(value, false)),
-      previous_value: previousSlippageRef.current / 100,
-      input_method: 'custom',
-    })
-    if (isCrossChain) {
-      trackingHandler(TRACKING_EVENT_TYPE.CC_SLIPPAGE_CHANGED, {
-        new_slippage: Number(formatSlippage(value, false)),
+    if (previousSlippageRef.current !== value)
+      trackingHandler(TRACKING_EVENT_TYPE.SWAP_SLIPPAGE_CHANGED, {
+        new_slippage: value / 100,
         previous_value: previousSlippageRef.current / 100,
         input_method: 'custom',
+        entry_point: entryPoint,
+        mode: isCrossChain ? 'cross-chain' : 'same-chain',
       })
-    }
     previousSlippageRef.current = value
   }
 
@@ -140,6 +138,7 @@ const CustomSlippageInput: React.FC<Props> = ({
           onChange={handleChangeInput}
           onBlur={handleCommitChange}
           onFocus={() => {
+            previousSlippageRef.current = value
             onFocusChange?.(true)
             onActiveChange(true)
           }}

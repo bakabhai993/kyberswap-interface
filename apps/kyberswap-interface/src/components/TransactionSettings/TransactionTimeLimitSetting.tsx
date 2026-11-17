@@ -33,6 +33,7 @@ export const TransactionTimeLimitSetting = ({ className }: Props) => {
   const { trackingHandler } = useTracking()
 
   const [deadline, setDeadline] = useUserTransactionTTL()
+  const committedDeadline = useRef(deadline)
   const [deadlineInput, setDeadlineInput] = useState(String(Math.floor(deadline / 60)))
   const inputRef = useRef<HTMLInputElement>(null)
   const inputWrapperRef = useRef<HTMLDivElement>(null)
@@ -45,12 +46,13 @@ export const TransactionTimeLimitSetting = ({ className }: Props) => {
     }
 
     const newDeadline = parseInt(deadlineInput, 10) * 60
-    if (newDeadline !== deadline) {
+    if (newDeadline !== committedDeadline.current) {
       trackingHandler(TRACKING_EVENT_TYPE.TRANSACTION_TIME_LIMIT_CHANGED, {
-        previous_value: deadline / 60,
+        previous_value: committedDeadline.current / 60,
         new_value: newDeadline / 60,
       })
     }
+    committedDeadline.current = newDeadline
     setDeadline(newDeadline)
   }
 
@@ -71,6 +73,7 @@ export const TransactionTimeLimitSetting = ({ className }: Props) => {
   useOnClickOutside(inputWrapperRef, () => handleCommitChange())
 
   useEffect(() => {
+    committedDeadline.current = deadline
     setDeadlineInput(String(Math.floor(deadline / 60)))
   }, [deadline])
 

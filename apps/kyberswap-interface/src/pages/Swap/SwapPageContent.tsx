@@ -7,7 +7,9 @@ import LocalLoader from 'components/LocalLoader'
 import { Center, HStack, Stack } from 'components/Stack'
 import { useOptionalCrossChainSwap } from 'components/SwapForm/CrossChain/CrossChainSwapProvider'
 import { PendingSwapForm } from 'components/SwapForm/PendingSwapForm'
+import { useSingleChainSwapContext } from 'components/SwapForm/SingleChain/SingleChainSwapProvider'
 import { SwapForm } from 'components/SwapForm/SwapForm'
+import { useSwapSettingsTracking } from 'components/SwapForm/hooks/useSwapSettingsTracking'
 import HistoryPanel, { HistoryButton } from 'components/SwapTransactions/History/HistoryPanel'
 import { useSwapWalletSnapshot, useSwapWallets } from 'components/SwapWallets/SwapWalletContext'
 import { SwitchLocaleLink } from 'components/SwitchLocaleLink'
@@ -77,7 +79,13 @@ export const SwapPageForm = ({
   onBackToMainTab,
   highlightDegenMode,
 }: FormProps) => {
-  const crossChainReady = !!useOptionalCrossChainSwap()
+  const crossChain = useOptionalCrossChainSwap()
+  const crossChainReady = !!crossChain
+  const singleChain = useSingleChainSwapContext()
+  useSwapSettingsTracking(
+    activeTab,
+    (isCrossChain ? crossChain?.recipientInputValue : singleChain.recipientInputValue) || '',
+  )
   const wallets = useSwapWallets()
   const singleChainId = !isCrossChain && typeof inputChain === 'number' ? inputChain : undefined
 
@@ -167,7 +175,6 @@ const SwapPageContent = ({
   isCrossChain,
   requiresWallets = false,
   inputChain,
-  outputChain,
   activeTab,
   onTabChange,
   shouldHighlightSwapBox,
@@ -180,13 +187,8 @@ const SwapPageContent = ({
   const rightPanelRef = useRef<HTMLElement>(null)
 
   const handleHistoryChange = (visible: boolean) => {
+    if (visible && !showHistory) trackingHandler(TRACKING_EVENT_TYPE.SWAP_HISTORY_OPENED, { from_chain_id: inputChain })
     onHistoryChange(visible)
-    if (visible && isCrossChain) {
-      trackingHandler(TRACKING_EVENT_TYPE.CC_HISTORY_VIEWED, {
-        input_chain: inputChain,
-        output_chain: outputChain,
-      })
-    }
     if (!visible || !window.matchMedia(`(max-width: ${MEDIA_WIDTHS.upToLarge}px)`).matches) return
 
     requestAnimationFrame(() => {

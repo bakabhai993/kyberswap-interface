@@ -57,7 +57,7 @@ vi.mock('hooks/useTracking', () => ({
   default: () => ({ trackingHandler: mocks.track }),
   useCrossChainMixpanel: () => ({ crossChainMixpanelHandler: mocks.mixpanel }),
   CROSS_CHAIN_MIXPANEL_TYPE: { CROSS_CHAIN_SWAP_INIT: 'init' },
-  TRACKING_EVENT_TYPE: { CC_SWAP_INITIATED: 'init', CC_SWAP_FAILED: 'failed' },
+  TRACKING_EVENT_TYPE: { SWAP_SUBMITTED: 'init', SWAP_FAILED: 'failed', SWAP_CONFIRM_CLICKED: 'accepted' },
 }))
 const makeQuote = (managed = true) =>
   ({
@@ -141,7 +141,7 @@ it('persists broadcast before confirmation, retaining reviewed identity even whe
   expect(execution.submissionPhase).toBe('submitted')
   expect(execution.isSubmitting).toBe(false)
   expect(mocks.onSubmit).toHaveBeenCalledOnce()
-  expect(mocks.track).toHaveBeenCalledOnce()
+  expect(mocks.track.mock.calls.filter(([event]) => event === 'init')).toHaveLength(1)
   await render(null)
   // BE can settle and remove the outbox before the old review's adapter returns.
   mocks.entries = []
@@ -486,4 +486,13 @@ it('observes SDK transport signing without showing confirmation during read-only
   })
   expect(execution.submissionPhase).toBe('submitted')
   expect(execution.txHash).toBe('sdk-hash')
+})
+
+it('does not classify an accepted order without a source hash as a failed attempt', async () => {
+  mocks.execute.mockResolvedValue({ id: 'accepted-order', sourceTxHash: '' })
+  await render(makeQuote())
+  await act(async () => execution.submitSwap())
+  expect(mocks.track).toHaveBeenCalledWith('accepted', expect.objectContaining({ mode: 'cross-chain' }))
+  expect(mocks.track).not.toHaveBeenCalledWith('failed', expect.anything())
+  expect(mocks.track).not.toHaveBeenCalledWith('init', expect.anything())
 })

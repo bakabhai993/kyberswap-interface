@@ -63,6 +63,13 @@ const SwapReviewContent = ({
   const handleSuggestedSlippage = () => {
     if (canUseSuggestedSlippage && dynamicSuggestedSlippage) {
       setRetry(prev => prev + 1)
+      trackingHandler(TRACKING_EVENT_TYPE.SWAP_SLIPPAGE_CHANGED, {
+        previous_value: slippage / 100,
+        new_slippage: dynamicSuggestedSlippage / 100,
+        entry_point: 'review',
+        input_method: 'suggestion',
+        mode: 'same-chain',
+      })
       setRawSlippage(dynamicSuggestedSlippage)
     } else {
       handleOpenSlippage()

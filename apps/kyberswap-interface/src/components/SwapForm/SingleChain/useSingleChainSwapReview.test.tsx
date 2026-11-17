@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
   track: vi.fn(),
   dispatch: vi.fn(),
   degen: false,
+  trackingReady: true,
   slippage: 50,
   setParams: vi.fn(),
 }))
@@ -29,11 +30,10 @@ vi.mock('hooks', () => ({
   }),
 }))
 vi.mock('hooks/useTracking', () => ({
-  default: () => ({ trackingHandler: mocks.track }),
+  default: () => ({ trackingHandler: mocks.track, isTrackingReady: mocks.trackingReady }),
   TRACKING_EVENT_TYPE: {
-    SWAP_REVIEW_OPENED: 'review',
-    SWAP_INITIATED: 'init',
-    SWAP_CONFIRMED: 'confirm',
+    SWAP_REVIEW_SHOWN: 'review',
+    SWAP_CONFIRM_CLICKED: 'accepted',
     SWAP_FAILED: 'failed',
   },
 }))
@@ -88,6 +88,7 @@ beforeEach(async () => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
   vi.resetAllMocks()
   mocks.degen = false
+  mocks.trackingReady = true
   mocks.slippage = 50
   route.priceImpact = 0
   mocks.build.mockResolvedValue(builtRoute)
@@ -114,6 +115,7 @@ it('submits the built payload once and forwards signature and completion to the 
     controller.openReview()
   })
   expect(mocks.build).toHaveBeenCalledOnce()
+  expect(mocks.track.mock.calls.filter(([event]) => event === 'review')).toHaveLength(1)
 
   await act(async () => {
     controller.confirmSwap()
@@ -125,7 +127,7 @@ it('submits the built payload once and forwards signature and completion to the 
 
   await act(async () => finish('0xhash'))
   expect(session.review).toMatchObject({ phase: 'submitted', txHash: '0xhash' })
-  expect(mocks.track.mock.calls.filter(([event]) => event === 'confirm')).toHaveLength(1)
+  expect(mocks.track.mock.calls.filter(([event]) => event === 'accepted')).toHaveLength(1)
 })
 
 it('keeps failed builds un-submittable and resets permit before dismissing their error', async () => {
@@ -133,6 +135,7 @@ it('keeps failed builds un-submittable and resets permit before dismissing their
   await act(async () => controller.openReview())
   await act(async () => controller.confirmSwap())
   expect(mocks.execute).not.toHaveBeenCalled()
+  expect(mocks.track.mock.calls.filter(([event]) => event === 'review' || event === 'accepted')).toHaveLength(0)
 
   mocks.dispatch.mockImplementation(() => expect(session.review.phase).toBe('review'))
   await act(async () => controller.dismissReviewError())
@@ -218,4 +221,24 @@ it('applies the same price-impact gate after a slippage rebuild', async () => {
   expect(session.review.phase).toBe('closed')
   expect(mocks.setParams).toHaveBeenCalledOnce()
   expect(mocks.execute).not.toHaveBeenCalled()
+})
+
+it('tracks one actionable review through rerenders and rebuilds, and a new event after reopening', async () => {
+  await act(async () => controller.openReview())
+  await act(async () => root.render(<Harness />))
+  mocks.slippage = 100
+  await act(async () => root.render(<Harness />))
+  expect(mocks.track.mock.calls.filter(([event]) => event === 'review')).toHaveLength(1)
+  await act(async () => controller.dismissReview())
+  await act(async () => controller.openReview())
+  expect(mocks.track.mock.calls.filter(([event]) => event === 'review')).toHaveLength(2)
+})
+it('waits for analytics readiness without consuming the review event', async () => {
+  mocks.trackingReady = false
+  await act(async () => root.render(<Harness />))
+  await act(async () => controller.openReview())
+  expect(mocks.track).not.toHaveBeenCalled()
+  mocks.trackingReady = true
+  await act(async () => root.render(<Harness />))
+  expect(mocks.track.mock.calls.map(([event]) => event)).toEqual(['review'])
 })

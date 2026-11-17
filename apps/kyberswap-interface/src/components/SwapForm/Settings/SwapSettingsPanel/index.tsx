@@ -19,7 +19,6 @@ import {
   SettingsToggle,
 } from 'components/TransactionSettings/components'
 import { TutorialIds } from 'components/Tutorial/TutorialSwap/constant'
-import useTracking, { TRACKING_EVENT_TYPE } from 'hooks/useTracking'
 import {
   useShowPricingChart,
   useShowTradeRoutes,
@@ -27,7 +26,6 @@ import {
   useTogglePricingChart,
   useToggleSuccessSound,
   useToggleTradeRoutes,
-  useUserSlippageTolerance,
 } from 'state/user/hooks'
 
 // CrossChainSourceSetting calls CrossChainSwapFactory.getAllAdapters(), which drags the whole cross-chain
@@ -47,7 +45,6 @@ const SingleChainSendToAnotherWalletSetting = ({ onApply }: { onApply: () => voi
   return (
     <SendToAnotherWalletSetting
       mode="evm"
-      trackingScope="swap"
       disabled={isWrapOrUnwrap}
       recipientInputValue={recipientInputValue}
       onApply={value => {
@@ -94,9 +91,6 @@ const SwapSettingsPanel = ({
   onClickLiquiditySources,
   onClickCrossChainSources,
 }: SwapSettingsPanelProps) => {
-  const { trackingHandler } = useTracking()
-  const [slippage] = useUserSlippageTolerance()
-
   const [showConfirmation, setShowConfirmation] = useState(false)
   const isShowPricingChart = useShowPricingChart()
   const isShowTradeRoutes = useShowTradeRoutes()
@@ -105,19 +99,10 @@ const SwapSettingsPanel = ({
   const toggleTradeRoutes = useToggleTradeRoutes()
   const toggleSuccessSound = useToggleSuccessSound()
 
-  const handleBack = () => {
-    if (mode === 'cross-chain') {
-      trackingHandler(TRACKING_EVENT_TYPE.CC_SETTINGS_SAVED, {
-        current_max_slippage: slippage / 100,
-      })
-    }
-    onBack()
-  }
-
   return (
     <Stack className="w-full gap-4" id={TutorialIds.TRADING_SETTING_CONTENT}>
       <HStack className="items-center gap-1">
-        <IconButton aria-label="Back" onClick={handleBack}>
+        <IconButton aria-label="Back" onClick={onBack}>
           <ChevronLeft size={26} className="text-subText" />
         </IconButton>
         <span className="text-xl font-medium text-text">{t`Settings`}</span>

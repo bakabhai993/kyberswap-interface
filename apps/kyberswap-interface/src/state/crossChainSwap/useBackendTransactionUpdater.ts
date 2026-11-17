@@ -74,7 +74,7 @@ export const useBackendTransactionUpdater = () => {
         if (
           !entry.completionNotified &&
           entry.feStatus === 'Processing' &&
-          (tx.status === 'Success' || tx.status === 'Failed')
+          (tx.status === 'Success' || tx.status === 'Failed' || tx.status === 'Refunded')
         ) {
           dispatch(saveTransactionSync({ ...entry, completionNotified: true }))
           const details = getBackendCompletionTrackingData(entry, tx)
@@ -84,10 +84,11 @@ export const useBackendTransactionUpdater = () => {
               : CROSS_CHAIN_MIXPANEL_TYPE.CROSS_CHAIN_SWAP_FAILED,
             details,
           )
-          handlers.current.trackingHandler(
-            tx.status === 'Success' ? TRACKING_EVENT_TYPE.CC_SWAP_COMPLETED : TRACKING_EVENT_TYPE.CC_SWAP_FAILED,
-            details,
-          )
+          handlers.current.trackingHandler(TRACKING_EVENT_TYPE.SWAP_SETTLED, {
+            ...details,
+            mode: 'cross-chain',
+            outcome: tx.status === 'Success' ? 'SUCCESS' : tx.status === 'Refunded' ? 'REFUNDED' : 'FAILED',
+          })
         }
 
         dispatch(finishTransactionSync(key))

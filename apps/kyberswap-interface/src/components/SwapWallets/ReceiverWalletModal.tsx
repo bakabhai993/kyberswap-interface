@@ -14,6 +14,7 @@ import Loader from 'components/Loader'
 import { ReceiverWalletOption } from 'components/SwapWallets/useReceiverWalletOptions'
 import type { SwapWalletConnection } from 'components/SwapWallets/walletConnection'
 import { DerivationPaths } from 'components/Web3Provider/BitcoinProvider/providers/ledger'
+import useTracking, { TRACKING_EVENT_TYPE } from 'hooks/useTracking'
 import { useIsAcceptedTerm } from 'state/user/hooks'
 import { Chain, NonEvmChain } from 'types/crossChain'
 
@@ -36,6 +37,13 @@ export const ReceiverWalletModal = ({
   error: loadError,
   connectionPrompt,
 }: Props) => {
+  const { trackingHandler } = useTracking()
+  const opened = useRef(false)
+  useEffect(() => {
+    if (opened.current) return
+    opened.current = true
+    trackingHandler(TRACKING_EVENT_TYPE.SWAP_WALLET_CONNECTION_OPENED, { chain_id: chain })
+  }, [chain, trackingHandler])
   const [isAcceptedTerm, setIsAcceptedTerm] = useIsAcceptedTerm()
   const [connecting, setConnecting] = useState('')
   const [error, setError] = useState('')
@@ -45,6 +53,11 @@ export const ReceiverWalletModal = ({
   const operation = useRef<symbol | null>(null)
 
   const dismiss = () => {
+    trackingHandler(TRACKING_EVENT_TYPE.SWAP_WALLET_CONNECTION_RESULT, {
+      chain_id: chain,
+      wallet_type: connecting || undefined,
+      result: 'dismissed',
+    })
     operation.current = null
     onDismiss()
   }
@@ -52,6 +65,11 @@ export const ReceiverWalletModal = ({
   const selectAccount = (wallet: SwapWalletConnection) => {
     operation.current = null
     onSelect(wallet)
+    trackingHandler(TRACKING_EVENT_TYPE.SWAP_WALLET_CONNECTION_RESULT, {
+      chain_id: chain,
+      wallet_type: wallet.name,
+      result: 'success',
+    })
     onDismiss()
   }
 
@@ -76,7 +94,14 @@ export const ReceiverWalletModal = ({
       if (result.length === 1) selectAccount(result[0])
       else setAccounts(result)
     } catch (reason) {
-      if (operation.current === request) setError(reason.message || t`Failed to connect wallet`)
+      if (operation.current === request) {
+        setError(reason.message || t`Failed to connect wallet`)
+        trackingHandler(TRACKING_EVENT_TYPE.SWAP_WALLET_CONNECTION_RESULT, {
+          chain_id: chain,
+          wallet_type: wallet.name,
+          result: 'failed',
+        })
+      }
     } finally {
       if (operation.current === request) {
         operation.current = null

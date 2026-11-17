@@ -1,5 +1,5 @@
 import { Trans, t } from '@lingui/macro'
-import { ReactNode, useMemo, useRef, useState } from 'react'
+import { ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import { formatUnits } from 'viem'
 
 import UnknownToken from 'assets/svg/kyber/unknown-token.svg'
@@ -22,22 +22,36 @@ import useDebounce from 'hooks/useDebounce'
 import { useNearBalances } from 'hooks/useNearBalances'
 import { useNearIntentsTokens } from 'hooks/useNearIntentsTokens'
 import { useSolanaTokens } from 'hooks/useSolanaTokens'
+import useTracking, { TRACKING_EVENT_TYPE } from 'hooks/useTracking'
 import { useWalletBalanceAddress } from 'state/wallet/WalletBalanceContext'
 import { BitcoinToken, Currency, NonEvmChain, NonEvmCurrency } from 'types/crossChain'
 import { shortenHash } from 'utils/address'
 import { cn } from 'utils/cn'
 
 type Props = {
+  trackingSource?: string
   chain: NonEvmChain
   selectedCurrency?: Currency | null
   networkSelector?: ReactNode
   onSelect: (currency: NonEvmCurrency) => void
 }
 
-const NonEvmTokenSelectorContent = ({ chain, selectedCurrency, networkSelector, onSelect }: Props) => {
+const NonEvmTokenSelectorContent = ({ chain, selectedCurrency, networkSelector, onSelect, trackingSource }: Props) => {
   const [query, setQuery] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
   const debouncedQuery = useDebounce(query, 300)
+  const { trackingHandler } = useTracking()
+  const lastSearch = useRef('')
+  useEffect(() => {
+    if (lastSearch.current === debouncedQuery) return
+    lastSearch.current = debouncedQuery
+    if (debouncedQuery.trim())
+      trackingHandler(TRACKING_EVENT_TYPE.TS_SEARCHED, {
+        source: trackingSource,
+        chain_id: chain,
+        search_query: debouncedQuery,
+      })
+  }, [debouncedQuery, chain, trackingSource, trackingHandler])
 
   const isSolana = chain === NonEvmChain.Solana
   const isBitcoin = chain === NonEvmChain.Bitcoin

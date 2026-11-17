@@ -3,8 +3,7 @@
 Shared form, quote and execution components for Unified Swap and embedded EVM swaps.
 The [Swap page](../../pages/Swap/README.md) owns pair/amount selection, the shared
 EVM recipient draft and History visibility. `SwapForm.tsx` maps the active quote
-into `UnifiedSwapForm`, which owns amount display, balances and token-selection
-tracking. `SwapFormLayout` composes panels, details and actions.
+into `UnifiedSwapForm`, which owns amount display and balances. `SwapFormLayout` composes panels, details and actions.
 
 ## Structure and ownership
 
@@ -65,6 +64,14 @@ Submission persists the source hash even if review has closed. UI callbacks deta
 on dismissal, but transaction persistence and backend registration continue.
 [Transaction state](../../state/crossChainSwap/) owns reconciliation and settlement;
 submitted does not mean settled.
+
+Formo follows the [Unified Swap event contract](https://app.notion.com/p/41b26751887e8061970cfd89700d4e3b).
+Pair tracking belongs to `useSwapFormPair`; selectors track applied choices.
+Review, execution and transaction updaters own their respective events. Quote tracking
+captures the reviewed provider and Gas Drop option; source broadcast is distinct from
+settlement (`SUCCESS`, `FAILED`, `REFUNDED`). Settings and route events follow committed
+changes and user interactions, never default route selection. The detailed Gas Drop
+prompt name in the contract is `Swap Gas Drop Switch`.
 
 ## Recipients and extension points
 

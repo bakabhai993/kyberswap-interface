@@ -19,6 +19,7 @@ import { useCrossChainSwap } from 'components/SwapForm/CrossChain/CrossChainSwap
 import { formatTime } from 'components/SwapForm/CrossChain/Quote/CrossChainQuoteSummary'
 import { CrossChainRoutesButton } from 'components/SwapForm/CrossChain/Quote/CrossChainRoutesButton'
 import { QuoteProviderName } from 'components/SwapForm/CrossChain/Quote/QuoteProviderName'
+import { getQuoteTracking } from 'components/SwapForm/CrossChain/quoteTracking'
 import { TokenLogoWithChain } from 'components/TokenLogo/TokenLogoWithChain'
 import { ClickTooltip, MouseoverTooltip } from 'components/Tooltip'
 import { Z_INDEXS } from 'constants/styles'
@@ -268,8 +269,9 @@ export const CrossChainQuoteSelectorView = ({
   const handleSelect = (quote: Quote) => {
     onChange(quote)
     setShow(false)
-    if (routeKey(quote) !== (selectedQuote ? routeKey(selectedQuote) : null)) {
-      trackingHandler(TRACKING_EVENT_TYPE.CC_ROUTES_SELECTED, {
+    {
+      trackingHandler(TRACKING_EVENT_TYPE.ROUTE_OPTION_SELECTED, {
+        ...getQuoteTracking(quote),
         routing_source: quote.adapter.getName(),
         amount_out: quote.quote.formattedOutputAmount,
         amount_out_usd: quote.quote.outputUsd,
@@ -284,7 +286,8 @@ export const CrossChainQuoteSelectorView = ({
     const nextShow = !show
     setShow(nextShow)
     if (nextShow) {
-      trackingHandler(TRACKING_EVENT_TYPE.CC_ROUTES_OPENED, {
+      trackingHandler(TRACKING_EVENT_TYPE.SWAP_ROUTE_OPENED, {
+        ...(selectedQuote ? getQuoteTracking(selectedQuote) : { mode: 'cross-chain' }),
         route_count: quotes.length,
       })
     }

@@ -126,22 +126,21 @@ export const useProviderTransactionUpdater = () => {
   const trackStatusChange = useCallback(
     (tx: NormalizedTxResponse, status: TransactionStatus, targetTxHash?: string) => {
       const swapDetails = buildSwapDetails(tx, status, targetTxHash)
+      if (status === 'Success' || status === 'Failed' || status === 'Refunded') {
+        trackingHandler(TRACKING_EVENT_TYPE.SWAP_SETTLED, {
+          ...swapDetails,
+          mode: 'cross-chain',
+          outcome: status === 'Success' ? 'SUCCESS' : status === 'Refunded' ? 'REFUNDED' : 'FAILED',
+        })
+      }
 
       if (status === 'Success') {
         crossChainMixpanelHandler(CROSS_CHAIN_MIXPANEL_TYPE.CROSS_CHAIN_SWAP_SUCCESS, {
           ...swapDetails,
           status: 'succeed',
         })
-        trackingHandler(TRACKING_EVENT_TYPE.CC_SWAP_COMPLETED, {
-          ...swapDetails,
-          status: 'succeed',
-        })
       } else if (status === 'Failed') {
         crossChainMixpanelHandler(CROSS_CHAIN_MIXPANEL_TYPE.CROSS_CHAIN_SWAP_FAILED, {
-          ...swapDetails,
-          status: 'failed',
-        })
-        trackingHandler(TRACKING_EVENT_TYPE.CC_SWAP_FAILED, {
           ...swapDetails,
           status: 'failed',
         })

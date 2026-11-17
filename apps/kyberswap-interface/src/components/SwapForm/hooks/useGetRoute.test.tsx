@@ -648,3 +648,5 @@ it.each(['success', 'failure'])(
     }
   },
 )
+
+vi.mock('hooks/useTracking', () => ({ default: () => ({ trackingHandler: vi.fn() }), TRACKING_EVENT_TYPE: {} }))

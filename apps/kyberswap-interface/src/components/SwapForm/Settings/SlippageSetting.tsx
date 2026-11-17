@@ -10,6 +10,7 @@ import SlippageWarningNote from 'components/SlippageWarningNote'
 import { Stack } from 'components/Stack'
 import { MouseoverTooltip } from 'components/Tooltip'
 import { DEFAULT_SLIPPAGES, DEFAULT_SLIPPAGES_HIGH_VOLATILITY } from 'constants/trade'
+import useTracking, { TRACKING_EVENT_TYPE } from 'hooks/useTracking'
 import { useDefaultSlippageByPair, usePairCategory } from 'state/swap/hooks'
 import { useDegenModeManager, useSlippageSettingByPage } from 'state/user/hooks'
 import { ExternalLink } from 'theme'
@@ -66,6 +67,7 @@ const SlippageSetting = ({
   alwaysVisible,
   isCrossChain = false,
 }: Props) => {
+  const { trackingHandler } = useTracking()
   const [searchParams, setSearchParams] = useSearchParams()
   const [expanded, setExpanded] = useState(false)
   const [isHighlight, setIsHighlight] = useState(false)
@@ -189,6 +191,7 @@ const SlippageSetting = ({
         <Stack className="gap-3">
           <Stack className="gap-1">
             <SlippageControl
+              entryPoint={slippage ? undefined : 'form'}
               isCrossChain={isCrossChain}
               isHighlight={isHighlight}
               rawSlippage={rawSlippage}
@@ -204,7 +207,17 @@ const SlippageSetting = ({
             {Math.abs(defaultSlp - rawSlippage) / defaultSlp > 0.2 && !triedSimulatedSlippage && (
               <div
                 role="button"
-                onClick={() => setRawSlippage(defaultSlp)}
+                onClick={() => {
+                  if (defaultSlp !== rawSlippage)
+                    trackingHandler(TRACKING_EVENT_TYPE.SWAP_SLIPPAGE_CHANGED, {
+                      previous_value: rawSlippage / 100,
+                      new_slippage: defaultSlp / 100,
+                      entry_point: 'form',
+                      input_method: 'suggestion',
+                      mode: isCrossChain ? 'cross-chain' : 'same-chain',
+                    })
+                  setRawSlippage(defaultSlp)
+                }}
                 className="flex w-fit cursor-pointer items-center gap-1 px-1 text-xs text-primary hover:brightness-125"
               >
                 <MouseoverTooltip text={<Trans>Dynamic entry based on trading pair.</Trans>} placement="bottom">

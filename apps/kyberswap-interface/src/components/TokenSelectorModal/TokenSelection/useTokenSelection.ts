@@ -89,6 +89,7 @@ export const useTokenSelection = ({
 
       if (onSelectChain && currency.chainId !== anchorChainId) onSelectChain(currency.chainId)
 
+      onCurrencySelect?.(currency)
       trackingHandler(TRACKING_EVENT_TYPE.TS_TOKEN_SELECTED, {
         source: trackingSource,
         tab: context.tab,
@@ -102,7 +103,6 @@ export const useTokenSelection = ({
         needs_chain_switch: selection.needsChainSwitch,
       })
 
-      onCurrencySelect?.(currency)
       dismiss()
     },
     [

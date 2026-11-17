@@ -18,6 +18,7 @@ export const DefaultSlippageOption = forwardRef<HTMLButtonElement, ButtonHTMLAtt
 DefaultSlippageOption.displayName = 'DefaultSlippageOption'
 
 type Props = {
+  entryPoint?: string
   rawSlippage: number
   setRawSlippage: (value: number) => void
   isWarning?: boolean
@@ -27,7 +28,7 @@ type Props = {
 }
 
 const SlippageControl: React.FC<Props> = props => {
-  const { rawSlippage, setRawSlippage, isWarning = false, isHighlight, isCrossChain = false } = props
+  const { rawSlippage, setRawSlippage, isWarning = false, isHighlight, isCrossChain = false, entryPoint } = props
   const { trackingHandler } = useTracking()
   const cat = usePairCategory()
   const options = useMemo(
@@ -60,18 +61,14 @@ const SlippageControl: React.FC<Props> = props => {
             key={slp}
             data-testid={`slippage-preset-${slp}`}
             onClick={() => {
-              trackingHandler(TRACKING_EVENT_TYPE.SLIPPAGE_CHANGED, {
-                new_slippage: slp / 100,
-                previous_value: rawSlippage / 100,
-                input_method: 'preset',
-              })
-              if (isCrossChain) {
-                trackingHandler(TRACKING_EVENT_TYPE.CC_SLIPPAGE_CHANGED, {
+              if (slp !== rawSlippage)
+                trackingHandler(TRACKING_EVENT_TYPE.SWAP_SLIPPAGE_CHANGED, {
                   new_slippage: slp / 100,
                   previous_value: rawSlippage / 100,
                   input_method: 'preset',
+                  entry_point: entryPoint,
+                  mode: isCrossChain ? 'cross-chain' : 'same-chain',
                 })
-              }
               setIsCustomActive(false)
               setRawSlippage(slp)
             }}
@@ -91,6 +88,7 @@ const SlippageControl: React.FC<Props> = props => {
 
       <CustomSlippageInput
         isCrossChain={isCrossChain}
+        entryPoint={entryPoint}
         value={rawSlippage}
         isActive={isCustomActive}
         onActiveChange={setIsCustomActive}

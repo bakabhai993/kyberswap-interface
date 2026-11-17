@@ -7,6 +7,7 @@ import { ETHER_ADDRESS } from 'constants/index'
 import { useActiveWeb3React, useWeb3React } from 'hooks'
 import useENS from 'hooks/useENS'
 import { useERC8056DisplayBalance } from 'hooks/useERC8056Token'
+import useTracking, { TRACKING_EVENT_TYPE } from 'hooks/useTracking'
 import { useTransactionAdder } from 'state/transactions/hooks'
 import { TRANSACTION_TYPE, TransactionExtraInfo2Token } from 'state/transactions/type'
 import { useUserSlippageTolerance } from 'state/user/hooks'
@@ -32,6 +33,7 @@ const useSingleChainSwapExecution = (isPermitSwap?: boolean) => {
   const [searchParams] = useSearchParams()
 
   const addTransactionWithType = useTransactionAdder()
+  const { trackingHandler } = useTracking()
 
   const { address: recipientAddress } = useENS(recipientAddressOrName)
 
@@ -151,12 +153,22 @@ const useSingleChainSwapExecution = (isPermitSwap?: boolean) => {
       if (response?.hash === undefined) throw new Error('sendTransaction returned undefined.')
 
       addTransactionWithType({ ...swapData, hash: response.hash })
+      trackingHandler(TRACKING_EVENT_TYPE.SWAP_SUBMITTED, {
+        mode: 'same-chain',
+        from_chain_id: chainId,
+        to_chain_id: chainId,
+        tx_hash: response.hash,
+        from_token: inputAmount.currency.symbol,
+        to_token: outputAmount?.currency.symbol,
+      })
       return response?.hash
     },
     [
       account,
       chainId,
       getSwapData,
+      trackingHandler,
+      outputAmount,
       addTransactionWithType,
       inputAmount,
       walletKey,

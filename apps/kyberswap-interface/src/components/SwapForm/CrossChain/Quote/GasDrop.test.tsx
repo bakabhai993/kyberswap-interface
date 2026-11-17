@@ -7,6 +7,12 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 
 import { GasDropOption } from 'components/SwapForm/CrossChain/Quote/GasDrop'
 
+const tracking = vi.hoisted(() => vi.fn())
+vi.mock('hooks/useTracking', () => ({
+  default: () => ({ trackingHandler: tracking }),
+  TRACKING_EVENT_TYPE: { SWAP_GAS_DROP_SWITCH: 'switch' },
+}))
+
 vi.mock('components/GasDrop/useGasDropValue', () => ({
   useGasDropValue: () => ({ symbol: 'ETH', amountUsd: 2 }),
 }))
@@ -56,6 +62,7 @@ beforeEach(() => {
   i18n.load('en', {})
   i18n.activate('en')
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
+  tracking.mockReset()
   onChange.mockReset()
   onRequest.mockReset()
   container = document.createElement('div')
@@ -80,6 +87,14 @@ it('requests gas on click but only commits the mode on confirmation', async () =
   await click('Switch & Add Gas')
   expect(onRequest).toHaveBeenCalledTimes(3)
   expect(onChange.mock.calls).toEqual([[true]])
+  expect(tracking.mock.calls.map(([, payload]) => payload.action)).toEqual([
+    'shown',
+    'dismissed',
+    'shown',
+    'dismissed',
+    'shown',
+    'accepted',
+  ])
 })
 
 it('adds gas directly on KyberCross and removes it without confirmation', async () => {
@@ -90,4 +105,5 @@ it('adds gas directly on KyberCross and removes it without confirmation', async 
   await render('KyberCross', true)
   await click('Remove Gas Drop')
   expect(onChange.mock.calls).toEqual([[true], [false]])
+  expect(tracking).not.toHaveBeenCalled()
 })

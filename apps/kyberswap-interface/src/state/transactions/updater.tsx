@@ -209,6 +209,25 @@ export default function Updater(): null {
         type: numericStatus === 1 ? NotificationType.SUCCESS : NotificationType.ERROR,
         account: accountRef.current ?? '',
       })
+      if (transaction.type === TRANSACTION_TYPE.APPROVE && numericStatus !== 1) {
+        const extraInfo = transaction.extraInfo as TransactionExtraInfo1Token | undefined
+        trackingHandler(TRACKING_EVENT_TYPE.TOKEN_APPROVAL_FAILED, {
+          token_address: extraInfo?.tokenAddress,
+          spender_address: extraInfo?.contract,
+          tx_hash: receipt.transactionHash,
+          chain_id: transaction.chainId,
+          error_type: 'reverted',
+        })
+      }
+      if (transaction.type === TRANSACTION_TYPE.SWAP && numericStatus !== 1) {
+        trackingHandler(TRACKING_EVENT_TYPE.SWAP_SETTLED, {
+          mode: 'same-chain',
+          from_chain_id: transaction.chainId,
+          to_chain_id: transaction.chainId,
+          tx_hash: receipt.transactionHash,
+          outcome: 'FAILED',
+        })
+      }
       if (numericStatus === 1) {
         // The sender's balances just changed, but the inventory indexer runs a minute or so behind the
         // chain — keyed on the transaction's own sender, since the connected account can have switched
@@ -270,16 +289,27 @@ export default function Updater(): null {
         const arbitrary = transaction.extraInfo?.arbitrary
         switch (transaction.type) {
           case TRANSACTION_TYPE.SWAP: {
-            if (!arbitrary) return
+            if (!arbitrary) {
+              trackingHandler(TRACKING_EVENT_TYPE.SWAP_SETTLED, {
+                mode: 'same-chain',
+                from_chain_id: transaction.chainId,
+                to_chain_id: transaction.chainId,
+                tx_hash: receipt.transactionHash,
+                outcome: 'SUCCESS',
+              })
+              return
+            }
             if (accountRef.current && arbitrary.isPermitSwap) {
               dispatch(revokePermit({ chainId, address: arbitrary.inputAddress, account: accountRef.current }))
             }
-            trackingHandler(TRACKING_EVENT_TYPE.SWAP_COMPLETED, {
+            trackingHandler(TRACKING_EVENT_TYPE.SWAP_SETTLED, {
               arbitrary,
               actual_gas: receipt.gasUsed || 0n,
               gas_price: receipt.effectiveGasPrice || 0n,
               tx_hash: receipt.transactionHash,
               feeInfo: arbitrary.feeInfo,
+              outcome: 'SUCCESS',
+              chain_id: transaction.chainId,
             })
             if (arbitrary.tipLink) {
               trackingHandler(TRACKING_EVENT_TYPE.TIP_LINK_TRADE, {

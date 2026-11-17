@@ -11,6 +11,7 @@ import {
   useEvmRecipient,
 } from 'components/SwapForm/hooks/useEvmRecipient'
 import { useRecipientAddress } from 'components/SwapForm/hooks/useRecipientAddress'
+import { useRecipientTracking } from 'components/SwapForm/hooks/useRecipientTracking'
 import { useSwapWallets } from 'components/SwapWallets/SwapWalletContext'
 import { ZERO_ADDRESS } from 'constants/index'
 import { useActiveWeb3React } from 'hooks'
@@ -61,10 +62,12 @@ export const useCrossChainRecipient = (fromChainId: Chain, toChainId?: Chain, sh
     setRecipientInput(previous => ({ ...previous, ...change }))
   }
   const setRecipient = (value: string) => {
+    recipientTracking.changed(value)
     if (hasIndependentReceiver) updateInput({ pastedAddress: value, mode: 'paste' })
     else evm.setRecipient(value)
   }
   const applyRecipient = (value: string) => {
+    recipientTracking.changed(value)
     if (hasIndependentReceiver) updateInput({ pastedAddress: value, mode: value ? 'paste' : 'wallet', expanded: true })
     else {
       evm.applyRecipient(value)
@@ -79,6 +82,7 @@ export const useCrossChainRecipient = (fromChainId: Chain, toChainId?: Chain, sh
     else evm.closeRecipient()
   }
   const toggleRecipient = () => {
+    if (!showRecipientInput) recipientTracking.opened()
     if (hasIndependentReceiver) updateInput({ expanded: !recipientInput.expanded })
     else evm.toggleExpanded()
   }
@@ -92,6 +96,13 @@ export const useCrossChainRecipient = (fromChainId: Chain, toChainId?: Chain, sh
     : { mode: 'evm' }
 
   const recipientLookup = useRecipientAddress(recipient, recipientAddressType)
+  const recipientTracking = useRecipientTracking(
+    hasIndependentReceiver ? recipientInput.pastedAddress : evm.inputValue,
+    recipientLookup.address,
+    recipientLookup.loading,
+    toChainId,
+    'cross-chain',
+  )
 
   return {
     recipient,

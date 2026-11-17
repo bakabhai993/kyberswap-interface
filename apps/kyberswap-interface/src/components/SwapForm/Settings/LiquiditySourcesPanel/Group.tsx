@@ -11,23 +11,24 @@ type Props = {
   tag: { id: number; name: string }
   debouncedSearchText: string
   chainId?: ChainId
+  onChange: (excluded: string[]) => void
 }
 
-export const LiquiditySourceGroup = ({ tag, debouncedSearchText, chainId: customChainId }: Props) => {
+export const LiquiditySourceGroup = ({ tag, debouncedSearchText, chainId: customChainId, onChange }: Props) => {
   const { chainId: walletChainId } = useActiveWeb3React()
   const chainId = customChainId || walletChainId
   const dexes = useAllDexes(chainId)
 
   const dexByTag = useMemo(() => dexes.filter(item => item.tags?.some(t => t.id === tag.id)), [dexes, tag.id])
 
-  const [excludeDexes, setExcludeDexes] = useExcludeDexes(chainId)
+  const [excludeDexes] = useExcludeDexes(chainId)
 
   const handleToggleDex = (id: string) => {
     const isExclude = excludeDexes.find(item => item === id)
     if (isExclude) {
-      setExcludeDexes(excludeDexes.filter(item => item !== id))
+      onChange(excludeDexes.filter(item => item !== id))
     } else {
-      setExcludeDexes([...excludeDexes, id])
+      onChange([...excludeDexes, id])
     }
   }
 
@@ -53,9 +54,9 @@ export const LiquiditySourceGroup = ({ tag, debouncedSearchText, chainId: custom
   const filteredDexes = dexByTag.filter(item => item.name.toLowerCase().includes(debouncedSearchText))
   const handleToggleGroup = (checked: boolean) => {
     if (checked) {
-      setExcludeDexes(excludeDexes.filter(item => !dexIds.includes(item)))
+      onChange(excludeDexes.filter(item => !dexIds.includes(item)))
     } else {
-      setExcludeDexes([...excludeDexes.filter(item => !dexIds.includes(item)), ...dexIds])
+      onChange([...excludeDexes.filter(item => !dexIds.includes(item)), ...dexIds])
     }
   }
 

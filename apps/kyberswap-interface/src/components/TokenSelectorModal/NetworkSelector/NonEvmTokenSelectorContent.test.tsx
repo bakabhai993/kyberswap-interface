@@ -142,3 +142,5 @@ it('preserves the global wallet balance for consumers without independent slots'
   expect(mocks.getAccounts.mock.calls[0][0].toString()).toBe(appAddress)
   expect(container.querySelector('[aria-label="Tokens"] button')?.textContent).toContain('AAA')
 })
+
+vi.mock('hooks/useTracking', () => ({ default: () => ({ trackingHandler: vi.fn() }), TRACKING_EVENT_TYPE: {} }))

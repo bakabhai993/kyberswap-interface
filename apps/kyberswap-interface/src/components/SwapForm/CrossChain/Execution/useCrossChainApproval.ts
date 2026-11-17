@@ -5,6 +5,7 @@ import { useReadContract, useWaitForTransactionReceipt } from 'wagmi'
 import { ZERO_ADDRESS } from 'constants/index'
 import { useActiveWeb3React } from 'hooks'
 import { ApprovalState, ApprovalStatus, useApproveCallback } from 'hooks/useApproveCallback'
+import useTracking, { TRACKING_EVENT_TYPE } from 'hooks/useTracking'
 import { useCrossChainTransactions } from 'state/crossChainSwap'
 import { useHasPendingApproval } from 'state/transactions/hooks'
 import { Chain, isEvmChain } from 'types/crossChain'
@@ -41,6 +42,7 @@ type UseCrossChainApprovalParams = {
  */
 export const useCrossChainApproval = ({ amount, fromChainId, spender }: UseCrossChainApprovalParams) => {
   const { account, chainId } = useActiveWeb3React()
+  const { trackingHandler } = useTracking()
 
   const isFromEvm = fromChainId !== undefined && isEvmChain(fromChainId)
   const tokenAddress = amount?.currency.isNative ? undefined : amount?.currency.wrapped.address
@@ -144,6 +146,12 @@ export const useCrossChainApproval = ({ amount, fromChainId, spender }: UseCross
     const allowance = await getLatestAllowance()
     if (allowance === undefined || requiredAllowance <= allowance) return ApprovalStatus.SKIPPED
 
+    trackingHandler(TRACKING_EVENT_TYPE.TOKEN_APPROVAL_INITIATED, {
+      mode: 'cross-chain',
+      chain_id: fromChainId,
+      token_address: tokenAddress,
+      spender_address: spender,
+    })
     setApprovalInProgressScope(allowanceScope)
     let status = ApprovalStatus.FAILED
 
@@ -151,9 +159,27 @@ export const useCrossChainApproval = ({ amount, fromChainId, spender }: UseCross
       status = await approveCallback(amount)
       return status
     } finally {
+      if (status === ApprovalStatus.FAILED || status === ApprovalStatus.REJECTED)
+        trackingHandler(TRACKING_EVENT_TYPE.TOKEN_APPROVAL_FAILED, {
+          mode: 'cross-chain',
+          chain_id: fromChainId,
+          token_address: tokenAddress,
+          spender_address: spender,
+        })
       if (status !== ApprovalStatus.SUBMITTED) clearApprovalInProgress()
     }
-  }, [allowanceScope, amount, approveCallback, clearApprovalInProgress, getLatestAllowance, requiredAllowance])
+  }, [
+    allowanceScope,
+    amount,
+    approveCallback,
+    clearApprovalInProgress,
+    getLatestAllowance,
+    requiredAllowance,
+    trackingHandler,
+    fromChainId,
+    tokenAddress,
+    spender,
+  ])
 
   // Fail closed when the latest allowance cannot be read before Review.
   const revalidateAllowance = useCallback(async () => {

@@ -160,6 +160,13 @@ const TokenSelectorModal = ({
               supportsNonEvm && onSelectNonEvmCurrency
                 ? (chain, currency) => {
                     onSelectNonEvmCurrency(chain, currency)
+                    trackingHandler(TRACKING_EVENT_TYPE.TS_TOKEN_SELECTED, {
+                      source: trackingSource,
+                      chain_id: chain,
+                      token_symbol: currency.symbol,
+                      token_address:
+                        'assetId' in currency ? currency.assetId : 'id' in currency ? currency.id : currency.symbol,
+                    })
                     selection.dismiss()
                   }
                 : undefined

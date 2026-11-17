@@ -9,6 +9,7 @@ import { type EvmRecipient, useEvmRecipient } from 'components/SwapForm/hooks/us
 import useGetRoute from 'components/SwapForm/hooks/useGetRoute'
 import useParsedAmount from 'components/SwapForm/hooks/useParsedAmount'
 import { useRecipientAddress } from 'components/SwapForm/hooks/useRecipientAddress'
+import { useRecipientTracking } from 'components/SwapForm/hooks/useRecipientTracking'
 import { useSwapInputAmount } from 'components/SwapForm/hooks/useSwapInputAmount'
 import { useSwapReviewSession } from 'components/SwapForm/hooks/useSwapReviewSession'
 import { MAINNET_NETWORKS } from 'constants/networks'
@@ -61,6 +62,13 @@ const useSingleChainSwap = ({
   const isWrapOrUnwrap = wrapType !== WrapType.NOT_APPLICABLE
   const recipientLookup = useRecipientAddress(isWrapOrUnwrap ? account || '' : evmRecipient.recipient, { mode: 'evm' })
   const recipient = recipientLookup.address || ''
+  const recipientTracking = useRecipientTracking(
+    evmRecipient.inputValue,
+    recipientLookup.address,
+    recipientLookup.loading,
+    chainId,
+    'same-chain',
+  )
 
   // Invalidate a built review on wallet/form changes; slippage is rebuilt separately below.
   const reviewIdentity = JSON.stringify([
@@ -142,14 +150,23 @@ const useSingleChainSwap = ({
     recipient,
     recipientError: recipientLookup.error,
     recipientMessage: recipientLookup.message,
-    onRecipientChange: evmRecipient.setRecipient,
+    onRecipientChange: (value: string) => {
+      recipientTracking.changed(value)
+      evmRecipient.setRecipient(value)
+    },
     recipientInputValue: evmRecipient.inputValue,
     recipientInputEnabled: evmRecipient.recipientInputEnabled,
     showRecipientInput: evmRecipient.expanded,
-    toggleRecipient: evmRecipient.toggleExpanded,
+    toggleRecipient: () => {
+      if (!evmRecipient.expanded) recipientTracking.opened()
+      evmRecipient.toggleExpanded()
+    },
     closeRecipient: evmRecipient.closeRecipient,
     selectWalletRecipient: evmRecipient.useMyWallet,
-    applyRecipient: evmRecipient.applyRecipient,
+    applyRecipient: (value: string) => {
+      recipientTracking.changed(value)
+      evmRecipient.applyRecipient(value)
+    },
     parsedAmount,
     wrapType,
     wrapInputError,

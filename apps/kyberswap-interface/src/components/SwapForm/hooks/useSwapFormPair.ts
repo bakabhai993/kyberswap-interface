@@ -1,9 +1,10 @@
 import { Currency as EvmCurrency } from '@kyberswap/ks-sdk-core'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
 import { APP_PATHS } from 'constants/index'
 import usePageLocation from 'hooks/usePageLocation'
+import useTracking, { TRACKING_EVENT_TYPE } from 'hooks/useTracking'
 import { WrappedTokenInfo } from 'state/lists/wrappedTokenInfo'
 import { Field } from 'state/swap/actions'
 import { useSwapCurrencyResolution } from 'state/swap/hooks'
@@ -38,6 +39,9 @@ const matches = (currency: EvmCurrency | undefined, id: string, chain: Chain) =>
  */
 export const useSwapFormPair = () => {
   const navigate = useNavigate()
+  const { trackingHandler, isTrackingReady } = useTracking()
+  const appliedPair = useRef<string | undefined>(undefined)
+  const appliedChains = useRef<{ from: Chain; to: Chain } | undefined>(undefined)
   const { pathname, isEmbeddedSwap } = usePageLocation()
 
   const {
@@ -80,6 +84,48 @@ export const useSwapFormPair = () => {
       : currencyOut
       ? currencyId(currencyOut, currencyOut.chainId)
       : toCurrency || getDefaultSwapTokenId(outputChain)
+
+  const trackedInput = currencyIn ? getSelectedTokenId(currencyIn) : typeof inputChain !== 'number' ? inputId : ''
+  const trackedOutput = currencyOut ? getSelectedTokenId(currencyOut) : typeof outputChain !== 'number' ? outputId : ''
+  useEffect(() => {
+    if (!isTrackingReady || !trackedInput || !trackedOutput || isInputCurrencyLoading || isOutputCurrencyLoading) return
+    const tokenId = (id: string, chain: Chain) => (typeof chain === 'number' ? id.toLowerCase() : id)
+    const key = JSON.stringify([
+      inputChain,
+      tokenId(trackedInput, inputChain),
+      outputChain,
+      tokenId(trackedOutput, outputChain),
+    ])
+    if (appliedPair.current === key) return
+    const previous = appliedChains.current
+    appliedPair.current = key
+    appliedChains.current = { from: inputChain, to: outputChain }
+    const payload = {
+      from_chain_id: inputChain,
+      to_chain_id: outputChain,
+      from_token: trackedInput,
+      to_token: trackedOutput,
+      mode: isCrossChain ? 'cross-chain' : 'same-chain',
+    }
+    trackingHandler(TRACKING_EVENT_TYPE.SWAP_PAIR_APPLIED, payload)
+    if (previous && (previous.from !== inputChain || previous.to !== outputChain)) {
+      trackingHandler(TRACKING_EVENT_TYPE.SWAP_PAIR_CHAIN_CHANGED, {
+        ...payload,
+        previous_from_chain_id: previous.from,
+        previous_to_chain_id: previous.to,
+      })
+    }
+  }, [
+    isTrackingReady,
+    trackedInput,
+    trackedOutput,
+    inputChain,
+    outputChain,
+    isInputCurrencyLoading,
+    isOutputCurrencyLoading,
+    isCrossChain,
+    trackingHandler,
+  ])
 
   const commitPair = (pair: SwapPair, currencies: typeof selected) => {
     setSelected(currencies)

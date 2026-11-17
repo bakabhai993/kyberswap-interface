@@ -203,3 +203,5 @@ it('does not show a previous mobile link or select a late result after closing t
   expect(container.textContent).not.toContain('Open MetaMask')
   expect(mocks.onSelect).not.toHaveBeenCalled()
 })
+
+vi.mock('hooks/useTracking', () => ({ default: () => ({ trackingHandler: vi.fn() }), TRACKING_EVENT_TYPE: {} }))

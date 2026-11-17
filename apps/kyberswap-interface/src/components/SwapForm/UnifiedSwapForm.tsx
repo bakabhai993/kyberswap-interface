@@ -119,13 +119,6 @@ export const UnifiedSwapForm = ({
   const displayAmountOut = getERC8056DisplayAmount(erc8056Info.outputInfo, parsedAmountOut)
 
   const selectEvmCurrency = (currency: EvmCurrency, side: 'input' | 'output') => {
-    trackingHandler(TRACKING_EVENT_TYPE.TOKEN_SELECTED, {
-      token_symbol: currency.symbol,
-      token_address: currency.isNative ? 'NATIVE' : currency.wrapped.address,
-      token_position: side,
-      paired_token: side === 'input' ? currencyOut?.symbol : currencyIn?.symbol,
-      chain: NETWORKS_INFO[currency.chainId].name,
-    })
     if (side === 'input') onChangeCurrencyIn(currency)
     else onChangeCurrencyOut(currency)
   }

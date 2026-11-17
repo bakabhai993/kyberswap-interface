@@ -29,7 +29,7 @@ vi.mock('hooks/useTracking', () => ({
   default: () => ({ trackingHandler: mocks.track }),
   useCrossChainMixpanel: () => ({ crossChainMixpanelHandler: mocks.mixpanel }),
   CROSS_CHAIN_MIXPANEL_TYPE: { CROSS_CHAIN_SWAP_SUCCESS: 'success' },
-  TRACKING_EVENT_TYPE: { CC_SWAP_COMPLETED: 'completed' },
+  TRACKING_EVENT_TYPE: { SWAP_SETTLED: 'settled' },
 }))
 vi.mock('services/crossChain/adapters/KyberCrossAdapter', () => ({
   KyberCrossAdapter: class {
@@ -229,4 +229,17 @@ it('returns all local history and polls processing transactions across adapters'
   expect(mocks.scan.mock.calls.map(([hash]) => hash)).toEqual(['0xdone'])
   await act(async () => vi.advanceTimersByTimeAsync(10_000))
   expect(mocks.poll.mock.calls.map(([tx]) => tx.id)).toEqual(['active', 'other', 'active', 'other'])
+})
+
+it.each([
+  ['Success', 'SUCCESS'],
+  ['Failed', 'FAILED'],
+  ['Refunded', 'REFUNDED'],
+] as const)('reports %s as settlement exactly once, never a submission failure', async (status, outcome) => {
+  mocks.transactions = [transaction('active', 'Processing', 'Relay')]
+  mocks.poll.mockResolvedValue({ status, txHash: '0xterminal' })
+  await render()
+  await render()
+  await act(async () => vi.advanceTimersByTimeAsync(10_000))
+  expect(mocks.track.mock.calls).toEqual([['settled', expect.objectContaining({ outcome, mode: 'cross-chain' })]])
 })

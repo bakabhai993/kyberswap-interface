@@ -8,7 +8,6 @@ import { CrossChainWalletSelector } from 'components/SwapWallets/CrossChainWalle
 import { useSwapWallets } from 'components/SwapWallets/SwapWalletContext'
 import { useBitcoinWallet } from 'components/Web3Provider/BitcoinProvider'
 import { useSolanaConnectModal } from 'components/Web3Provider/SolanaConnectModalProvider'
-import useTracking, { TRACKING_EVENT_TYPE } from 'hooks/useTracking'
 import { NonEvmChain } from 'types/crossChain'
 
 const LegacySenderWalletSelector = ({ chain }: { chain: NonEvmChain }) => {
@@ -17,7 +16,6 @@ const LegacySenderWalletSelector = ({ chain }: { chain: NonEvmChain }) => {
   const { walletInfo, availableWallets } = useBitcoinWallet()
   const { setIsOpen } = useSolanaConnectModal()
   const { termAndPolicyModal, onOpenWallet } = useAcceptTermAndPolicy()
-  const { trackingHandler } = useTracking()
   const [showBitcoin, setShowBitcoin] = useState(false)
   const bitcoinWallet = availableWallets.find(wallet => wallet.type === walletInfo.walletType)
   const address =
@@ -40,10 +38,6 @@ const LegacySenderWalletSelector = ({ chain }: { chain: NonEvmChain }) => {
       : bitcoinWallet?.name
 
   const connect = () => {
-    trackingHandler(TRACKING_EVENT_TYPE.CC_WALLET_SELECTED, {
-      wallet_type: chain === NonEvmChain.Solana ? 'Solana' : chain === NonEvmChain.Near ? 'NEAR' : 'Bitcoin',
-      chain,
-    })
     if (chain === NonEvmChain.Solana) setIsOpen(true)
     else if (chain === NonEvmChain.Near) onOpenWallet('near')
     else setShowBitcoin(true)

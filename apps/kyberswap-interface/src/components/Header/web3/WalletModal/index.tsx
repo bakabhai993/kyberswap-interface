@@ -1,5 +1,5 @@
 import { Trans } from '@lingui/macro'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useConnect } from 'wagmi'
 
 import EvmWalletOption from 'components/Header/web3/WalletModal/EvmWalletOption'
@@ -10,13 +10,15 @@ import WalletPopup from 'components/WalletPopup'
 import { registerPortoConnector } from 'components/Web3Provider'
 import { setMetaMaskMobileLink, useMetaMaskMobileLink } from 'components/Web3Provider/metamaskMobileLink'
 import { useActiveWeb3React } from 'hooks'
+import usePageLocation from 'hooks/usePageLocation'
 import useTracking, { TRACKING_EVENT_TYPE } from 'hooks/useTracking'
 import { ApplicationModal } from 'state/application/actions'
 import { useCloseModal, useModalOpen, useOpenModal, useOpenNetworkModal } from 'state/application/hooks'
 import { useIsAcceptedTerm } from 'state/user/hooks'
+import { isSwapLikePath } from 'utils/routes'
 
 const WalletModal = () => {
-  const { isWrongNetwork, account } = useActiveWeb3React()
+  const { isWrongNetwork, account, chainId } = useActiveWeb3React()
   const walletModalOpen = useModalOpen(ApplicationModal.WALLET)
   const closeWalletModal = useCloseModal(ApplicationModal.WALLET)
   const openWalletModal = useOpenModal(ApplicationModal.WALLET)
@@ -27,6 +29,14 @@ const WalletModal = () => {
   const [isAcceptedTerm, setIsAcceptedTerm] = useIsAcceptedTerm()
 
   const { trackingHandler } = useTracking()
+  const { pathname, isEmbeddedSwap } = usePageLocation()
+  const wasOpen = useRef(false)
+  useEffect(() => {
+    if (walletModalOpen && !wasOpen.current && !account && (isSwapLikePath(pathname) || isEmbeddedSwap)) {
+      trackingHandler(TRACKING_EVENT_TYPE.SWAP_WALLET_CONNECTION_OPENED, { chain_id: chainId })
+    }
+    wasOpen.current = walletModalOpen
+  }, [walletModalOpen, account, pathname, isEmbeddedSwap, chainId, trackingHandler])
 
   const connectors = useOrderedConnections()
 

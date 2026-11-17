@@ -40,6 +40,7 @@ import {
 import { NETWORKS_INFO, isSupportStopMarket } from 'constants/networks'
 import { Z_INDEXS } from 'constants/styles'
 import { NativeCurrencies } from 'constants/tokens'
+import useTracking, { TRACKING_EVENT_TYPE } from 'hooks/useTracking'
 import { CloseIcon } from 'theme'
 import { Chain, NonEvmChain, NonEvmChainInfo, NonEvmCurrency } from 'types/crossChain'
 import { getTokenAddress } from 'utils/tokenInfo'
@@ -278,7 +279,15 @@ export const TokenSelectorContent = ({
   const isNewTab = activeTab === TokenSelectorTab.New
   const subtitle = getTabSubtitle(activeTab)
 
+  const { trackingHandler } = useTracking()
   const selectNetwork = (chain: TokenSelectorChain) => {
+    const previous = nonEvmChain ?? (allNetworks ? 'all' : selectedChainId)
+    if (previous === chain) return
+    trackingHandler(TRACKING_EVENT_TYPE.TS_CHAIN_SWITCHED, {
+      source: trackingSource,
+      from_chain_id: previous,
+      to_chain_id: chain,
+    })
     if (chain === 'all' || typeof chain === 'number') {
       setNonEvmChain(undefined)
       handleChainChange(chain)
@@ -426,6 +435,7 @@ export const TokenSelectorContent = ({
             <NonEvmTokenSelectorContent
               key={nonEvmChain}
               chain={nonEvmChain}
+              trackingSource={trackingSource}
               selectedCurrency={nonEvmChain === initialNonEvmChain ? selectedNonEvmCurrency : undefined}
               onSelect={currency => onSelectNonEvmCurrency?.(nonEvmChain, currency)}
               networkSelector={

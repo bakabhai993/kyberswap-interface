@@ -237,3 +237,5 @@ it('keeps an empty non-EVM draft open without a receiver wallet and resumes wall
   expect(result.recipient).toBe('other.near')
   expect(result.isPastedRecipient).toBe(true)
 })
+
+vi.mock('hooks/useTracking', () => ({ default: () => ({ trackingHandler: vi.fn() }), TRACKING_EVENT_TYPE: {} }))

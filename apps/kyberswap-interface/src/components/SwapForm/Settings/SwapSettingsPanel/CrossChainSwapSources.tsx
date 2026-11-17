@@ -39,22 +39,22 @@ const CrossChainSwapSources = ({ onBack }: Props) => {
   const selectedSources = sources?.filter(item => !excludedSources.includes(item.getName())) || []
   const dispatch = useAppDispatch()
 
-  const handleToggleSource = (sourceName: string) => {
-    const isExclude = excludedSources.find(i => i === sourceName)
-    const enabled = !!isExclude
-    const nextExcludedSources = isExclude
-      ? excludedSources.filter(ex => ex !== sourceName)
-      : [...excludedSources, sourceName]
-
-    dispatch(updateExcludedSources(nextExcludedSources))
-
-    trackingHandler(TRACKING_EVENT_TYPE.CC_ROUTING_SOURCE_TOGGLED, {
-      source_name: sourceName,
-      enabled,
-      total_enabled: sources.length - nextExcludedSources.length,
-      total_available: sources.length,
+  const applyExcludedSources = (next: string[]) => {
+    dispatch(updateExcludedSources(next))
+    sourceNames.forEach(source => {
+      if (excludedSources.includes(source) === next.includes(source)) return
+      trackingHandler(TRACKING_EVENT_TYPE.SWAP_ROUTING_SOURCE_TOGGLED, {
+        source_type: 'provider',
+        mode: 'cross-chain',
+        source_name: source,
+        enabled: !next.includes(source),
+      })
     })
   }
+  const handleToggleSource = (source: string) =>
+    applyExcludedSources(
+      excludedSources.includes(source) ? excludedSources.filter(item => item !== source) : [...excludedSources, source],
+    )
   useEffect(() => {
     if (!checkAllRef.current) return
     if (selectedSources.length === sources.length) {
@@ -89,9 +89,9 @@ const CrossChainSwapSources = ({ onBack }: Props) => {
                 className="cursor-pointer"
                 onChange={e => {
                   if (!e.currentTarget.checked) {
-                    dispatch(updateExcludedSources(sources.map(item => item.getName())))
+                    applyExcludedSources(sources.map(item => item.getName()))
                   } else {
-                    dispatch(updateExcludedSources([]))
+                    applyExcludedSources([])
                   }
                 }}
               />

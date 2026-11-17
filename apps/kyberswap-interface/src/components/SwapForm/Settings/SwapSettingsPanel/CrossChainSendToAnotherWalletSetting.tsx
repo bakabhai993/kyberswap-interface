@@ -7,7 +7,6 @@ const CrossChainSendToAnotherWalletSetting = ({ onApply }: { onApply: () => void
   return (
     <SendToAnotherWalletSetting
       key={toChainId}
-      trackingScope="cross-chain"
       recipientInputValue={recipientInputValue}
       {...recipientAddressType}
       onApply={value => {

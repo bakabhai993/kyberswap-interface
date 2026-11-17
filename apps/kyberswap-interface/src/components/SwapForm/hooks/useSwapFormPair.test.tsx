@@ -42,9 +42,10 @@ vi.mock('hooks/useTokens', () => ({
 }))
 vi.mock('state/user/hooks', () => ({ useIsAcceptedTerm: () => [true] }))
 vi.mock('services/tokenCatalog', () => ({}))
+const tracking = vi.hoisted(() => vi.fn())
 vi.mock('hooks/useTracking', () => ({
-  default: () => ({ trackingHandler: vi.fn() }),
-  TRACKING_EVENT_TYPE: {},
+  default: () => ({ trackingHandler: tracking, isTrackingReady: true }),
+  TRACKING_EVENT_TYPE: { SWAP_PAIR_APPLIED: 'pair', SWAP_PAIR_CHAIN_CHANGED: 'chain' },
 }))
 vi.mock('hooks/usePageLocation', async () => {
   const { useLocation } = await import('react-router-dom')
@@ -109,6 +110,7 @@ function Page() {
 let container: HTMLDivElement
 let root: ReturnType<typeof createRoot>
 const mount = async (url: string, previousUrl?: string) => {
+  tracking.mockClear()
   container = document.createElement('div')
   document.body.append(container)
   root = createRoot(container)
@@ -519,4 +521,14 @@ it('does not arm the output default when input changes from an existing cross-ch
   await mount(`/swap?from=1&to=8453&tokenIn=ETH&tokenOut=${usdc.address}`)
   await click('Select Base WETH')
   expect(container.querySelector('[data-selector-chain]')?.textContent).toBe('default')
+})
+
+it('tracks complete applied pairs once and ignores reselecting the current token', async () => {
+  await mount(`/swap?from=8453&to=8453&tokenIn=${weth.address}&tokenOut=${usdc.address}`)
+  expect(tracking.mock.calls.filter(([event]) => event === 'pair')).toHaveLength(1)
+  await click('Select USDC')
+  expect(tracking.mock.calls.filter(([event]) => event === 'pair')).toHaveLength(1)
+  await click('Select Ethereum')
+  expect(tracking.mock.calls.filter(([event]) => event === 'pair')).toHaveLength(2)
+  expect(tracking.mock.calls.filter(([event]) => event === 'chain')).toHaveLength(1)
 })

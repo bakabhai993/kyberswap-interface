@@ -11,31 +11,35 @@ import type { RecipientAddressType } from 'components/SwapForm/hooks/useEvmRecip
 import { useRecipientAddress } from 'components/SwapForm/hooks/useRecipientAddress'
 import { SettingsAction, SettingsDivider, SettingsRow } from 'components/TransactionSettings/components'
 import useTracking, { TRACKING_EVENT_TYPE } from 'hooks/useTracking'
+import { useCurrencyFromUrl } from 'state/swap/hooks'
 import { CloseIcon } from 'theme/components'
 
 type Props = RecipientAddressType & {
   disabled?: boolean
   recipientInputValue: string
   onApply: (value: string) => void
-  trackingScope?: 'swap' | 'cross-chain'
 }
 
 export const SendToAnotherWalletSetting = (props: Props) => {
-  const { recipientInputValue, onApply, disabled = false, trackingScope = 'swap' } = props
+  const { recipientInputValue, onApply, disabled = false } = props
   const [isOpen, setIsOpen] = useState(false)
   const [value, setValue] = useState('')
   const { trackingHandler } = useTracking()
+  const { inputChain, outputChain } = useCurrencyFromUrl()
+  const recipientTracking = {
+    to_chain_id: outputChain,
+    mode: inputChain === outputChain ? 'same-chain' : 'cross-chain',
+  }
   const lookup = useRecipientAddress(isOpen ? value : '', props)
   const isValid = !value || (!!lookup.address && !lookup.loading)
 
   const open = () => {
     setValue(recipientInputValue)
     setIsOpen(true)
-    trackingHandler(
-      trackingScope === 'swap'
-        ? TRACKING_EVENT_TYPE.SWAP_SETTINGS_SEND_TO_ANOTHER_WALLET_CLICKED
-        : TRACKING_EVENT_TYPE.CC_SETTINGS_SEND_TO_ANOTHER_WALLET_CLICKED,
-    )
+    trackingHandler(TRACKING_EVENT_TYPE.SWAP_RECIPIENT_OPENED, {
+      ...recipientTracking,
+      recipient_address: recipientInputValue,
+    })
   }
 
   const apply = () => {
@@ -92,13 +96,6 @@ export const SendToAnotherWalletSetting = (props: Props) => {
             value={value}
             onChange={setValue}
             error={lookup.error}
-            onPaste={() =>
-              trackingHandler(
-                trackingScope === 'swap'
-                  ? TRACKING_EVENT_TYPE.SWAP_SETTINGS_ANOTHER_WALLET_PASTED
-                  : TRACKING_EVENT_TYPE.CC_SETTINGS_ANOTHER_WALLET_PASTED,
-              )
-            }
           />
           <HStack className="justify-center gap-4">
             <ButtonOutlined type="button" className="flex-1 p-2.5 text-sm" onClick={() => setIsOpen(false)}>

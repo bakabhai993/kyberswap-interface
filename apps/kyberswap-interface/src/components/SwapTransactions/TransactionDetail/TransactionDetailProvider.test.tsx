@@ -257,3 +257,5 @@ it('opens detail before the row is confirmed by the backend', async () => {
   await act(async () => element('[data-history] button').click())
   expect(container.querySelector('[data-detail]')?.getAttribute('data-detail')).toBe(tx.sourceTxHash)
 })
+
+vi.mock('hooks/useTracking', () => ({ default: () => ({ trackingHandler: vi.fn() }), TRACKING_EVENT_TYPE: {} }))

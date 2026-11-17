@@ -15,9 +15,11 @@ import { useActiveWeb3React, useWeb3React } from 'hooks'
 import { ChainState } from 'hooks/useChainsConfig'
 import useParsedQueryString from 'hooks/useParsedQueryString'
 import useTheme from 'hooks/useTheme'
+import useTracking, { TRACKING_EVENT_TYPE } from 'hooks/useTracking'
 import { useChangeNetwork } from 'hooks/web3/useChangeNetwork'
 import { Chain, NonEvmChain } from 'types/crossChain'
 import { cn } from 'utils/cn'
+import { isSwapLikePath } from 'utils/routes'
 
 const NewLabel = ({
   children,
@@ -84,6 +86,7 @@ const DraggableNetworkButton = ({
   const theme = useTheme()
   const { isWrongNetwork, walletKey: walletName, chainId: walletChainId } = useActiveWeb3React()
   const { changeNetwork } = useChangeNetwork()
+  const { trackingHandler } = useTracking()
   const { connector, account } = useWeb3React()
   const [dragging, setDragging] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -124,6 +127,12 @@ const DraggableNetworkButton = ({
       }
 
       changeNetwork(chainId, () => {
+        if (walletChainId !== chainId && isSwapLikePath(window.location.pathname))
+          trackingHandler(TRACKING_EVENT_TYPE.SWAP_HEADER_NETWORK_CHANGED, {
+            previous_chain_id: walletChainId,
+            chain_id: chainId,
+            entry_point: 'header',
+          })
         const nextSearch = new URLSearchParams(filteredParams).toString()
 
         if (nextSearch !== window.location.search.replace(/^\?/, '')) {

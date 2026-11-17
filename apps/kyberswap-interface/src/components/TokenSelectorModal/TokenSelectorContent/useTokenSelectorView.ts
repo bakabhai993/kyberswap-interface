@@ -104,6 +104,7 @@ export const useTokenSelectorView = ({
 
   const handleTabChange = useCallback(
     (nextTab: TokenSelectorTab) => {
+      if (nextTab === activeTab) return
       setActiveTab(nextTab)
 
       trackingHandler(TRACKING_EVENT_TYPE.TS_TAB_SELECTED, {
@@ -119,19 +120,11 @@ export const useTokenSelectorView = ({
 
   const handleChainChange = useCallback(
     (chainId: ChainId | 'all') => {
+      if (chainId === (allNetworks ? 'all' : selectedChainId)) return
       setAllNetworks(chainId === 'all')
       if (chainId !== 'all') setSelectedChainId(chainId)
-
-      trackingHandler(TRACKING_EVENT_TYPE.TS_CHAIN_SWITCHED, {
-        source: trackingSource,
-        from_chain: allNetworks ? 'All Networks' : NETWORKS_INFO[selectedChainId].name,
-        from_chain_id: allNetworks ? 'all' : selectedChainId,
-        to_chain: chainId === 'all' ? 'All Networks' : NETWORKS_INFO[chainId].name,
-        to_chain_id: chainId,
-        tab: activeTab,
-      })
     },
-    [activeTab, selectedChainId, allNetworks, trackingHandler, trackingSource],
+    [selectedChainId, allNetworks],
   )
 
   const handleInput = useCallback(

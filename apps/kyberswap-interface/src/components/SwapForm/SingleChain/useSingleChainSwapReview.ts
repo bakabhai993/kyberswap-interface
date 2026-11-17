@@ -1,9 +1,8 @@
 import { Currency } from '@kyberswap/ks-sdk-core'
-import { useCallback, useLayoutEffect, useRef } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef } from 'react'
 import { useDispatch } from 'react-redux'
 import { calculatePriceImpact } from 'services/route/utils'
 
-import { getFeeInfoForMixPanel, getSwapConfirmedTracking } from 'components/SwapForm/SingleChain/swapTracking'
 import useSingleChainSwapExecution from 'components/SwapForm/SingleChain/useSingleChainSwapExecution'
 import { usePriceImpactDegenMode } from 'components/SwapForm/SwapActionButton/usePriceImpactDegenMode'
 import { useSwapFormContext } from 'components/SwapForm/SwapFormContext'
@@ -11,7 +10,7 @@ import type { BuildReview, SubmitReview, SwapReviewState } from 'components/Swap
 import { useActiveWeb3React } from 'hooks'
 import useTracking, { TRACKING_EVENT_TYPE } from 'hooks/useTracking'
 import { Field, permitError } from 'state/swap/actions'
-import { useUserSlippageTolerance, useUserTransactionTTL } from 'state/user/hooks'
+import { useUserSlippageTolerance } from 'state/user/hooks'
 import { DetailedRouteSummary } from 'types/route'
 import { minimumAmountAfterSlippage } from 'utils/currencyAmount'
 
@@ -44,12 +43,11 @@ export const useSingleChainSwapReview = ({
   const { chainId, account, networkInfo } = useActiveWeb3React()
   const { displayTypedValue } = useSwapFormContext()
   const dispatch = useDispatch()
-  const { trackingHandler } = useTracking({
+  const { trackingHandler, isTrackingReady } = useTracking({
     [Field.INPUT]: currencyIn,
     [Field.OUTPUT]: currencyOut,
   })
   const [slippage] = useUserSlippageTolerance()
-  const [transactionTimeout] = useUserTransactionTTL()
   const swapCallback = useSingleChainSwapExecution(isPermitSwap)
 
   const { priceImpactAction, requiresDegenMode, requestDegenMode } = usePriceImpactDegenMode(routeSummary?.priceImpact)
@@ -84,38 +82,54 @@ export const useSingleChainSwapReview = ({
     if (changed) void rebuildReviewSession(buildReviewedRoute)
   }, [slippage, rebuildReviewSession, buildReviewedRoute])
 
-  const getTokenAddress = (currency: Currency | undefined) =>
-    currency?.isNative ? 'NATIVE' : currency?.wrapped?.address
-
-  const getRouteDexes = () => [...new Set(routeSummary?.route?.flat().map(r => r.exchange) || [])]
-
-  const trackingSwapInit = () => {
-    const minReceived = routeSummary?.parsedAmountOut
-      ? minimumAmountAfterSlippage(routeSummary.parsedAmountOut, slippage)?.toSignificant(6)
-      : undefined
-
-    trackingHandler(TRACKING_EVENT_TYPE.SWAP_INITIATED, {
-      gasUsd: routeSummary?.gasUsd,
-      inputAmount: routeSummary?.parsedAmountIn,
-      priceImpact: routeSummary?.priceImpact,
-      feeInfo: getFeeInfoForMixPanel(routeSummary),
-      from_token_address: getTokenAddress(currencyIn),
-      to_token_address: getTokenAddress(currencyOut),
-      pair: `${currencyIn?.symbol}/${currencyOut?.symbol}`,
-      amount_in_usd: routeSummary?.amountInUsd,
-      amount_out_estimated: routeSummary?.parsedAmountOut?.toSignificant(6),
-      amount_out_usd: routeSummary?.amountOutUsd,
-      minimum_received: minReceived,
-      rate: routeSummary?.executionPrice?.toSignificant(6),
-      transaction_time_limit: transactionTimeout / 60,
-      gas_token: networkInfo.nativeToken.symbol,
-      trade_route_dexes: getRouteDexes(),
-      trade_route_steps: routeSummary?.route?.length,
-      route_split: (routeSummary?.route?.length || 0) > 1,
+  const reviewTracked = useRef(false)
+  useEffect(() => {
+    if (review.phase === 'closed') reviewTracked.current = false
+    if (
+      !isTrackingReady ||
+      review.phase !== 'review' ||
+      !buildResult?.data?.data ||
+      !buildResult.data.routerAddress ||
+      reviewTracked.current
+    )
+      return
+    reviewTracked.current = true
+    trackingHandler(TRACKING_EVENT_TYPE.SWAP_REVIEW_SHOWN, {
+      from_token: currencyIn?.symbol,
+      from_token_address: currencyIn?.isNative ? 'NATIVE' : currencyIn?.wrapped.address,
+      to_token: currencyOut?.symbol,
+      to_token_address: currencyOut?.isNative ? 'NATIVE' : currencyOut?.wrapped.address,
+      amount_in: routeSummary?.parsedAmountIn?.toSignificant(6),
+      amount_in_usd: routeSummary?.amountInUsd ? Number(routeSummary.amountInUsd) : undefined,
+      amount_out: routeSummary?.parsedAmountOut?.toSignificant(6),
+      amount_out_usd: routeSummary?.amountOutUsd ? Number(routeSummary.amountOutUsd) : undefined,
+      rate: routeSummary?.executionPrice
+        ? `1 ${currencyIn?.symbol} = ${routeSummary.executionPrice.toSignificant(6)} ${currencyOut?.symbol}`
+        : undefined,
+      minimum_received: routeSummary?.parsedAmountOut
+        ? minimumAmountAfterSlippage(routeSummary.parsedAmountOut, slippage)?.toSignificant(6)
+        : undefined,
+      price_impact: routeSummary?.priceImpact
+        ? routeSummary.priceImpact > 0.01
+          ? `${routeSummary.priceImpact.toFixed(2)}%`
+          : '<0.01%'
+        : undefined,
+      max_slippage: slippage ? slippage / 100 : 0,
+      trade_route_dexes: [...new Set(routeSummary?.route?.flat().map(route => route.exchange) || [])],
       chain: networkInfo.name,
-      volume: routeSummary?.amountInUsd ? Number(routeSummary.amountInUsd) : undefined,
+      mode: 'same-chain',
     })
-  }
+  }, [
+    isTrackingReady,
+    review.phase,
+    buildResult,
+    currencyIn,
+    currencyOut,
+    routeSummary,
+    slippage,
+    networkInfo.name,
+    trackingHandler,
+  ])
 
   const openReview = () => {
     if (review.phase !== 'closed') return
@@ -123,43 +137,20 @@ export const useSingleChainSwapReview = ({
       requestDegenMode()
       return
     }
-    void openReviewSession(async signal => {
-      trackingHandler(TRACKING_EVENT_TYPE.SWAP_REVIEW_OPENED, {
-        from_token: currencyIn?.symbol,
-        from_token_address: getTokenAddress(currencyIn),
-        to_token: currencyOut?.symbol,
-        to_token_address: getTokenAddress(currencyOut),
-        amount_in: routeSummary?.parsedAmountIn?.toSignificant(6),
-        amount_in_usd: routeSummary?.amountInUsd ? Number(routeSummary.amountInUsd) : undefined,
-        amount_out: routeSummary?.parsedAmountOut?.toSignificant(6),
-        amount_out_usd: routeSummary?.amountOutUsd ? Number(routeSummary.amountOutUsd) : undefined,
-        rate: routeSummary?.executionPrice
-          ? `1 ${currencyIn?.symbol} = ${routeSummary.executionPrice.toSignificant(6)} ${currencyOut?.symbol}`
-          : undefined,
-        minimum_received: routeSummary?.parsedAmountOut
-          ? minimumAmountAfterSlippage(routeSummary.parsedAmountOut, slippage)?.toSignificant(6)
-          : undefined,
-        price_impact: routeSummary?.priceImpact
-          ? routeSummary.priceImpact > 0.01
-            ? `${routeSummary.priceImpact.toFixed(2)}%`
-            : '<0.01%'
-          : undefined,
-        max_slippage: slippage ? slippage / 100 : 0,
-        trade_route_dexes: getRouteDexes(),
-        chain: networkInfo.name,
-      })
-
-      trackingSwapInit()
-
-      return buildReviewedRoute(signal)
-    })
+    void openReviewSession(buildReviewedRoute)
   }
 
   // Submit only the payload/router built for this review; the displayed quote may already have refreshed.
   const handleSubmit: SubmitReview = onRequestSignature => {
     if (!buildResult?.data?.data || !buildResult.data.routerAddress) throw new Error('Missing built route')
 
-    trackingHandler(TRACKING_EVENT_TYPE.SWAP_CONFIRMED, getSwapConfirmedTracking(buildResult.data, routeSummary))
+    trackingHandler(TRACKING_EVENT_TYPE.SWAP_CONFIRM_CLICKED, {
+      mode: 'same-chain',
+      from_chain_id: chainId,
+      to_chain_id: chainId,
+      from_token: currencyIn?.symbol,
+      to_token: currencyOut?.symbol,
+    })
     return swapCallback(buildResult.data.routerAddress, buildResult.data.data, onRequestSignature)
   }
 
@@ -176,7 +167,7 @@ export const useSingleChainSwapReview = ({
       amount_in_usd: routeSummary?.amountInUsd ? Number(routeSummary.amountInUsd) : undefined,
       error_type: isUserRejected ? 'user_rejected' : 'tx_failed',
       error_message: error,
-      max_slippage: routeSummary?.priceImpact,
+      max_slippage: slippage / 100,
       chain: networkInfo.name,
     })
   }

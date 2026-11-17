@@ -19,6 +19,7 @@ import Modal from 'components/Modal'
 import { HStack, Stack } from 'components/Stack'
 import type { HistoryTransaction } from 'components/SwapTransactions/history'
 import { getKyberCrossDetailQueryOptions } from 'components/SwapTransactions/kyberCrossExecutionQuery'
+import useTracking, { TRACKING_EVENT_TYPE } from 'hooks/useTracking'
 import { ButtonText, CloseIcon } from 'theme'
 
 const getTransactionDetailKey = (tx: HistoryTransaction) => `${tx.sourceChain}:${tx.sourceTxHash.toLowerCase()}`
@@ -29,6 +30,14 @@ const TransactionDetailContext = createContext<
 /** One selection owner for history, search results and processing orders. */
 export const TransactionDetailProvider = ({ children }: { children: ReactNode }) => {
   const queryClient = useQueryClient()
+  const { trackingHandler } = useTracking()
+  const trackStatus = (tx: HistoryTransaction) =>
+    trackingHandler(TRACKING_EVENT_TYPE.SWAP_STATUS_VIEWED, {
+      tx_hash: tx.sourceTxHash,
+      from_chain_id: tx.sourceChain,
+      to_chain_id: tx.targetChain,
+      provider: tx.adapter,
+    })
   const [Detail, setDetail] = useState<ComponentType<{ tx: HistoryTransaction }>>()
   const [selected, setSelected] = useState<HistoryTransaction>()
   const [loadingKey, setLoadingKey] = useState<string>()
@@ -46,6 +55,7 @@ export const TransactionDetailProvider = ({ children }: { children: ReactNode })
       pendingOpenRequest.current = undefined
       setLoadingKey(undefined)
       setSelected(tx)
+      trackStatus(tx)
       return
     }
 
@@ -66,6 +76,7 @@ export const TransactionDetailProvider = ({ children }: { children: ReactNode })
 
     setDetail(() => detailModule.value.default)
     setSelected(tx)
+    trackStatus(tx)
   }
 
   const dismiss = () => {
@@ -135,6 +146,15 @@ export const TransactionDetailButton = ({ tx }: { tx: HistoryTransaction }) => {
 
 export const useTransactionDetailTrigger = (tx: HistoryTransaction): HTMLAttributes<HTMLElement> => {
   const { open, loading } = useOpenTransactionDetail(tx)
+  const { trackingHandler } = useTracking()
+  const selectRow = () => {
+    trackingHandler(TRACKING_EVENT_TYPE.SWAP_HISTORY_ROW_CLICKED, {
+      tx_hash: tx.sourceTxHash,
+      from_chain_id: tx.sourceChain,
+      provider: tx.adapter,
+    })
+    open?.()
+  }
   if (!open) return {}
 
   return {
@@ -145,12 +165,12 @@ export const useTransactionDetailTrigger = (tx: HistoryTransaction): HTMLAttribu
     'aria-busy': loading,
     onClick: event => {
       if ((event.target as HTMLElement).closest('a, button')) return
-      open()
+      selectRow()
     },
     onKeyDown: event => {
       if (event.target !== event.currentTarget || (event.key !== 'Enter' && event.key !== ' ')) return
       event.preventDefault()
-      open()
+      selectRow()
     },
   }
 }

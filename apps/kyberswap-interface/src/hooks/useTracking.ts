@@ -1,4 +1,4 @@
-import { Currency, CurrencyAmount } from '@kyberswap/ks-sdk-core'
+import { Currency } from '@kyberswap/ks-sdk-core'
 import mixpanel, { crossChainMixpanel } from 'libs/mixpanel'
 import { useCallback, useEffect } from 'react'
 import { usePrevious } from 'react-use'
@@ -12,24 +12,20 @@ import { sanitizeFormoPayload } from 'hooks/sanitizeFormoPayload'
 import { Field } from 'state/swap/actions'
 import { useInputCurrency, useOutputCurrency } from 'state/swap/hooks'
 import { TRANSACTION_TYPE } from 'state/transactions/type'
-import { useUserSlippageTolerance } from 'state/user/hooks'
 import { formatUnits, isAddress } from 'utils/viem'
 
 export enum TRACKING_EVENT_TYPE {
   WALLET_CONNECT_CLICK,
   WALLET_CONNECT_ACCEPT_TERM_CLICK,
   WALLET_CONNECT_WALLET_CLICK,
-  SWAP_INITIATED,
-  SWAP_CONFIRMED,
-  SWAP_COMPLETED,
-  SWAP_SETTINGS_CLICK,
+  SWAP_SETTINGS_OPENED,
   SWAP_TUTORIAL_CLICK,
   SWAP_TOKEN_INFO_CLICK,
   SWAP_MORE_INFO_CLICK,
   SWAP_DISPLAY_SETTING_CLICK,
   DEGEN_MODE_TOGGLE,
   ADD_RECIPIENT_CLICKED,
-  SLIPPAGE_CHANGED,
+  SWAP_SLIPPAGE_CHANGED,
   LIVE_CHART_ON_OFF,
   TRADING_ROUTE_ON_OFF,
   LIVE_CHART_ON_MOBILE,
@@ -261,8 +257,8 @@ export enum TRACKING_EVENT_TYPE {
   EARN_BANNER_POOL_CLICK,
 
   // Swap flow custom events
-  SWAP_ROUTE_VIEWED,
-  SWAP_REVIEW_OPENED,
+  ROUTE_CHART_EXPANDED,
+  SWAP_REVIEW_SHOWN,
   TOKEN_APPROVAL_INITIATED,
   TOKEN_APPROVAL_COMPLETED,
   TOKEN_APPROVAL_FAILED,
@@ -286,40 +282,13 @@ export enum TRACKING_EVENT_TYPE {
 
   // Swap settings interactions
   TRANSACTION_TIME_LIMIT_CHANGED,
-  LIQUIDITY_SOURCES_TOGGLED,
+  SWAP_ROUTING_SOURCE_TOGGLED,
 
-  // Cross-chain execution flow
-  CC_ROUTE_VIEWED,
-  CC_ROUTES_OPENED,
-  CC_ROUTES_SELECTED,
-  CC_REVIEW_OPENED,
-  CC_SWAP_INITIATED,
-  CC_SWAP_COMPLETED,
-  CC_SWAP_FAILED,
-
-  // Cross-chain form interactions
-  CC_TAB_SELECTED,
-  CC_SOURCE_CHAIN_SELECTED,
-  CC_DESTINATION_CHAIN_SELECTED,
-  CC_RECIPIENT_ADDRESS_ENTERED,
-  CC_WALLET_SELECTED,
-
-  // Cross-chain settings interactions
-  CC_SETTINGS_OPENED,
-  CC_SLIPPAGE_CHANGED,
-  CC_ROUTING_SOURCE_TOGGLED,
-  CC_SETTINGS_SAVED,
-  CC_SEND_TO_ANOTHER_WALLET_CLICKED,
-  CC_ANOTHER_WALLET_PASTED,
-  CC_SETTINGS_SEND_TO_ANOTHER_WALLET_CLICKED,
-  CC_SETTINGS_ANOTHER_WALLET_PASTED,
-  CC_HISTORY_VIEWED,
-  CC_GAS_DROP_SELECTED,
-  CC_GAS_DROP_UNSELECTED,
-
-  // Swap settings interactions
-  SWAP_SETTINGS_SEND_TO_ANOTHER_WALLET_CLICKED,
-  SWAP_SETTINGS_ANOTHER_WALLET_PASTED,
+  // Swap execution flow
+  SWAP_ROUTE_OPENED,
+  ROUTE_OPTION_SELECTED,
+  SWAP_SUBMITTED,
+  SWAP_SETTLED,
 
   // Earn: Add Liquidity
   LIQ_POOL_SELECTED,
@@ -409,6 +378,22 @@ export enum TRACKING_EVENT_TYPE {
   NOTIFICATION_CENTER_OPENED,
   LANGUAGE_CHANGED,
 
+  // Unified swap lifecycle; emitted by the owner of each committed transition.
+  SWAP_PAIR_APPLIED,
+  SWAP_PAIR_CHAIN_CHANGED,
+  SWAP_HEADER_NETWORK_CHANGED,
+  SWAP_SETTINGS_CLOSED,
+  SWAP_GAS_DROP_CHANGED,
+  SWAP_GAS_DROP_SWITCH,
+  SWAP_CONFIRM_CLICKED,
+  SWAP_RECIPIENT_OPENED,
+  SWAP_RECIPIENT_APPLIED,
+  SWAP_WALLET_CONNECTION_OPENED,
+  SWAP_WALLET_CONNECTION_RESULT,
+  SWAP_HISTORY_OPENED,
+  SWAP_HISTORY_ROW_CLICKED,
+  SWAP_STATUS_VIEWED,
+
   // Tip Link Generator
   TIP_LINK_GENERATE_LINK_CLICK,
   TIP_LINK_TRADE,
@@ -469,11 +454,14 @@ export default function useTracking(currencies?: { [field in Field]?: Currency }
   const inputSymbol = inputCurrency && inputCurrency.isNative ? networkInfo.nativeToken.symbol : inputCurrency?.symbol
   const outputSymbol =
     outputCurrency && outputCurrency.isNative ? networkInfo.nativeToken.symbol : outputCurrency?.symbol
-  const [allowedSlippage] = useUserSlippageTolerance()
 
   const formoTrack = useCallback(
     (eventName: string, properties?: Record<string, any>) => {
-      analytics?.track(eventName, sanitizeFormoPayload(properties))
+      try {
+        analytics?.track(eventName, sanitizeFormoPayload(properties))
+      } catch {
+        // Analytics is best effort and must not interrupt wallet or transaction state transitions.
+      }
     },
     [analytics],
   )
@@ -549,124 +537,11 @@ export default function useTracking(currencies?: { [field in Field]?: Currency }
         case TRACKING_EVENT_TYPE.REMOVE_FAVORITE_CHAIN:
           formoTrack('Favourite Chain - Remove chain from favourite list success', payload)
           break
-        case TRACKING_EVENT_TYPE.SWAP_INITIATED: {
-          const {
-            gasUsd,
-            inputAmount,
-            priceImpact,
-            feeInfo,
-            from_token_address,
-            to_token_address,
-            pair,
-            amount_in_usd,
-            amount_out_estimated,
-            amount_out_usd,
-            minimum_received,
-            rate,
-            transaction_time_limit,
-            gas_token,
-            trade_route_dexes,
-            trade_route_steps,
-            route_split,
-            chain,
-          } = (payload || {}) as {
-            gasUsd: number | string | undefined
-            inputAmount: CurrencyAmount<Currency> | undefined
-            priceImpact: number | undefined
-            feeInfo?: FeeInfo
-            from_token_address?: string
-            to_token_address?: string
-            pair?: string
-            amount_in_usd?: string
-            amount_out_estimated?: string
-            amount_out_usd?: string
-            minimum_received?: string
-            rate?: string
-            transaction_time_limit?: number
-            gas_token?: string
-            trade_route_dexes?: string[]
-            trade_route_steps?: number
-            route_split?: boolean
-            chain?: string
+        case TRACKING_EVENT_TYPE.SWAP_SETTLED: {
+          if (!payload.arbitrary) {
+            formoTrack('Swap Settled', payload)
+            break
           }
-
-          const body: Record<string, any> = {
-            input_token: inputSymbol,
-            output_token: outputSymbol,
-            from_token_address,
-            to_token_address,
-            pair,
-            estimated_gas: gasUsd ? Number(gasUsd).toFixed(4) : undefined,
-            trade_qty: inputAmount?.toExact(),
-            amount_in_usd,
-            amount_out_estimated,
-            amount_out_usd,
-            minimum_received,
-            rate,
-            slippage_setting: allowedSlippage ? allowedSlippage / 100 : 0,
-            price_impact: priceImpact && priceImpact > 0.01 ? priceImpact.toFixed(2) : '<0.01',
-            transaction_time_limit,
-            gas_token,
-            trade_route_dexes,
-            trade_route_steps,
-            route_split,
-            chain,
-          }
-
-          if (feeInfo) {
-            if (feeInfo.chargeTokenIn) {
-              body.charged_token_type = 'input'
-            } else {
-              body.charged_token_type = 'output'
-            }
-
-            body.charged_token_symbol = feeInfo.tokenSymbol
-            body.amount_fee_usd = feeInfo.feeUsd
-            body.amount_fee_token = feeInfo.feeAmount
-          }
-
-          formoTrack('Swap Initiated', body)
-          break
-        }
-        case TRACKING_EVENT_TYPE.SWAP_CONFIRMED: {
-          const { gasUsd, inputAmount, priceImpact, outputAmountDescription, currentPrice, feeInfo } = (payload ||
-            {}) as {
-            gasUsd: string | undefined
-            inputAmount: CurrencyAmount<Currency> | undefined
-            priceImpact: number | undefined
-            outputAmountDescription: string | undefined
-            currentPrice: string | undefined
-            feeInfo?: FeeInfo
-          }
-
-          const body: Record<string, any> = {
-            input_token: inputSymbol,
-            output_token: outputSymbol,
-            estimated_gas: gasUsd,
-            trade_qty: inputAmount?.toExact(),
-            slippage_setting: allowedSlippage ? allowedSlippage / 100 : 0,
-            price_impact: priceImpact && priceImpact > 0.01 ? priceImpact.toFixed(2) : '<0.01',
-            initial_output_amt_type: outputAmountDescription,
-            current_price: currentPrice, // price in swap confirmation step
-          }
-
-          if (feeInfo) {
-            if (feeInfo.chargeTokenIn) {
-              body.charged_token_type = 'input'
-            } else {
-              body.charged_token_type = 'output'
-            }
-
-            body.charged_token_symbol = feeInfo.tokenSymbol
-            body.amount_fee_usd = feeInfo.feeUsd
-            body.amount_fee_token = feeInfo.feeAmount
-          }
-
-          formoTrack('Swap Confirmed', body)
-
-          break
-        }
-        case TRACKING_EVENT_TYPE.SWAP_COMPLETED: {
           const { arbitrary, actual_gas, gas_price, tx_hash } = payload
           const feeInfo = payload.feeInfo as FeeInfo
           const formattedGas = gas_price ? formatUnits(gas_price as bigint, networkInfo.nativeToken.decimal) : '0'
@@ -706,10 +581,16 @@ export default function useTracking(currencies?: { [field in Field]?: Currency }
             body.amount_fee_token = feeInfo.feeAmount
           }
 
-          formoTrack('Swap Completed', body)
+          formoTrack('Swap Settled', {
+            ...body,
+            mode: 'same-chain',
+            outcome: payload.outcome,
+            from_chain_id: payload.chain_id,
+            to_chain_id: payload.chain_id,
+          })
           break
         }
-        case TRACKING_EVENT_TYPE.SWAP_SETTINGS_CLICK: {
+        case TRACKING_EVENT_TYPE.SWAP_SETTINGS_OPENED: {
           formoTrack('Swap Settings Opened', payload)
           break
         }
@@ -744,9 +625,10 @@ export default function useTracking(currencies?: { [field in Field]?: Currency }
           })
           break
         }
-        case TRACKING_EVENT_TYPE.SLIPPAGE_CHANGED: {
+        case TRACKING_EVENT_TYPE.SWAP_SLIPPAGE_CHANGED: {
           const { new_slippage, previous_value, input_method } = payload
-          formoTrack('Max Slippage Changed', {
+          formoTrack('Swap Slippage Changed', {
+            ...payload,
             input_token: inputSymbol,
             output_token: outputSymbol,
             previous_value,
@@ -1686,13 +1568,74 @@ export default function useTracking(currencies?: { [field in Field]?: Currency }
           break
         }
 
-        // Swap flow custom events
-        case TRACKING_EVENT_TYPE.SWAP_ROUTE_VIEWED: {
-          formoTrack('Swap Route Viewed', payload)
+        case TRACKING_EVENT_TYPE.SWAP_PAIR_APPLIED: {
+          formoTrack('Swap Pair Applied', payload)
           break
         }
-        case TRACKING_EVENT_TYPE.SWAP_REVIEW_OPENED: {
-          formoTrack('Swap Review Opened', payload)
+        case TRACKING_EVENT_TYPE.SWAP_PAIR_CHAIN_CHANGED: {
+          formoTrack('Swap Pair Chain Changed', payload)
+          break
+        }
+        case TRACKING_EVENT_TYPE.SWAP_HEADER_NETWORK_CHANGED: {
+          formoTrack('Swap Header Network Changed', payload)
+          break
+        }
+        case TRACKING_EVENT_TYPE.SWAP_SETTINGS_CLOSED: {
+          formoTrack('Swap Settings Closed', payload)
+          break
+        }
+        case TRACKING_EVENT_TYPE.SWAP_GAS_DROP_CHANGED: {
+          formoTrack('Swap Gas Drop Changed', payload)
+          break
+        }
+        case TRACKING_EVENT_TYPE.SWAP_GAS_DROP_SWITCH: {
+          formoTrack('Swap Gas Drop Switch', payload)
+          break
+        }
+        case TRACKING_EVENT_TYPE.SWAP_CONFIRM_CLICKED: {
+          formoTrack('Swap Confirm Clicked', payload)
+          break
+        }
+        case TRACKING_EVENT_TYPE.SWAP_SUBMITTED: {
+          formoTrack('Swap Submitted', payload)
+          break
+        }
+        case TRACKING_EVENT_TYPE.SWAP_RECIPIENT_OPENED: {
+          formoTrack('Swap Recipient Opened', payload)
+          break
+        }
+        case TRACKING_EVENT_TYPE.SWAP_RECIPIENT_APPLIED: {
+          formoTrack('Swap Recipient Applied', payload)
+          break
+        }
+        case TRACKING_EVENT_TYPE.SWAP_WALLET_CONNECTION_OPENED: {
+          formoTrack('Swap Wallet Connection Opened', payload)
+          break
+        }
+        case TRACKING_EVENT_TYPE.SWAP_WALLET_CONNECTION_RESULT: {
+          formoTrack('Swap Wallet Connection Result', payload)
+          break
+        }
+        case TRACKING_EVENT_TYPE.SWAP_HISTORY_OPENED: {
+          formoTrack('Swap History Opened', payload)
+          break
+        }
+        case TRACKING_EVENT_TYPE.SWAP_HISTORY_ROW_CLICKED: {
+          formoTrack('history_row_clicked', payload)
+          break
+        }
+        case TRACKING_EVENT_TYPE.SWAP_STATUS_VIEWED: {
+          formoTrack('Swap Status Viewed', payload)
+          break
+        }
+
+        // Swap flow custom events
+        case TRACKING_EVENT_TYPE.ROUTE_CHART_EXPANDED: {
+          formoTrack('route_chart_expanded', payload)
+          break
+        }
+        case TRACKING_EVENT_TYPE.SWAP_REVIEW_SHOWN: {
+          formoTrack('Swap Review Shown', payload)
           break
         }
         case TRACKING_EVENT_TYPE.TOKEN_APPROVAL_INITIATED: {
@@ -1739,114 +1682,18 @@ export default function useTracking(currencies?: { [field in Field]?: Currency }
           formoTrack('Transaction Time Limit Changed', payload)
           break
         }
-        case TRACKING_EVENT_TYPE.LIQUIDITY_SOURCES_TOGGLED: {
-          formoTrack('Liquidity Sources Toggled', payload)
+        case TRACKING_EVENT_TYPE.SWAP_ROUTING_SOURCE_TOGGLED: {
+          formoTrack('Swap Routing Source Toggled', payload)
           break
         }
 
-        // Cross-chain execution flow events
-        case TRACKING_EVENT_TYPE.CC_ROUTE_VIEWED: {
-          formoTrack('Cross Chain Swap - Routes selected', payload)
+        // Swap route events
+        case TRACKING_EVENT_TYPE.SWAP_ROUTE_OPENED: {
+          formoTrack('Swap Route Opened', payload)
           break
         }
-        case TRACKING_EVENT_TYPE.CC_ROUTES_OPENED: {
-          formoTrack('Cross Chain Swap - Routes opened', payload)
-          break
-        }
-        case TRACKING_EVENT_TYPE.CC_ROUTES_SELECTED: {
-          formoTrack('Cross Chain Swap - Routes selected', payload)
-          break
-        }
-        case TRACKING_EVENT_TYPE.CC_REVIEW_OPENED: {
-          formoTrack('Cross-Chain Review Opened', payload)
-          break
-        }
-        case TRACKING_EVENT_TYPE.CC_SWAP_INITIATED: {
-          formoTrack('Cross-Chain Swap Initiated', payload)
-          break
-        }
-        case TRACKING_EVENT_TYPE.CC_SWAP_COMPLETED: {
-          formoTrack('Cross-Chain Swap Completed', payload)
-          break
-        }
-        case TRACKING_EVENT_TYPE.CC_SWAP_FAILED: {
-          formoTrack('Cross-Chain Swap Failed', payload)
-          break
-        }
-
-        // Cross-chain form interaction events
-        case TRACKING_EVENT_TYPE.CC_TAB_SELECTED: {
-          formoTrack('Cross-Chain Tab Selected', payload)
-          break
-        }
-        case TRACKING_EVENT_TYPE.CC_SOURCE_CHAIN_SELECTED: {
-          formoTrack('Cross-Chain Source Chain Selected', payload)
-          break
-        }
-        case TRACKING_EVENT_TYPE.CC_DESTINATION_CHAIN_SELECTED: {
-          formoTrack('Cross-Chain Destination Chain Selected', payload)
-          break
-        }
-        case TRACKING_EVENT_TYPE.CC_RECIPIENT_ADDRESS_ENTERED: {
-          formoTrack('Cross-Chain Recipient Address Entered', payload)
-          break
-        }
-        case TRACKING_EVENT_TYPE.CC_WALLET_SELECTED: {
-          formoTrack('Cross-Chain Wallet Selected', payload)
-          break
-        }
-
-        // Cross-chain settings interaction events
-        case TRACKING_EVENT_TYPE.CC_SETTINGS_OPENED: {
-          formoTrack('Cross-Chain Settings Opened', payload)
-          break
-        }
-        case TRACKING_EVENT_TYPE.CC_SLIPPAGE_CHANGED: {
-          formoTrack('Cross Chain Swap - Slippage changed', payload)
-          break
-        }
-        case TRACKING_EVENT_TYPE.CC_ROUTING_SOURCE_TOGGLED: {
-          formoTrack('Cross-Chain Routing Source Toggled', payload)
-          break
-        }
-        case TRACKING_EVENT_TYPE.CC_SETTINGS_SAVED: {
-          formoTrack('Cross-Chain Settings Saved', payload)
-          break
-        }
-        case TRACKING_EVENT_TYPE.CC_SEND_TO_ANOTHER_WALLET_CLICKED: {
-          formoTrack('Cross Chain Swap - Send to another wallet clicked', payload)
-          break
-        }
-        case TRACKING_EVENT_TYPE.CC_ANOTHER_WALLET_PASTED: {
-          formoTrack('Cross Chain Swap - Another wallet pasted', payload)
-          break
-        }
-        case TRACKING_EVENT_TYPE.CC_SETTINGS_SEND_TO_ANOTHER_WALLET_CLICKED: {
-          formoTrack('Cross Chain Swap settings - Send to another wallet clicked', payload)
-          break
-        }
-        case TRACKING_EVENT_TYPE.CC_SETTINGS_ANOTHER_WALLET_PASTED: {
-          formoTrack('Cross Chain Swap settings - Another wallet pasted', payload)
-          break
-        }
-        case TRACKING_EVENT_TYPE.CC_HISTORY_VIEWED: {
-          formoTrack('Cross Chain Swap - History Viewed', payload)
-          break
-        }
-        case TRACKING_EVENT_TYPE.CC_GAS_DROP_SELECTED: {
-          formoTrack('Cross Chain Swap - Gas drop selected', payload)
-          break
-        }
-        case TRACKING_EVENT_TYPE.CC_GAS_DROP_UNSELECTED: {
-          formoTrack('Cross Chain Swap - Gas drop unselected', payload)
-          break
-        }
-        case TRACKING_EVENT_TYPE.SWAP_SETTINGS_SEND_TO_ANOTHER_WALLET_CLICKED: {
-          formoTrack('Swap settings - Send to another wallet clicked', payload)
-          break
-        }
-        case TRACKING_EVENT_TYPE.SWAP_SETTINGS_ANOTHER_WALLET_PASTED: {
-          formoTrack('Swap settings - Another wallet pasted', payload)
+        case TRACKING_EVENT_TYPE.ROUTE_OPTION_SELECTED: {
+          formoTrack('route_option_selected', payload)
           break
         }
 
