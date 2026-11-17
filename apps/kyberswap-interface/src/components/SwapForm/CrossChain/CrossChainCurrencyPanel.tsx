@@ -25,6 +25,7 @@ import { Chain, Currency, NonEvmChain, NonEvmChainInfo, NonEvmCurrency } from 't
 import { formatDisplayNumber } from 'utils/numbers'
 
 type Props = {
+  sourceChain?: Chain
   selectorChain?: Chain
   priorityChainIds?: Chain[]
   chain: NonEvmChain
@@ -45,6 +46,7 @@ export const CrossChainCurrencyPanel = ({
   chain,
   selectorChain,
   priorityChainIds,
+  sourceChain,
   currency,
   value,
   amountUsd,
@@ -181,6 +183,7 @@ export const CrossChainCurrencyPanel = ({
         />
       </div>
       <TokenSelectorModal
+        sourceChain={sourceChain}
         isOpen={open}
         onDismiss={() => setOpen(false)}
         customChainId={typeof selectorChain === 'number' ? selectorChain : undefined}

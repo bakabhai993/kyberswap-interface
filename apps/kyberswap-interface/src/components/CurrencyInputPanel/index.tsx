@@ -93,6 +93,7 @@ interface CurrencyInputPanelProps
   onCurrencySelect?: (currency: Currency) => void
   otherCurrency?: Currency | null
   showPinnedTokens?: boolean
+  sourceChain?: Chain
   selectorChain?: Chain
   priorityChainIds?: Chain[]
   customChainId?: ChainId
@@ -226,6 +227,7 @@ const CurrencyInputPanel = (props: CurrencyInputPanelProps) => {
     otherCurrency,
     scaleERC8056Balances,
     showPinnedTokens,
+    sourceChain,
     selectorChain,
     priorityChainIds,
     trackingSource,
@@ -259,6 +261,7 @@ const CurrencyInputPanel = (props: CurrencyInputPanelProps) => {
     >
       {!disableCurrencySelect && !isSwitchMode && onCurrencySelect && (
         <TokenSelectorModal
+          sourceChain={sourceChain}
           isOpen={modalOpen}
           onDismiss={handleDismissSearch}
           onCurrencySelect={onCurrencySelect}

@@ -29,6 +29,7 @@ type Props = {
   onChangeCurrencyOut: (c: Currency) => void
   chainSelectionMode?: 'wallet' | 'form'
   onSelectNonEvmCurrency?: (chain: NonEvmChain, currency: NonEvmCurrency) => void
+  sourceChain?: Chain
   selectorChain?: Chain
   priorityChainIds?: Chain[]
   customChainId?: ChainId
@@ -53,6 +54,7 @@ const OutputCurrencyPanel = ({
   customChainId,
   selectorChain,
   priorityChainIds,
+  sourceChain,
   chainSelectionMode,
   onSelectNonEvmCurrency,
   routeLoading,
@@ -89,6 +91,7 @@ const OutputCurrencyPanel = ({
         </div>
       )}
       <CurrencyInputPanel
+        sourceChain={sourceChain}
         footer={footer}
         balanceActionsEnabled={balanceActionsEnabled}
         disabledInput

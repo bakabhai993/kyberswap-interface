@@ -12,6 +12,7 @@ import { ChainTokens } from 'components/TokenSelectorModal/AllNetworks/ChainToke
 import { useAggregateTokens } from 'components/TokenSelectorModal/AllNetworks/useAggregateTokens'
 import { ChainSelector } from 'components/TokenSelectorModal/NetworkSelector/ChainSelector'
 import { NetworkSidebar } from 'components/TokenSelectorModal/NetworkSelector/NetworkSidebar'
+import { useCrossChainDestinations } from 'components/TokenSelectorModal/NetworkSelector/networkOptions'
 import { OtherChainTokens } from 'components/TokenSelectorModal/TokenList/OtherChainTokens'
 import { PinnedTokens } from 'components/TokenSelectorModal/TokenList/PinnedTokens'
 import TokenList from 'components/TokenSelectorModal/TokenList/TokenList'
@@ -36,7 +37,7 @@ import {
   TokenSelectorNetwork,
   tokenRowKey,
 } from 'components/TokenSelectorModal/types'
-import { isSupportStopMarket } from 'constants/networks'
+import { NETWORKS_INFO, isSupportStopMarket } from 'constants/networks'
 import { Z_INDEXS } from 'constants/styles'
 import { NativeCurrencies } from 'constants/tokens'
 import { CloseIcon } from 'theme'
@@ -128,6 +129,7 @@ const EmptyTokenMessage = ({ activeTab }: { activeTab: TokenSelectorTab }) => {
 type Props = {
   requireOracle?: boolean
   chainSelectionMode?: 'wallet' | 'form'
+  sourceChain?: Chain
   initialNonEvmChain?: NonEvmChain
   selectedNonEvmCurrency?: NonEvmCurrency
   onSelectNonEvmCurrency?: (chain: NonEvmChain, currency: NonEvmCurrency) => void
@@ -154,6 +156,7 @@ export const TokenSelectorContent = ({
   chainSelectionMode,
   onSelectNonEvmCurrency,
   initialNonEvmChain,
+  sourceChain,
   selectedNonEvmCurrency,
   anchorChainId,
   priorityChainIds,
@@ -172,6 +175,14 @@ export const TokenSelectorContent = ({
   onDismiss,
   onShowTokenInfo,
 }: Props) => {
+  const supportedDestinations = useCrossChainDestinations(sourceChain)
+  const sourceChainName =
+    sourceChain === undefined
+      ? undefined
+      : typeof sourceChain === 'number'
+      ? NETWORKS_INFO[sourceChain]?.name
+      : NonEvmChainInfo[sourceChain].name
+  const dimmedChainTooltip = sourceChainName ? t`No routes from ${sourceChainName} yet` : undefined
   const [nonEvmChain, setNonEvmChain] = useState<NonEvmChain | undefined>(initialNonEvmChain)
 
   const view = useTokenSelectorView({ anchorChainId, importChainId, showDiscoveryTabs, networkSortBy, trackingSource })
@@ -202,7 +213,12 @@ export const TokenSelectorContent = ({
     : onSelectNonEvmCurrency
     ? [...rankedChains, ...Object.values(NonEvmChain).map(chainId => ({ chainId, ...NonEvmChainInfo[chainId] }))]
     : rankedChains
-  const networks = networkSortBy === 'priority' ? sortNetworksByPriority(availableNetworks) : availableNetworks
+  const orderedNetworks = networkSortBy === 'priority' ? sortNetworksByPriority(availableNetworks) : availableNetworks
+  const networks = orderedNetworks.map(network => ({
+    ...network,
+    unavailableReason:
+      supportedDestinations && !supportedDestinations.has(network.chainId) ? dimmedChainTooltip : undefined,
+  }))
 
   const aggregateActive = allNetworks && !nonEvmChain
   const aggregate = useAggregateTokens({

@@ -26,6 +26,7 @@ type Props = {
   priorityChainIds?: Chain[]
   /** Form mode delegates chain changes to the caller. Defaults to form with onSelectChain, otherwise wallet. */
   chainSelectionMode?: 'wallet' | 'form'
+  sourceChain?: Chain
   initialNonEvmChain?: NonEvmChain
   selectedNonEvmCurrency?: NonEvmCurrency
   /** Enables non-EVM networks in form mode; commits before onDismiss, without EVM callbacks. */
@@ -72,6 +73,7 @@ const TokenSelectorModal = ({
   chainSelectionMode,
   onSelectNonEvmCurrency,
   initialNonEvmChain,
+  sourceChain,
   selectedNonEvmCurrency,
   onSelectChain,
 }: Props) => {
@@ -145,6 +147,7 @@ const TokenSelectorModal = ({
             selected chain, tab, query and scroll survive those round-trips — unmounting it resets them. */}
         <div className={cn(tokenToShowInfo || importToken ? 'hidden' : 'contents')}>
           <TokenSelectorContent
+            sourceChain={sourceChain}
             requireOracle={requireOracle}
             onDismiss={selection.dismiss}
             onRequestSelect={selection.requestSelection}

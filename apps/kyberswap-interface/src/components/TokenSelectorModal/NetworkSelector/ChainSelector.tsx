@@ -5,8 +5,13 @@ import { ChevronDown, ChevronUp, Globe } from 'react-feather'
 import { ScrollIndicator } from 'components/DropdownMenu/styles'
 import { NetworkIcon } from 'components/TokenSelectorModal/NetworkSelector/NetworkIcon'
 import type { TokenSelectorChain, TokenSelectorNetwork } from 'components/TokenSelectorModal/types'
+import { MouseoverTooltip } from 'components/Tooltip'
+import { Z_INDEXS } from 'constants/styles'
 import { useOnClickOutside } from 'hooks/useOnClickOutside'
+import { useAppSelector } from 'state/hooks'
 import { cn } from 'utils/cn'
+
+import { sortNetworks } from './networkOptions'
 
 type ChainSelectorProps = {
   showAllNetworks?: boolean
@@ -17,6 +22,7 @@ type ChainSelectorProps = {
 
 export const ChainSelector = memo(
   ({ chains, selectedChainId, onChange, showAllNetworks = true }: ChainSelectorProps) => {
+    const pinnedChains = useAppSelector(state => state.user.pinnedTokenSelectorChains)
     const [open, setOpen] = useState(false)
     const ref = useRef<HTMLDivElement>(null)
 
@@ -25,7 +31,10 @@ export const ChainSelector = memo(
     const [canScrollUp, setCanScrollUp] = useState(false)
     const [canScrollDown, setCanScrollDown] = useState(false)
 
-    const options = showAllNetworks ? [{ chainId: 'all' as const, name: t`All Networks`, icon: '' }, ...chains] : chains
+    const sortedChains = sortNetworks(chains, pinnedChains)
+    const options = showAllNetworks
+      ? [{ chainId: 'all' as const, name: t`All Networks`, icon: '', unavailableReason: undefined }, ...sortedChains]
+      : sortedChains
     const selectedChain = options.find(chain => chain.chainId === selectedChainId)
 
     const select = (chainId: TokenSelectorChain) => {
@@ -106,28 +115,37 @@ export const ChainSelector = memo(
                 const selected = chain.chainId === selectedChainId
 
                 return (
-                  <div
+                  <MouseoverTooltip
                     key={chain.chainId}
-                    role="option"
-                    aria-selected={selected}
-                    data-testid={`chain-option-${chain.chainId}`}
-                    tabIndex={0}
-                    onClick={() => select(chain.chainId)}
-                    onKeyDown={(e: KeyboardEvent) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault()
-                        select(chain.chainId)
-                      }
-                    }}
-                    className={cn(
-                      'flex h-9 w-full shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap rounded-xl px-2 text-sm text-text',
-                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
-                      selected ? 'bg-white-04' : 'hover:bg-white-04',
-                    )}
+                    text={chain.unavailableReason}
+                    disableTooltip={!chain.unavailableReason}
+                    placement="left"
+                    style={{ zIndex: Z_INDEXS.MODAL + 1, pointerEvents: 'none' }}
+                    containerStyle={{ flexShrink: 0 }}
                   >
-                    <NetworkIcon chainId={chain.chainId} icon={chain.icon} />
-                    <span className="truncate">{chain.name}</span>
-                  </div>
+                    <div
+                      role="option"
+                      aria-selected={selected}
+                      data-testid={`chain-option-${chain.chainId}`}
+                      tabIndex={0}
+                      onClick={() => select(chain.chainId)}
+                      onKeyDown={(e: KeyboardEvent) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          select(chain.chainId)
+                        }
+                      }}
+                      className={cn(
+                        'flex h-9 w-full shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap rounded-xl px-2 text-sm text-text',
+                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
+                        selected ? 'bg-white-04' : 'hover:bg-white-04',
+                        !!chain.unavailableReason && 'opacity-40',
+                      )}
+                    >
+                      <NetworkIcon chainId={chain.chainId} icon={chain.icon} />
+                      <span className="truncate">{chain.name}</span>
+                    </div>
+                  </MouseoverTooltip>
                 )
               })}
             </div>

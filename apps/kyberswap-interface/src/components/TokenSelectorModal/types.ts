@@ -49,6 +49,6 @@ export type TokenSearchFilters = {
   oracleTokenFilter?: string
 }
 
-export type TokenSelectorNetwork = { chainId: Chain; name: string; icon: string }
+export type TokenSelectorNetwork = { chainId: Chain; name: string; icon: string; unavailableReason?: string }
 export type TokenSelectorChain = Chain | 'all'
 export type NetworkSortBy = 'priority' | 'api'

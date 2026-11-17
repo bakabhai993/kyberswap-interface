@@ -205,6 +205,7 @@ export const UnifiedSwapForm = ({
                 priorityChainIds={[fromChainId, toChainId]}
                 output
                 selectorChain={outputSelectorChain}
+                sourceChain={fromChainId}
                 receiver={receiver}
                 receiverAddress={receiverAddress}
                 loading={loading}
@@ -221,6 +222,7 @@ export const UnifiedSwapForm = ({
             <OutputCurrencyPanel
               priorityChainIds={[fromChainId, toChainId]}
               selectorChain={outputSelectorChain}
+              sourceChain={fromChainId}
               footer={outputFooter}
               label={receiver}
               wrapType={wrapType}
