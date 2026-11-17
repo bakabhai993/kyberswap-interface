@@ -149,6 +149,8 @@ export const computeInventoryDiscoveries = (
   })
 
   Object.values(inventory.rows).forEach(row => {
+    if (row.rawBalance <= 0n) return
+
     if (row.address === ETHER_ADDRESS || known.has(row.address) || row.decimals === undefined) return
     let token: WrappedTokenInfo
     try {

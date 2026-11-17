@@ -1,8 +1,10 @@
 import { createSelector } from '@reduxjs/toolkit'
 
+import { ETHER_ADDRESS } from 'constants/index'
 import type { AppState } from 'state'
 import { type LocalTransaction, transactionIdentity } from 'state/crossChainSwap/model'
-import type { TransactionDetails } from 'state/transactions/type'
+import { TRANSACTION_TYPE, type TransactionDetails } from 'state/transactions/type'
+import { isAddress } from 'utils/address'
 
 export const isTransactionRecent = (tx: Pick<TransactionDetails, 'addedTime'>, now = Date.now()) =>
   now - tx.addedTime < 86_400_000
@@ -42,3 +44,18 @@ export const selectPendingTransactionCount = (
   account: string | undefined,
   chainId: number,
 ) => countPendingTransactions(selectLocalTransactions(state), state.crossChainSwap.transactions, account, chainId)
+
+/** Token balances to refresh after confirmation; approvals only change allowances. */
+export const getTransactionBalanceTokens = (
+  transaction: Pick<TransactionDetails, 'chainId' | 'type' | 'extraInfo'>,
+): string[] => {
+  if (transaction.type === TRANSACTION_TYPE.APPROVE) return []
+
+  const info = transaction.extraInfo as
+    | { tokenAddress?: string; tokenAddressIn?: string; tokenAddressOut?: string }
+    | undefined
+  return [info?.tokenAddress, info?.tokenAddressIn, info?.tokenAddressOut].flatMap(address => {
+    const checksummed = address ? isAddress(transaction.chainId, address) : false
+    return checksummed && checksummed !== ETHER_ADDRESS ? [checksummed] : []
+  })
+}

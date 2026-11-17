@@ -1,8 +1,9 @@
 import type { BackendTransaction } from 'services/crossChainTransactions'
 import { expect, it } from 'vitest'
 
+import { ETHER_ADDRESS } from 'constants/index'
 import type { LocalTransaction } from 'state/crossChainSwap/model'
-import { countPendingTransactions } from 'state/transactions/selectors'
+import { countPendingTransactions, getTransactionBalanceTokens } from 'state/transactions/selectors'
 import { TRANSACTION_GROUP, TRANSACTION_TYPE, type TransactionDetails } from 'state/transactions/type'
 
 const now = Date.now()
@@ -53,4 +54,25 @@ it('stops counting retained settlements and every terminal provider status', () 
   }
   const settlement = { verification: 'verified', status: 'success' } as BackendTransaction
   expect(countPendingTransactions([], [{ ...cross, settlement }], '0xwallet', 1)).toBe(0)
+})
+
+it('does not chase token balance blocks for approvals, but retains balance-changing transactions', () => {
+  const tokenAddress = '0x0000000000000000000000000000000000000001'
+  const transaction = { ...local, extraInfo: { tokenAddress, tokenSymbol: 'TOKEN' } }
+  expect(getTransactionBalanceTokens({ ...transaction, type: TRANSACTION_TYPE.APPROVE })).toEqual([])
+  expect(getTransactionBalanceTokens({ ...transaction, type: TRANSACTION_TYPE.TRANSFER_TOKEN })).toEqual([tokenAddress])
+  expect(
+    getTransactionBalanceTokens({
+      ...local,
+      extraInfo: {
+        tokenAddressIn: tokenAddress,
+        tokenAddressOut: ETHER_ADDRESS,
+        tokenSymbolIn: 'TOKEN',
+        tokenSymbolOut: 'ETH',
+        tokenAmountIn: '1',
+        tokenAmountOut: '1',
+      },
+    }),
+  ).toEqual([tokenAddress])
+  expect(getTransactionBalanceTokens(local)).toEqual([])
 })

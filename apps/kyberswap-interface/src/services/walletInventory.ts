@@ -79,14 +79,17 @@ export const fetchWalletInventory = async ({
   account,
   signal,
   liveAddrs,
+  onPageFetched,
 }: {
   chainId: ChainId
   account: string
   signal?: AbortSignal
   /** Tokens the service should read from the node as it answers; see `walkWalletInventory`. */
   liveAddrs?: readonly string[]
+  onPageFetched?: () => void
 }): Promise<WalletInventoryResult> => {
   if (!KD_API_URL) throw new Error('wallet inventory host is not configured')
+
   const {
     rows: raw,
     complete,
@@ -97,9 +100,11 @@ export const fetchWalletInventory = async ({
     account,
     signal,
     liveAddrs,
+    onPageFetched,
   })
 
   const rows: InventoryRow[] = []
+
   raw.forEach(candidate => {
     if (!rowSchema.safeParse(candidate).success) return
     const row = adaptRow(chainId, candidate)
@@ -107,4 +112,41 @@ export const fetchWalletInventory = async ({
   })
 
   return { rows, complete, blockNumber: indexedBlock }
+}
+
+/** Only read the affected tokens from the node; do not walk the wallet for a live refresh. */
+export const fetchWalletLiveBalances = async (
+  chainId: ChainId,
+  account: string,
+  addresses: readonly string[],
+  signal?: AbortSignal,
+): Promise<InventoryRow[]> => {
+  const controller = new AbortController()
+  const abort = () => controller.abort()
+  const timer = setTimeout(abort, 8_000)
+  signal?.addEventListener('abort', abort, { once: true })
+  if (signal?.aborted) abort()
+
+  try {
+    const params = new URLSearchParams({ limit: '1' })
+    new Set(addresses.map(address => address.toLowerCase())).forEach(address => params.append('liveAddrs', address))
+    const response = await fetch(`${KD_API_URL}/v1/wallets/${chainId}/${account}/balances?${params}`, {
+      signal: controller.signal,
+    })
+    if (!response.ok) throw new Error(`Wallet live balances responded ${response.status}`)
+    const result = await response.json()
+    if (result.code !== 0 || !Array.isArray(result.data?.liveBalances)) {
+      throw new Error('Invalid wallet live balances response')
+    }
+
+    return result.data.liveBalances.flatMap((raw: unknown) => {
+      const parsed = rowSchema.safeParse(raw)
+      if (!parsed.success) return []
+      const row = adaptRow(chainId, parsed.data)
+      return row ? [row] : []
+    })
+  } finally {
+    clearTimeout(timer)
+    signal?.removeEventListener('abort', abort)
+  }
 }

@@ -125,7 +125,14 @@ export const useTokenSelectorData = ({
 
   // Every address the wallet holds; only set while searching, to lead with held matches and badge them.
   const heldAddresses = useMemo(
-    () => (isAllTab && debouncedQuery && inventory.active ? new Set(Object.keys(inventory.rows)) : undefined),
+    () =>
+      isAllTab && debouncedQuery && inventory.active
+        ? new Set(
+            Object.values(inventory.rows)
+              .filter(row => row.rawBalance > 0n)
+              .map(row => row.address),
+          )
+        : undefined,
     [isAllTab, debouncedQuery, inventory],
   )
 
@@ -170,11 +177,12 @@ export const useTokenSelectorData = ({
     [showDiscoveries, balanceTokens, discoveryTokens],
   )
 
-  // Supported pools trust the API; only unsupported single chains read ERC20 balances through RPC.
-  const multicallTokens = inventory.allowRpcFallback ? balanceTokensWithDiscoveries : EMPTY_TOKENS
-  const multicallBalances = useTokenBalances(multicallTokens, primaryChainId)
-  const inventoryBalances = useInventoryTokenBalances(balanceTokensWithDiscoveries, inventory)
-  const balances = inventory.active ? inventoryBalances : multicallBalances
+  const rpcBalances = useTokenBalances(
+    inventory.allowRpcFallback ? balanceTokensWithDiscoveries : EMPTY_TOKENS,
+    primaryChainId,
+  )
+  const indexedBalances = useInventoryTokenBalances(balanceTokensWithDiscoveries, inventory)
+  const balances = inventory.allowRpcFallback ? rpcBalances : indexedBalances
 
   // Bound loading for missing balances; each updated map restarts the wait.
   const waitingForBalances = useBalanceWait(balances, !!account)

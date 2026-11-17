@@ -167,7 +167,9 @@ const fetchPage = async (
     if (!response.ok) throw new Error(`wallet inventory responded ${response.status}`);
     const json = (await Promise.race([response.json(), deadline])) as PageResponse;
     if (json.code !== 0) throw new Error(json.message || 'wallet inventory returned an error code');
-    return { balances: json.data?.balances ?? [], live: json.data?.liveBalances ?? [] };
+    const data = json.data;
+    if (!data || !Array.isArray(data.balances)) throw new Error('Invalid wallet balances response');
+    return { balances: data.balances, live: data.liveBalances ?? [] };
   } finally {
     clearTimeout(timer);
     lifetime?.removeEventListener('abort', onAbort);
@@ -198,12 +200,14 @@ export const walkWalletInventory = async ({
   account,
   signal,
   liveAddrs,
+  onPageFetched,
 }: {
   baseUrl: string;
   chainId: number;
   account: string;
   signal?: AbortSignal;
   liveAddrs?: readonly string[];
+  onPageFetched?: () => void;
 }): Promise<{ rows: InventoryRawRow[]; complete: boolean; indexedBlock: number }> => {
   const byAddress = new Map<string, InventoryRawRow>();
   const merge = (row: InventoryRawRow) => {
@@ -231,6 +235,8 @@ export const walkWalletInventory = async ({
       chainId,
       signal,
     );
+
+    onPageFetched?.();
 
     batch.balances.forEach(row => {
       indexedBlock = Math.max(indexedBlock, row.blockNumber);

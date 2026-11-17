@@ -22,6 +22,7 @@ export const INVENTORY_TTL_MS = 30_000
 export const INVENTORY_CATCHUP_INTERVAL_MS = 5_000
 
 /**
+ * Shared store/widget policy, separate from TokenSelectorModal's fixed 120-second live window.
  * How long after a transaction its tokens are read live and the inventory polled at the catch-up
  * cadence, unless the index reaches the transaction's block first. Shared with the widget store.
  */

@@ -14,13 +14,10 @@ const EMPTY_ROWS: Record<string, InventoryRow> = {}
 export type WalletInventory = {
   /** Checksummed token address → row, for tokens the wallet holds. */
   rows: Record<string, InventoryRow>
-  /**
-   * Whether this answers for the wallet completely: every token it holds is listed, so an address
-   * absent from `rows` is held at zero. There is no half-trusted state — an answer that cannot be
-   * relied on for one token cannot be relied on for the silence about the others either, and a
-   * caller reads its own source instead.
-   */
+  /** Whether fetched rows are usable for balances and discovery. */
   active: boolean
+  /** False means omitted tokens are unknown. Existing complete-inventory consumers omit this flag. */
+  complete?: boolean
 }
 
 // Module constant, not built per call: a caller sees it on every render until a walk lands, and a
@@ -109,9 +106,8 @@ const zeroAmountFor = (token: Token): TokenAmount => {
  * Balances keyed by checksummed token address, shaped exactly like the `useTokenBalances` multicall
  * map so a caller can swap sources without touching its consumers.
  *
- * An active inventory answers for the whole wallet, so a token it does not list is held at zero and
- * is mapped as such — the service omits zero balances rather than reporting them. An inactive one
- * maps nothing at all, leaving the caller's own source to answer.
+ * Only complete inventories synthesize zero for omitted tokens. Partial inventories answer only
+ * for returned rows; omitted balances remain unknown.
  */
 export const buildInventoryBalanceMap = (
   tokens: Token[],
@@ -121,6 +117,8 @@ export const buildInventoryBalanceMap = (
   if (!inventory.active) return map
   tokens.forEach(token => {
     const row = inventory.rows[token.address]
+    if (!row && inventory.complete === false) return
+
     map[token.address] = row ? TokenAmount.fromRawAmount(token, row.rawBalance.toString()) : zeroAmountFor(token)
   })
   return map

@@ -126,7 +126,12 @@ export const readSubscriptions = () => subscriptions
 export const readEntry = (key: string) => entries.get(key)
 export const readMeta = (key: string) => meta.get(key)
 
-type InventoryExpiryListener = (chainId: number, account: string) => void
+type InventoryExpiryListener = (
+  chainId: number,
+  account: string,
+  block: number | undefined,
+  touched: readonly string[],
+) => void
 const expiryListeners = new Set<InventoryExpiryListener>()
 export const subscribeInventoryExpiry = (listener: InventoryExpiryListener) => {
   expiryListeners.add(listener)
@@ -145,7 +150,7 @@ export const expireInventory = (
   awaitingBlock?: number,
   touched: readonly string[] = NO_ADDRESSES,
 ) => {
-  expiryListeners.forEach(listener => listener(chainId, account))
+  expiryListeners.forEach(listener => listener(chainId, account, awaitingBlock, touched))
   // Confirmed transactions arrive from every chain the app serves; only the indexed ones have an
   // inventory to refresh, and writing meta for the rest would accrete dead keys and wake subscribers
   // over data no sweep will ever fetch.

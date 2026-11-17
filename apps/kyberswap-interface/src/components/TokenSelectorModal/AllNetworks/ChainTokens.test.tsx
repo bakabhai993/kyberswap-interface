@@ -22,6 +22,9 @@ const mocks = vi.hoisted(() => ({
   rows: {},
   tokenMetadata: new Map(),
   holdings: {},
+  complete: true,
+  allowRpcFallback: false,
+  rpc: vi.fn((_tokens: Token[], _chainId: number): [Record<string, CurrencyAmount<Token>>, boolean] => [{}, false]),
 }))
 vi.mock('hooks/useTokens', () => ({
   useAllTokensWithLoading: () => ({ tokens: mocks.defaults, isLoading: false }),
@@ -37,15 +40,25 @@ vi.mock('state/user/hooks', () => ({
 vi.mock('state/wallet/WalletBalanceContext', () => ({ useEvmBalanceAccount: () => mocks.account }))
 vi.mock('state/wallet/hooks', () => ({
   useNativeBalance: () => undefined,
-  useTokenBalancesWithLoadingIndicator: () => [{}, false],
+  useTokenBalancesWithLoadingIndicator: mocks.rpc,
 }))
 vi.mock('components/TokenSelectorModal/hooks/useSelectorInventory', () => ({
-  useSelectorInventory: () => ({ active: true, rows: mocks.rows, loading: false }),
+  useSelectorInventory: () => ({
+    active: !mocks.allowRpcFallback,
+    rows: mocks.rows,
+    complete: mocks.complete,
+    allowRpcFallback: mocks.allowRpcFallback,
+    loading: false,
+  }),
 }))
-vi.mock('state/walletInventory/hooks', () => ({
-  useTokenMetadata: () => mocks.tokenMetadata,
-  useInventoryTokenBalances: () => mocks.holdings,
-}))
+vi.mock('state/walletInventory/hooks', async () => {
+  const { buildInventoryBalanceMap } = await import('state/walletInventory/resolve')
+  return {
+    useTokenMetadata: () => mocks.tokenMetadata,
+    useInventoryTokenBalances: (tokens: Token[], inventory: Parameters<typeof buildInventoryBalanceMap>[1]) =>
+      mocks.complete ? mocks.holdings : buildInventoryBalanceMap(tokens, inventory),
+  }
+})
 vi.mock('components/TokenSelectorModal/hooks/useLocalTokenMetrics', () => ({
   useLocalTokenMetrics: () => mocks.metadata,
 }))
@@ -64,6 +77,9 @@ afterEach(async () => {
   mocks.defaults = {}
   mocks.rows = {}
   mocks.holdings = {}
+  mocks.complete = true
+  mocks.allowRpcFallback = false
+  mocks.rpc.mockReturnValue([{}, false])
   vi.clearAllMocks()
 })
 const render = async (
@@ -215,4 +231,44 @@ it('publishes only changed observations without dropping token metadata changes'
   await update()
   expect(onSnapshot).toHaveBeenCalledTimes(calls + 1)
   expect(onSnapshot.mock.lastCall?.[2].currencies[0].permitVersion).toBe('2')
+})
+
+it('publishes partial inventory without reading missing balances through RPC', async () => {
+  const missing = new Token(1, '0x0000000000000000000000000000000000000002', 18, 'MISSING')
+  const zero = new Token(1, '0x0000000000000000000000000000000000000003', 18, 'ZERO')
+  mocks.complete = false
+  mocks.defaults = { [missing.address]: missing, [zero.address]: zero }
+  mocks.rows = {
+    [address]: { address, rawBalance: 10n, decimals: 18, symbol: 'AAA', blockNumber: 1 },
+    [zero.address]: { address: zero.address, rawBalance: 0n, decimals: 18, symbol: 'ZERO', blockNumber: 1 },
+  }
+  // A stale RPC cache must not override known API balances, including known zero.
+  mocks.rpc.mockReturnValue([
+    {
+      [address]: CurrencyAmount.fromRawAmount(token, '99'),
+      [zero.address]: CurrencyAmount.fromRawAmount(zero, '99'),
+      [missing.address]: CurrencyAmount.fromRawAmount(missing, '7'),
+    },
+    false,
+  ])
+  const onSnapshot = vi.fn()
+  await render(TokenSelectorTab.All, onSnapshot)
+  expect(mocks.rpc.mock.lastCall?.[0]).toEqual([])
+  const snapshot = onSnapshot.mock.lastCall?.[2] as ChainSnapshot
+  expect(snapshot.currencies.map(currency => currency.wrapped.address)).toContain(address)
+  expect(snapshot.balances['1-' + address].balance?.quotient.toString()).toBe('10')
+  expect(snapshot.balances['1-' + missing.address].balance).toBeUndefined()
+  expect(snapshot.balances['1-' + zero.address].balance?.quotient.toString()).toBe('0')
+  expect(snapshot.balances['1-' + address].unlisted).toBe(true)
+})
+
+it('uses RPC balances when the first inventory page fails without a cache', async () => {
+  mocks.allowRpcFallback = true
+  mocks.defaults = { [address]: token }
+  mocks.rpc.mockReturnValue([{ [address]: CurrencyAmount.fromRawAmount(token, '7') }, false])
+  const onSnapshot = vi.fn()
+  await render(TokenSelectorTab.All, onSnapshot)
+  expect(mocks.rpc.mock.lastCall?.[0]).toEqual([token])
+  const snapshot = onSnapshot.mock.lastCall?.[2] as ChainSnapshot
+  expect(snapshot.balances['1-' + address].balance?.quotient.toString()).toBe('7')
 })

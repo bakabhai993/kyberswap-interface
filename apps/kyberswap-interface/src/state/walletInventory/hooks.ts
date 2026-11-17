@@ -25,8 +25,7 @@ export type { WalletInventory }
 
 /**
  * Subscribes to the wallet's token inventory on a chain. Every consumer sharing a (chain, account)
- * shares one poll, so the selector, the token list and the wallet popup cost a single request between
- * them.
+ * shares one poll. TokenSelectorModal uses its own independent query pools and live-refresh window.
  *
  * Pass `enabled: false` for surfaces that are mounted but not showing balances (a closed modal), so
  * they register no traffic.

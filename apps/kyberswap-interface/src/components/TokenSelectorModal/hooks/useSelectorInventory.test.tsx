@@ -2,11 +2,12 @@
 import { QueryClient, QueryClientProvider, QueryObserver } from '@tanstack/react-query'
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
+import { SelectorInventoryFirstPageError, fetchSelectorInventory } from 'services/selectorInventory'
 import { afterEach, expect, it, vi } from 'vitest'
 
-import { refreshSelectorInventory } from 'state/walletInventory/updater'
+import { getSelectorInventoryCatchup } from 'state/walletInventory/selectorCatchup'
 
-import { fetchSelectorInventory, useSelectorInventory } from './useSelectorInventory'
+import { useSelectorInventory } from './useSelectorInventory'
 
 const mocks = vi.hoisted(() => ({ account: 'wallet' }))
 vi.mock('constants/env', async importOriginal => ({
@@ -22,8 +23,18 @@ let client: QueryClient
 const page = (amount: string) => ({
   code: 0,
   data: {
-    balances: [{ chainId: 1, tokenAddress: address, rawAmount: amount, decimals: 18, symbol: 'AAA' }],
-    nextCursor: 'ignored',
+    balances: [
+      {
+        chainId: 1,
+        tokenAddress: address,
+        rawAmount: amount,
+        blockNumber: 10,
+        valueUsd: 2,
+        decimals: 18,
+        symbol: 'AAA',
+      },
+    ],
+    nextCursor: null,
   },
 })
 afterEach(async () => {
@@ -34,21 +45,21 @@ afterEach(async () => {
   vi.unstubAllGlobals()
   fetchMock.mockReset()
 })
-it('reads tokenAddress in both pools without following nextCursor', async () => {
+it('reads tokenAddress in both pools', async () => {
   vi.stubGlobal('fetch', fetchMock)
   fetchMock.mockResolvedValueOnce({ ok: true, json: async () => page('0x2a') })
-  expect((await fetchSelectorInventory('wallet', 'uni'))[1][address].rawBalance).toBe(42n)
+  expect((await fetchSelectorInventory('wallet', 'uni')).chains[1][address].rawBalance).toBe(42n)
   fetchMock.mockResolvedValueOnce({
     ok: true,
     json: async () => ({
       code: 0,
       data: {
         balances: [{ tokenAddress: address, rawAmount: '7', blockNumber: 10 }],
-        nextCursor: 'ignored',
+        nextCursor: null,
       },
     }),
   })
-  expect((await fetchSelectorInventory('wallet', 1))[1][address].rawBalance).toBe(7n)
+  expect((await fetchSelectorInventory('wallet', 1)).chains[1][address].rawBalance).toBe(7n)
   expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
     'https://inventory.test/api/v1/wallets/uni/wallet/balances?limit=1000',
     'https://inventory.test/api/v1/wallets/1/wallet/balances?limit=1000',
@@ -83,7 +94,7 @@ it('shares all-chain requests and isolates pools and wallets', async () => {
   await render()
   expect(fetchMock).toHaveBeenCalledTimes(2)
   expect(observations[0].rows[address].rawBalance).toBe(10n)
-  expect(observations[1]).toMatchObject({ active: true, rows: {}, allowRpcFallback: false })
+  expect(observations[1]).toMatchObject({ active: true, rows: {} })
   expect(observations[2].rows[address].rawBalance).toBe(20n)
   mocks.account = 'other'
   await render()
@@ -97,14 +108,15 @@ it('shares all-chain requests and isolates pools and wallets', async () => {
   })
   expect(observations[0].rows[address].rawBalance).toBe(10n)
   expect(observations[2].rows[address].rawBalance).toBe(20n)
+  expect(observations.every(inventory => !inventory.allowRpcFallback)).toBe(true)
   mocks.account = 'no-cache'
   await render()
-  expect(observations.every(inventory => inventory.active && !Object.keys(inventory.rows).length)).toBe(true)
+  expect(observations.every(inventory => !inventory.active && inventory.allowRpcFallback)).toBe(true)
 })
-it.each(['0x', '0', '0x00'])('excludes zero holdings (%s) from discovery and held-address maps', async raw => {
+it.each(['0x', '0', '0x00'])('preserves explicit zero balances (%s) for partial inventory resolution', async raw => {
   vi.stubGlobal('fetch', fetchMock)
   fetchMock.mockResolvedValue({ ok: true, json: async () => page(raw) })
-  expect(await fetchSelectorInventory('wallet', 'uni')).toEqual({})
+  expect((await fetchSelectorInventory('wallet', 'uni')).chains[1][address].rawBalance).toBe(0n)
 })
 
 it.each([
@@ -162,7 +174,7 @@ it.each([false, true])('restarts an in-flight snapshot after confirmation (cache
     .mockResolvedValue('after confirmation')
   const observer = new QueryObserver(client, { queryKey: key, queryFn: fetch })
   const unsubscribe = observer.subscribe(() => {})
-  await refreshSelectorInventory(client, 1, 'WALLET')
+  await getSelectorInventoryCatchup(client).refresh(1, 'WALLET')
   finishOld('before confirmation')
   await Promise.resolve()
   expect(oldSignal?.aborted).toBe(true)
@@ -170,3 +182,174 @@ it.each([false, true])('restarts an in-flight snapshot after confirmation (cache
   expect(client.getQueryData(key)).toBe('after confirmation')
   unsubscribe()
 })
+
+it('walks per-chain pages by block/address and keeps the latest balance, including zero', async () => {
+  vi.stubGlobal('fetch', fetchMock)
+  const row = page('10').data.balances[0]
+  fetchMock.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({ code: 0, data: { balances: Array.from({ length: 1000 }, () => row) } }),
+  })
+  fetchMock.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({ code: 0, data: { balances: [{ ...row, rawAmount: '0', blockNumber: 11 }] } }),
+  })
+  expect((await fetchSelectorInventory('wallet', 1)).chains[1][address].rawBalance).toBe(0n)
+  const url = new URL(fetchMock.mock.calls[1][0])
+  expect(url.searchParams.get('sinceBlockNumber')).toBe('10')
+  expect(url.searchParams.get('lastTokenAddr')).toBe(address)
+  expect(url.searchParams.get('limit')).toBe('1000')
+})
+
+it('keeps the entire final page and uses $0.1 only to stop fetching more pages', async () => {
+  vi.stubGlobal('fetch', fetchMock)
+  const row = page('10').data.balances[0]
+  fetchMock.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      code: 0,
+      data: { balances: Array.from({ length: 1000 }, () => ({ ...row, valueUsd: 0.1 })), nextCursor: 'next+=' },
+    }),
+  })
+  fetchMock.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      code: 0,
+      data: {
+        balances: [
+          { ...row, chainId: 56, valueUsd: 1 },
+          { ...row, chainId: 137, valueUsd: 0.09 },
+          { ...row, chainId: 42161, valueUsd: 0 },
+        ],
+        nextCursor: 'unused',
+      },
+    }),
+  })
+  const result = await fetchSelectorInventory('wallet', 'uni')
+  expect(Object.keys(result.chains)).toEqual(['1', '56', '137', '42161'])
+  expect(result.complete).toBe(false)
+  expect(result.chains[137][address].rawBalance).toBe(10n)
+  expect(result.chains[42161][address].rawBalance).toBe(10n)
+  expect(fetchMock).toHaveBeenCalledTimes(2)
+  expect(new URL(fetchMock.mock.calls[1][0]).searchParams.get('cursor')).toBe('next+=')
+  expect(fetchMock.mock.calls.every(([url]) => new URL(url).searchParams.get('limit') === '1000')).toBe(true)
+})
+
+it('rejects a failed later page and repeated all-chain cursors', async () => {
+  vi.stubGlobal('fetch', fetchMock)
+  const response = { ok: true, json: async () => ({ ...page('10'), data: { ...page('10').data, nextCursor: 'same' } }) }
+  fetchMock.mockResolvedValueOnce(response).mockRejectedValueOnce(new Error('second page failed'))
+  await expect(fetchSelectorInventory('wallet', 'uni')).rejects.toThrow('second page failed')
+  fetchMock.mockResolvedValue(response)
+  await expect(fetchSelectorInventory('wallet', 'uni')).rejects.toThrow('cursor did not advance')
+})
+
+it('retains partial inventory when the per-chain walk reaches its safety cap', async () => {
+  vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
+  vi.stubGlobal('fetch', fetchMock)
+  const row = page('10').data.balances[0]
+  fetchMock.mockResolvedValue({
+    ok: true,
+    json: async () => ({ code: 0, data: { balances: Array.from({ length: 1000 }, () => row) } }),
+  })
+  client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  root = createRoot(document.createElement('div'))
+  let observed: ReturnType<typeof useSelectorInventory> | undefined
+  const Probe = () => {
+    observed = useSelectorInventory(1)
+    return null
+  }
+  await act(async () => {
+    root.render(
+      <QueryClientProvider client={client}>
+        <Probe />
+      </QueryClientProvider>,
+    )
+  })
+  await act(async () => {
+    await new Promise(resolve => setTimeout(resolve, 30))
+  })
+  expect(fetchMock).toHaveBeenCalledTimes(10)
+  expect(observed).toMatchObject({ active: true, complete: false, allowRpcFallback: false })
+})
+
+it('keeps partial all-chain rows active and treats an exhausted last page as complete', async () => {
+  vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
+  vi.stubGlobal('fetch', fetchMock)
+  const data = {
+    ...page('10').data,
+    balances: [{ ...page('10').data.balances[0], valueUsd: 0.09 }],
+    nextCursor: 'more',
+  }
+  fetchMock.mockResolvedValue({ ok: true, json: async () => ({ code: 0, data }) })
+  client = new QueryClient()
+  root = createRoot(document.createElement('div'))
+  let observed: ReturnType<typeof useSelectorInventory> | undefined
+  const Probe = () => {
+    observed = useSelectorInventory(1, true, true)
+    return null
+  }
+  await act(async () => {
+    root.render(
+      <QueryClientProvider client={client}>
+        <Probe />
+      </QueryClientProvider>,
+    )
+  })
+  await act(async () => {
+    await new Promise(resolve => setTimeout(resolve, 30))
+  })
+  expect(observed).toMatchObject({ active: true, complete: false, allowRpcFallback: false })
+  expect(observed?.rows[address].rawBalance).toBe(10n)
+  fetchMock.mockResolvedValue({ ok: true, json: async () => ({ code: 0, data: { ...data, nextCursor: null } }) })
+  expect((await fetchSelectorInventory('wallet', 'uni')).complete).toBe(true)
+})
+
+it.each([1, 'uni'] as const)('distinguishes first-page failures from later failures in pool %s', async pool => {
+  vi.stubGlobal('fetch', fetchMock)
+  fetchMock.mockRejectedValueOnce(new Error('offline'))
+  await expect(fetchSelectorInventory('wallet', pool)).rejects.toBeInstanceOf(SelectorInventoryFirstPageError)
+  const firstPage = {
+    code: 0,
+    data: { balances: Array.from({ length: 1000 }, () => page('10').data.balances[0]), nextCursor: 'next' },
+  }
+  fetchMock
+    .mockResolvedValueOnce({ ok: true, json: async () => firstPage })
+    .mockRejectedValueOnce(new Error('later page'))
+  const error = await fetchSelectorInventory('wallet', pool).catch(error => error)
+  expect(error).toBeInstanceOf(Error)
+  expect(error).not.toBeInstanceOf(SelectorInventoryFirstPageError)
+})
+
+it.each([false, true])('caps all-chain fetching at ten pages (exhausted: %s)', async exhausted => {
+  vi.stubGlobal('fetch', fetchMock)
+  for (let index = 0; index < 10; index++) {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        code: 0,
+        data: { ...page(String(index + 1)).data, nextCursor: exhausted && index === 9 ? null : String(index + 1) },
+      }),
+    })
+  }
+  const result = await fetchSelectorInventory('wallet', 'uni')
+  expect(fetchMock).toHaveBeenCalledTimes(10)
+  expect(result.complete).toBe(exhausted)
+  expect(result.chains[1][address].rawBalance).toBe(10n)
+})
+
+it.each([undefined, null])(
+  'rejects missing per-chain balances (%s) and retains the cached inventory',
+  async balances => {
+    vi.stubGlobal('fetch', fetchMock)
+    client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const queryKey = ['token-selector-inventory', 'wallet', 1]
+    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => page('10') })
+    const cached = await client.fetchQuery({ queryKey, queryFn: () => fetchSelectorInventory('wallet', 1) })
+    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ code: 0, data: { balances } }) })
+    await expect(
+      client.fetchQuery({ queryKey, queryFn: () => fetchSelectorInventory('wallet', 1) }),
+    ).rejects.toBeInstanceOf(SelectorInventoryFirstPageError)
+    expect(client.getQueryData(queryKey)).toEqual(cached)
+  },
+)

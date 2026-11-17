@@ -91,12 +91,12 @@ const ChainTokensSource = ({ chainId, activeTab, session, catalogTokens, onSnaps
     () => currencies.filter(token => !isTokenNative(token)).map(token => token.wrapped),
     [currencies],
   )
-  const [rpc, rpcLoading] = useTokenBalancesWithLoadingIndicator(
-    account && inventory.allowRpcFallback ? tokens : EMPTY_TOKENS,
+  const [rpcBalances, rpcLoading] = useTokenBalancesWithLoadingIndicator(
+    inventory.allowRpcFallback ? tokens : EMPTY_TOKENS,
     chainId,
   )
-  const indexed = useInventoryTokenBalances(tokens, inventory)
-  const balances = inventory.active ? indexed : rpc
+  const indexedBalances = useInventoryTokenBalances(tokens, inventory)
+  const balances = inventory.allowRpcFallback ? rpcBalances : indexedBalances
   const native = useNativeBalance(chainId)
   const waiting = useBalanceWait(balances, !!account)
   const balanceOf = useCallback(
@@ -112,7 +112,7 @@ const ChainTokensSource = ({ chainId, activeTab, session, catalogTokens, onSnaps
 
   const initialListDone = useRef(false)
   const initialPending =
-    listLoading || (isAll && inventory.loading) || (!!account && !inventory.active && rpcLoading && waiting)
+    listLoading || (isAll && inventory.loading) || (inventory.allowRpcFallback && rpcLoading && waiting)
   if (!initialPending) initialListDone.current = true
 
   const snapshot = useMemo<ChainSnapshot>(() => {
