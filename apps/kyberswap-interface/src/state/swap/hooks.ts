@@ -325,7 +325,7 @@ export const useCurrencyFromUrl = () => {
 
     // Explicit empty sides survive selection and reversal; only a bare route gets the native input.
     if (isUnifiedSwap && matches?.length === 2) {
-      return { fromCurrency, toCurrency: fromCurrency === toCurrency ? '' : toCurrency }
+      return { fromCurrency, toCurrency }
     }
 
     if (!fromCurrency && !toCurrency)
@@ -435,14 +435,16 @@ export const useInputCurrency = () => {
 const isSamePair = (input: Currency | null | undefined, output: Currency | null | undefined) =>
   !!input && !!output && input.equals(output)
 
-/** Reads the URL pair once and resolves both sides with loading status.
- * A resolved same-token pair intentionally clears output rather than selecting a default again. */
+/** Reads the URL pair once and resolves both sides with loading status. */
 export const useSwapCurrencyResolution = () => {
+  const { pathname } = useLocation()
+  const isEmbeddedSwap = pathname.startsWith(APP_PATHS.PARTNER_SWAP) || pathname.startsWith(APP_PATHS.USER_SWAP)
   const pair = useCurrencyFromUrl()
   const { fromCurrency, toCurrency, inputChain, outputChain } = pair
   const input = useCurrencyById(fromCurrency, inputChain)
   const output = useCurrencyById(toCurrency, outputChain)
-  const samePair = isSamePair(input.currency, output.currency)
+  const samePair =
+    !isPathOrChild(pathname, APP_PATHS.SWAP) && !isEmbeddedSwap && isSamePair(input.currency, output.currency)
   return {
     ...pair,
     currencyIn: input.currency,

@@ -103,28 +103,45 @@ it('does not replace a connected wrap action with the wallet restoration fallbac
   expect(mocks.connect).not.toHaveBeenCalled()
 })
 
+it.each([undefined, '100'])('blocks duplicate-token swaps with amount %s', async value => {
+  mocks.account = '0xconnected'
+  const currency = new Token(1, '0x0000000000000000000000000000000000000001', 18)
+  await render({
+    currencyIn: currency,
+    currencyOut: new Token(currency.chainId, currency.address, currency.decimals),
+    parsedAmountFromTypedValue: value ? CurrencyAmount.fromRawAmount(currency, value) : undefined,
+  })
+  const button = container.querySelector('button')
+  expect(button?.textContent).toBe('Select a different pair')
+  expect(button?.disabled).toBe(true)
+  await act(async () => button?.click())
+  expect(mocks.openReview).not.toHaveBeenCalled()
+})
+
 it.each(['success', 'failure'])(
   'blocks Review while replacing a retained quote and handles fetch %s',
   async outcome => {
     mocks.account = '0xconnected'
     const currency = new Token(1, '0x0000000000000000000000000000000000000001', 18)
+    const output = new Token(1, '0x0000000000000000000000000000000000000002', 18)
     const amount = CurrencyAmount.fromRawAmount(currency, '100')
+    const outputAmount = CurrencyAmount.fromRawAmount(output, '100')
     const props: Partial<ComponentProps<typeof SwapActionButton>> = {
       currencyIn: currency,
-      currencyOut: currency,
+      currencyOut: output,
       balanceIn: amount,
-      balanceOut: amount,
+      balanceOut: outputAmount,
       parsedAmountFromTypedValue: amount,
       routeSummary: {
         tokenIn: currency.address,
-        tokenOut: currency.address,
+        tokenOut: output.address,
         amountIn: '100',
         amountOut: '100',
         amountInUsd: '1',
         amountOutUsd: '1',
         parsedAmountIn: amount,
-        parsedAmountOut: amount,
-        executionPrice: new Price(currency, currency, '100', '100'),
+        parsedAmountOut: outputAmount,
+        executionPrice: new Price(currency, output, '100', '100'),
         priceImpact: 0,
         gas: '21000',
         gasUsd: '0.01',

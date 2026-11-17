@@ -61,7 +61,7 @@ export const useSwapFormPair = () => {
 
   const currencyIn = matches(selected.currencyIn, fromCurrency, inputChain) ? selected.currencyIn : resolvedInput
   const selectedOutput = matches(selected.currencyOut, toCurrency, outputChain) ? selected.currencyOut : resolvedOutput
-  const currencyOut = currencyIn && selectedOutput?.equals(currencyIn) ? undefined : selectedOutput
+  const currencyOut = selectedOutput
 
   // Resolve path-backed EVM tokens before writing query parameters; preserve non-EVM IDs verbatim.
   const inputId =
@@ -125,33 +125,27 @@ export const useSwapFormPair = () => {
     }
 
     const id = getSelectedTokenId(currency)
-    const oppositeChain = field === Field.INPUT ? outputChain : inputChain
-    const oppositeId = field === Field.INPUT ? outputId : inputId
-    const sameToken =
-      chain === oppositeChain &&
-      (typeof chain === 'number' ? id.toLowerCase() === oppositeId.toLowerCase() : id === oppositeId)
     const evmCurrency = 'isNative' in currency ? currency : undefined
 
-    // Selecting the opposite token swaps the existing sides instead of creating a duplicate pair.
     if (field === Field.INPUT) {
       commitPair(
         {
           fromChain: chain,
           tokenIn: id,
-          toChain: sameToken ? inputChain : outputChain,
-          tokenOut: sameToken ? inputId : outputId,
+          toChain: outputChain,
+          tokenOut: outputId,
         },
-        { currencyIn: evmCurrency, currencyOut: sameToken ? currencyIn : currencyOut },
+        { currencyIn: evmCurrency, currencyOut },
       )
     } else {
       commitPair(
         {
-          fromChain: sameToken ? outputChain : inputChain,
-          tokenIn: sameToken ? outputId : inputId,
+          fromChain: inputChain,
+          tokenIn: inputId,
           toChain: chain,
           tokenOut: id,
         },
-        { currencyIn: sameToken ? currencyOut : currencyIn, currencyOut: evmCurrency },
+        { currencyIn, currencyOut: evmCurrency },
       )
     }
   }

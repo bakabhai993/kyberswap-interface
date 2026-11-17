@@ -153,6 +153,19 @@ afterEach(async () => {
 // Exercise the real pair reader, selection hook and tab navigation with a wallet on another chain.
 describe('unified swap pair navigation', () => {
   it.each([
+    ['Select Base WETH', usdc.address, weth.address, weth.address],
+    ['Select USDC', usdc.address, weth.address, usdc.address],
+  ])(
+    'keeps the opposite side unchanged when %s creates a duplicate pair',
+    async (action, tokenIn, tokenOut, expected) => {
+      await mount(`/swap/base/${tokenIn}-to-${tokenOut}`)
+      await click(action)
+
+      expect(pairText()).toBe(`8453:${expected} → 8453:${expected}`)
+    },
+  )
+
+  it.each([
     '/swap/ethereum/eth-to-usdc?input=12',
     `/swap?from=1&to=8453&tokenIn=ETH&tokenOut=${usdc.address}&input=12`,
   ])('preserves the pair, amount URL and page draft when the connected chain changes on %s', async initialUrl => {

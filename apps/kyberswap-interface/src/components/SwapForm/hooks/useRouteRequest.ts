@@ -142,6 +142,7 @@ const useRouteRequest = (args: ArgsRouteRequest) => {
     if (
       !currencyIn ||
       !currencyOut ||
+      currencyIn.equals(currencyOut) ||
       currencyIn.chainId !== currencyOut.chainId ||
       currencyIn.chainId !== chainId ||
       !amountIn ||

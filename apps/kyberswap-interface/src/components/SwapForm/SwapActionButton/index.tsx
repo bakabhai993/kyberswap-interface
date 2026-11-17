@@ -281,6 +281,10 @@ const SwapActionButton = ({
         <ButtonPrimary id="swap-button" disabled>
           {restrictedTokenMessage(restrictedCurrency.symbol)}
         </ButtonPrimary>
+      ) : currencyIn && currencyOut && currencyIn.equals(currencyOut) ? (
+        <ButtonPrimary id="swap-button" disabled>
+          <Trans>Select a different pair</Trans>
+        </ButtonPrimary>
       ) : wrapInputError ? (
         <ButtonPrimary id="swap-button" disabled>
           {wrapInputError}

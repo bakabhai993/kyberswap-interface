@@ -111,11 +111,25 @@ const renderSwap = async () => {
 const builtRoute = { data: { data: '0x1234', routerAddress: '0xrouter' } } as BuildRouteResult
 const firstRoute = { parsedAmountIn: amounts[0] }
 const firstRouteResponse = { code: 0, data: { routeSummary: firstRoute } }
-type Props = { index?: number; autoRefresh?: boolean; paused?: boolean; enabled?: boolean; clientId?: string }
-const Harness = ({ index = 0, autoRefresh = false, paused = false, enabled = true, clientId }: Props) => {
+type Props = {
+  index?: number
+  autoRefresh?: boolean
+  paused?: boolean
+  enabled?: boolean
+  clientId?: string
+  output?: Token
+}
+const Harness = ({
+  index = 0,
+  autoRefresh = false,
+  paused = false,
+  enabled = true,
+  clientId,
+  output = currencyOut,
+}: Props) => {
   state = useGetRoute({
     currencyIn,
-    currencyOut,
+    currencyOut: output,
     parsedAmount: amounts[index],
     autoRefresh,
     isProcessingSwap: paused,
@@ -168,6 +182,31 @@ afterEach(async () => {
   onlineManager.setOnline(true)
   vi.useRealTimers()
   vi.unstubAllGlobals()
+})
+
+it('blocks duplicate tokens before fetching fees or routes, including manual and automatic refresh', async () => {
+  const duplicate = new Token(currencyIn.chainId, currencyIn.address, currencyIn.decimals)
+  await render({ output: duplicate, autoRefresh: true })
+  await advance(20000)
+  await act(async () => {
+    state.fetcher()
+    state.refresh.onRefresh()
+  })
+  await flush()
+
+  expect(mocks.fee).not.toHaveBeenCalled()
+  expect(mocks.trigger).not.toHaveBeenCalled()
+  expect(state.isLoading).toBe(false)
+  expect(state.refresh.disableRefresh).toBe(true)
+
+  await render({ autoRefresh: true })
+  await advance(100)
+  expect(mocks.trigger).toHaveBeenCalledOnce()
+
+  await render({ output: duplicate, autoRefresh: true })
+  await advance(20000)
+  expect(mocks.trigger).toHaveBeenCalledOnce()
+  expect(state.result.data).toBeUndefined()
 })
 
 it('loads comparison quotes once, without polling, and supports explicit refresh', async () => {
