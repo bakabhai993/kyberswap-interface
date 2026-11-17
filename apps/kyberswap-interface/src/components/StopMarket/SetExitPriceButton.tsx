@@ -50,7 +50,7 @@ const SetExitPriceButton = ({ currency, amount, className, onNavigate }: Props) 
 
   return (
     <ButtonOutlined onClick={onClick} className={className} data-testid="stop-market-set-exit-price-button">
-      <Trans>Set exit price</Trans>
+      <Trans>Set Exit Price</Trans>
     </ButtonOutlined>
   )
 }

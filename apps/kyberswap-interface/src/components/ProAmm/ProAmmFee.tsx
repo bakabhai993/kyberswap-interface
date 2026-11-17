@@ -11,7 +11,11 @@ import Divider from 'components/Divider'
 import FormattedCurrencyAmount from 'components/FormattedCurrencyAmount'
 import QuestionHelper from 'components/QuestionHelper'
 import { RowBetween, RowFixed } from 'components/Row'
-import TransactionConfirmationModal, { TransactionErrorContent } from 'components/TransactionConfirmationModal'
+import TransactionConfirmationModal, {
+  Mode,
+  Phase,
+  TransactionErrorContent,
+} from 'components/TransactionConfirmationModal'
 import { useActiveWeb3React, useWeb3React } from 'hooks'
 import { useProAmmNFTPositionManagerReadingContract } from 'hooks/useContract'
 import useTracking, { TRACKING_EVENT_TYPE } from 'hooks/useTracking'
@@ -250,15 +254,20 @@ export default function ProAmmFee({
       <TransactionConfirmationModal
         isOpen={showPendingModal}
         onDismiss={handleDismiss}
-        hash={txnHash}
-        attemptingTxn={attemptingTxn}
-        pendingText={`Collecting fee reward`}
-        content={() => (
+        {...(attemptingTxn
+          ? { mode: Mode.PENDING, phase: Phase.SIGNING }
+          : txnHash
+          ? { mode: Mode.SUBMITTED, txHash: txnHash }
+          : { mode: Mode.CUSTOM })}
+      >
+        {attemptingTxn ? (
+          `Collecting fee reward`
+        ) : txnHash ? null : (
           <div className="flex w-full flex-col">
             {collectFeeError ? <TransactionErrorContent onDismiss={handleDismiss} message={collectFeeError} /> : null}
           </div>
         )}
-      />
+      </TransactionConfirmationModal>
     </OutlineCard>
   )
 }

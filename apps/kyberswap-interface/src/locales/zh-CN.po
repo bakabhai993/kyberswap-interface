@@ -10408,7 +10408,7 @@ msgid "Remove without fees"
 msgstr "免手续费移除"
 
 #: src/components/StopMarket/SetExitPriceButton.tsx
-msgid "Set exit price"
+msgid "Set Exit Price"
 msgstr ""
 
 #: src/pages/CrossChainSwap/components/QuoteSteps.tsx

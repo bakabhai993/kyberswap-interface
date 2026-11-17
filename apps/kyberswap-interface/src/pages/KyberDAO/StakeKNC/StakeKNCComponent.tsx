@@ -16,7 +16,11 @@ import Row, { AutoRow, RowBetween, RowFit } from 'components/Row'
 import { HStack, Stack } from 'components/Stack'
 import useParsedAmount from 'components/SwapForm/hooks/useParsedAmount'
 import { MouseoverTooltip } from 'components/Tooltip'
-import TransactionConfirmationModal, { TransactionErrorContent } from 'components/TransactionConfirmationModal'
+import TransactionConfirmationModal, {
+  Mode,
+  Phase,
+  TransactionErrorContent,
+} from 'components/TransactionConfirmationModal'
 import { useActiveWeb3React } from 'hooks'
 import {
   useKyberDAOInfo,
@@ -555,17 +559,20 @@ export default function StakeKNCComponent() {
       <TransactionConfirmationModal
         isOpen={showConfirm}
         onDismiss={() => setShowConfirm(false)}
-        attemptingTxn={attemptingTxn}
-        hash={txHash}
-        pendingText={pendingText}
-        content={() => {
-          if (transactionError) {
-            return <TransactionErrorContent onDismiss={() => setShowConfirm(false)} message={transactionError} />
-          } else {
-            return <></>
-          }
-        }}
-      />
+        {...(attemptingTxn
+          ? { mode: Mode.PENDING, phase: Phase.SIGNING }
+          : txHash
+          ? { mode: Mode.SUBMITTED, txHash }
+          : { mode: Mode.CUSTOM })}
+      >
+        {attemptingTxn ? (
+          pendingText
+        ) : txHash ? null : transactionError ? (
+          <TransactionErrorContent onDismiss={() => setShowConfirm(false)} message={transactionError} />
+        ) : (
+          <></>
+        )}
+      </TransactionConfirmationModal>
       <MigrateModal
         setPendingText={setPendingText}
         setShowConfirm={setShowConfirm}

@@ -18,9 +18,15 @@ import {
 } from 'components/SwapForm/CrossChain/Quote/CrossChainQuoteSummary'
 import { QuoteProviderName } from 'components/SwapForm/CrossChain/Quote/QuoteProviderName'
 import { getQuoteWarning } from 'components/SwapForm/CrossChain/hooks/getQuoteWarning'
+import type { CrossChainSubmission } from 'components/SwapForm/CrossChain/hooks/useCrossChainExecution'
 import type { ReviewedQuote } from 'components/SwapForm/CrossChain/hooks/useQuoteSession'
 import { SwapReviewAmountCard, SwapReviewHeader } from 'components/SwapForm/SwapModal/SwapReviewLayout'
-import TransactionConfirmationModal, { TransactionErrorContent } from 'components/TransactionConfirmationModal'
+import { SwapStatusAmount, SwapStatusAmounts } from 'components/SwapForm/SwapModal/SwapStatusAmounts'
+import TransactionConfirmationModal, {
+  Mode,
+  Phase,
+  TransactionErrorContent,
+} from 'components/TransactionConfirmationModal'
 import { ExternalLinkNoLineHeight } from 'theme'
 import { Chain, Currency, GasDropQuote, NonEvmChain, isEvmChain } from 'types/crossChain'
 import { shortenHash } from 'utils/address'
@@ -106,10 +112,8 @@ const CrossChainReviewAmount = ({
 type CrossChainSwapConfirmationProps = {
   quote: ReviewedQuote | null
   isOpen: boolean
-  isSubmitting: boolean
+  submission: CrossChainSubmission
   hasVeryHighPriceImpact: boolean
-  txHash: string
-  txError: string
   onConfirm?: () => void
   onDismiss?: () => void
 }
@@ -117,14 +121,17 @@ type CrossChainSwapConfirmationProps = {
 export const CrossChainSwapConfirmation = ({
   quote: reviewedQuote,
   isOpen,
-  isSubmitting,
+  submission,
   hasVeryHighPriceImpact,
-  txHash,
-  txError,
   onConfirm,
   onDismiss,
 }: CrossChainSwapConfirmationProps) => {
   if (!reviewedQuote) return null
+
+  const phase = submission.phase
+  const isSubmitting = phase === Phase.PREPARING || phase === Phase.SIGNING
+  const isSubmitted = submission.phase === 'submitted'
+  const txHash = isSubmitted ? submission.txHash : ''
 
   const {
     fromChain: fromChainId,
@@ -136,12 +143,20 @@ export const CrossChainSwapConfirmation = ({
     sender,
     slippage,
   } = reviewedQuote.quote.quoteParams
+
+  const amount = formatUnits(BigInt(amountInWei), currencyIn.decimals)
+  const input: SwapStatusAmount = { currency: currencyIn, chainId: fromChainId, amount }
+  const output: SwapStatusAmount = {
+    currency: currencyOut,
+    chainId: toChainId,
+    amount: reviewedQuote.quote.formattedOutputAmount,
+  }
+
   const hasDifferentRecipient =
     !!sender &&
     (isEvmChain(fromChainId) && isEvmChain(toChainId)
       ? recipient.toLowerCase() !== sender.toLowerCase()
       : recipient !== sender)
-  const amount = formatUnits(BigInt(amountInWei), currencyIn.decimals)
 
   const warning = getQuoteWarning({
     selectedQuote: reviewedQuote,
@@ -149,112 +164,112 @@ export const CrossChainSwapConfirmation = ({
     isEvmPair: isEvmChain(fromChainId) && isEvmChain(toChainId),
     slippage,
   })
+
   return (
     <TransactionConfirmationModal
       isOpen={isSubmitting || isOpen}
       onDismiss={() => onDismiss?.()}
-      hash={txHash}
-      scanLink={
-        fromChainId === NonEvmChain.Solana
-          ? `https://solscan.io/tx/${txHash}`
-          : fromChainId === NonEvmChain.Near
-          ? `https://nearblocks.io/address/${txHash}`
-          : fromChainId === NonEvmChain.Bitcoin
-          ? `https://mempool.space/tx/${txHash}`
-          : getEtherscanLink(fromChainId, txHash, 'transaction')
-      }
-      attemptingTxn={isSubmitting}
-      pendingText={
-        <Trans>
-          Swapping {currencyIn?.symbol ?? ''} for {currencyOut?.symbol ?? ''}
-        </Trans>
-      }
-      content={() => {
-        if (txError) {
-          return <TransactionErrorContent message={txError} onDismiss={() => onDismiss?.()} />
-        }
-
-        return (
-          <Stack className="w-full gap-4 p-4 sm:p-5">
-            <SwapReviewHeader
-              title={t`Confirm Swap Details`}
-              subtitle={t`Please review the details of your swap`}
-              onDismiss={() => onDismiss?.()}
-            />
-            <Stack className="gap-1">
-              <CrossChainReviewRate quote={reviewedQuote} />
-              <Stack className="min-w-0 gap-2">
-                <CrossChainReviewAmount
-                  label={t`Input Amount`}
-                  chainId={fromChainId}
-                  currency={currencyIn}
-                  amount={amount}
-                  amountUsd={reviewedQuote.quote.inputUsd}
-                />
-                <CrossChainReviewAmount
-                  label={t`Output Amount`}
-                  isOutput
-                  chainId={toChainId}
-                  currency={currencyOut}
-                  amount={reviewedQuote.quote.formattedOutputAmount}
-                  amountUsd={reviewedQuote.quote.outputUsd}
-                  gasDrop={reviewedQuote.quote.gasDrop}
-                />
-              </Stack>
-            </Stack>
-            <Stack className="gap-2 px-2 py-1 text-xs">
-              <CrossChainQuoteSummaryRows
-                quote={reviewedQuote}
-                tokenOut={currencyOut}
-                slippage={slippage}
-                warning={warning}
-                showEstimatedTime={false}
+      {...(isSubmitted
+        ? {
+            mode: Mode.SUBMITTED,
+            txHash: submission.txHash,
+            explorerUrl:
+              fromChainId === NonEvmChain.Solana
+                ? `https://solscan.io/tx/${txHash}`
+                : fromChainId === NonEvmChain.Near
+                ? `https://nearblocks.io/txns/${txHash}`
+                : fromChainId === NonEvmChain.Bitcoin
+                ? `https://mempool.space/tx/${txHash}`
+                : getEtherscanLink(fromChainId, txHash, 'transaction'),
+          }
+        : isSubmitting
+        ? { mode: Mode.PENDING, phase }
+        : { mode: Mode.CUSTOM })}
+    >
+      {isSubmitted || isSubmitting ? (
+        <SwapStatusAmounts input={input} output={output} gasDrop={reviewedQuote.quote.gasDrop} />
+      ) : submission.phase === 'error' ? (
+        <TransactionErrorContent message={submission.error} onDismiss={() => onDismiss?.()} />
+      ) : (
+        <Stack className="w-full gap-4 p-4 sm:p-5">
+          <SwapReviewHeader
+            title={t`Confirm Swap Details`}
+            subtitle={t`Please review the details of your swap`}
+            onDismiss={() => onDismiss?.()}
+          />
+          <Stack className="gap-1">
+            <CrossChainReviewRate quote={reviewedQuote} />
+            <Stack className="min-w-0 gap-2">
+              <CrossChainReviewAmount
+                label={t`Input Amount`}
+                chainId={fromChainId}
+                currency={currencyIn}
+                amount={amount}
+                amountUsd={reviewedQuote.quote.inputUsd}
               />
-              <Divider className="my-1 bg-border/40" />
-              <HStack className="min-h-5 flex-wrap items-center justify-between gap-3">
-                <span className="text-xs text-subText">{t`Recipient`}</span>
-                <HStack className="min-w-0 items-center gap-1 text-xs font-medium">
-                  <img src={getNetworkInfo(toChainId).icon} alt="network icon" width="14px" height="14px" />
-                  <ExternalLinkNoLineHeight
-                    className={cn(
-                      'min-w-0 break-all underline [text-decoration-style:dotted]',
-                      hasDifferentRecipient ? 'text-primary' : 'text-text',
-                    )}
-                    href={
-                      toChainId === NonEvmChain.Solana
-                        ? `https://solscan.io/account/${recipient}`
-                        : toChainId === NonEvmChain.Near
-                        ? `https://nearblocks.io/address/${recipient}`
-                        : toChainId === NonEvmChain.Bitcoin
-                        ? `https://mempool.space/address/${recipient}`
-                        : getEtherscanLink(toChainId, recipient, 'address')
-                    }
-                  >
-                    {recipient.includes('.near') ? recipient : shortenHash(recipient, 4)}
-                  </ExternalLinkNoLineHeight>
-                  <CopyHelper toCopy={recipient} margin="0" />
-                </HStack>
-              </HStack>
-            </Stack>
-
-            <CrossChainPriceImpactWarning warning={warning} />
-
-            <Stack className="gap-2">
-              <ButtonPrimary
-                disabled={isSubmitting}
-                onClick={onConfirm}
-                className={hasVeryHighPriceImpact && !isSubmitting ? '!bg-red !text-text' : undefined}
-              >
-                {hasVeryHighPriceImpact ? t`Swap Anyway` : t`Confirm Swap`}
-              </ButtonPrimary>
-
-              <span className="block text-center text-xs font-medium text-gray">
-                <Trans>Routed via</Trans> <QuoteProviderName quote={reviewedQuote} showIcon={false} />
-              </span>
+              <CrossChainReviewAmount
+                label={t`Output Amount`}
+                isOutput
+                chainId={toChainId}
+                currency={currencyOut}
+                amount={reviewedQuote.quote.formattedOutputAmount}
+                amountUsd={reviewedQuote.quote.outputUsd}
+                gasDrop={reviewedQuote.quote.gasDrop}
+              />
             </Stack>
           </Stack>
-        )
-      }}
-    />
+          <Stack className="gap-2 px-2 py-1 text-xs">
+            <CrossChainQuoteSummaryRows
+              quote={reviewedQuote}
+              tokenOut={currencyOut}
+              slippage={slippage}
+              warning={warning}
+              showEstimatedTime={false}
+            />
+            <Divider className="my-1 bg-border/40" />
+            <HStack className="min-h-5 flex-wrap items-center justify-between gap-3">
+              <span className="text-xs text-subText">{t`Recipient`}</span>
+              <HStack className="min-w-0 items-center gap-1 text-xs font-medium">
+                <img src={getNetworkInfo(toChainId).icon} alt="network icon" width="14px" height="14px" />
+                <ExternalLinkNoLineHeight
+                  className={cn(
+                    'min-w-0 break-all underline [text-decoration-style:dotted]',
+                    hasDifferentRecipient ? 'text-primary' : 'text-text',
+                  )}
+                  href={
+                    toChainId === NonEvmChain.Solana
+                      ? `https://solscan.io/account/${recipient}`
+                      : toChainId === NonEvmChain.Near
+                      ? `https://nearblocks.io/address/${recipient}`
+                      : toChainId === NonEvmChain.Bitcoin
+                      ? `https://mempool.space/address/${recipient}`
+                      : getEtherscanLink(toChainId, recipient, 'address')
+                  }
+                >
+                  {recipient.includes('.near') ? recipient : shortenHash(recipient, 4)}
+                </ExternalLinkNoLineHeight>
+                <CopyHelper toCopy={recipient} margin="0" />
+              </HStack>
+            </HStack>
+          </Stack>
+
+          <CrossChainPriceImpactWarning warning={warning} />
+
+          <Stack className="gap-2">
+            <ButtonPrimary
+              disabled={isSubmitting}
+              onClick={onConfirm}
+              className={hasVeryHighPriceImpact && !isSubmitting ? '!bg-red !text-text' : undefined}
+            >
+              {hasVeryHighPriceImpact ? t`Swap Anyway` : t`Confirm Swap`}
+            </ButtonPrimary>
+
+            <span className="block text-center text-xs font-medium text-gray">
+              <Trans>Routed via</Trans> <QuoteProviderName quote={reviewedQuote} showIcon={false} />
+            </span>
+          </Stack>
+        </Stack>
+      )}
+    </TransactionConfirmationModal>
   )
 }

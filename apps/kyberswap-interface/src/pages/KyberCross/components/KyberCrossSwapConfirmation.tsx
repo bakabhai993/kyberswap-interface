@@ -16,7 +16,11 @@ import { QuoteProviderName } from 'components/SwapForm/CrossChain/Quote/QuotePro
 import { getQuoteWarning } from 'components/SwapForm/CrossChain/hooks/getQuoteWarning'
 import { useCrossChainExecution } from 'components/SwapForm/CrossChain/hooks/useCrossChainExecution'
 import { GasDropTransactionLine } from 'components/SwapTransactions/TransactionDetail/GasDropTransactionLine'
-import TransactionConfirmationModal, { TransactionErrorContent } from 'components/TransactionConfirmationModal'
+import TransactionConfirmationModal, {
+  Mode,
+  Phase,
+  TransactionErrorContent,
+} from 'components/TransactionConfirmationModal'
 import { NETWORKS_INFO } from 'constants/networks'
 import { PiWarning } from 'pages/KyberCross/components/PiWarning'
 import { useGasDropReview } from 'pages/KyberCross/hooks/useGasDropReview'
@@ -161,127 +165,128 @@ export const KyberCrossSwapConfirmation = ({
     <TransactionConfirmationModal
       isOpen={isSubmitting || isOpen}
       onDismiss={dismiss}
-      hash={txHash}
-      submittedDetails={
+      {...(isSubmitting
+        ? { mode: Mode.PENDING, phase: Phase.SIGNING }
+        : txHash
+        ? {
+            mode: Mode.SUBMITTED,
+            txHash,
+            explorerUrl:
+              fromChainId === NonEvmChain.Solana
+                ? `https://solscan.io/tx/${txHash}`
+                : fromChainId === NonEvmChain.Near
+                ? `https://nearblocks.io/address/${txHash}`
+                : fromChainId === NonEvmChain.Bitcoin
+                ? `https://mempool.space/tx/${txHash}`
+                : getEtherscanLink(fromChainId, txHash, 'transaction'),
+          }
+        : { mode: Mode.CUSTOM })}
+    >
+      {isSubmitting ? (
+        <Trans>
+          Swapping {currencyIn?.symbol ?? ''} for {currencyOut?.symbol ?? ''}
+        </Trans>
+      ) : txHash ? (
         submittedTransaction?.gasDrop ? (
           <div className="flex flex-col gap-2">
             <span className="text-sm">{submittedTransaction.status || t`Processing`}</span>
             <GasDropTransactionLine tx={submittedTransaction} />
           </div>
         ) : undefined
-      }
-      scanLink={
-        fromChainId === NonEvmChain.Solana
-          ? `https://solscan.io/tx/${txHash}`
-          : fromChainId === NonEvmChain.Near
-          ? `https://nearblocks.io/address/${txHash}`
-          : fromChainId === NonEvmChain.Bitcoin
-          ? `https://mempool.space/tx/${txHash}`
-          : getEtherscanLink(fromChainId, txHash, 'transaction')
-      }
-      attemptingTxn={isSubmitting}
-      pendingText={
-        <Trans>
-          Swapping {currencyIn?.symbol ?? ''} for {currencyOut?.symbol ?? ''}
-        </Trans>
-      }
-      content={() => {
-        if (txError || reviewError) {
-          return <TransactionErrorContent message={txError || reviewError} onDismiss={dismiss} />
-        }
-        return (
-          <div className="flex w-full flex-col p-4">
-            <div className="mb-3 flex items-center justify-between">
-              <span className="text-xl font-medium">{t`Confirm Swap Details`}</span>
-              <CloseIcon onClick={dismiss} />
-            </div>
-            <span className="mb-4 text-xs text-subText">{t`Please review the details of your swap`}</span>
-            <TokenBoxInfo
-              title={t`Input Amount`}
-              chainId={fromChainId}
-              currency={currencyIn}
-              amount={amount || ''}
-              usdValue={selectedQuote?.quote.inputUsd || 0}
-            />
-            <div className="z-[1] -my-1 mx-auto flex size-5 items-center justify-center rounded-full border border-border bg-tabActive p-0.5 text-subText">
-              <ArrowDown />
-            </div>
-            <TokenBoxInfo
-              title={t`Output Amount`}
-              chainId={toChainId}
-              currency={currencyOut}
-              amount={selectedQuote?.quote.formattedOutputAmount || ''}
-              usdValue={selectedQuote?.quote.outputUsd || 0}
-            />
-            <div className="mt-4 flex justify-between rounded-2xl border border-border p-3">
-              <span className="text-xs font-medium text-subText">{t`Recipient`}</span>
-              <div className="flex items-center text-sm text-subText">
-                <ExternalLink
-                  className="text-text"
-                  style={{ textDecoration: 'none' }}
-                  href={
-                    toChainId === NonEvmChain.Solana
-                      ? `https://solscan.io/account/${recipient}`
-                      : toChainId === NonEvmChain.Near
-                      ? `https://nearblocks.io/address/${recipient}`
-                      : toChainId === NonEvmChain.Bitcoin
-                      ? `https://mempool.space/address/${recipient}`
-                      : getEtherscanLink(toChainId, recipient, 'address')
-                  }
-                >
-                  {recipient.includes('.near') ? recipient : shortenHash(recipient)} ↗
-                </ExternalLink>
-                <CopyHelper toCopy={recipient} />
-              </div>
-            </div>
-            <div className="mt-4" />
-            <Stack className="gap-3 rounded-2xl border border-border p-4">
-              <CrossChainQuoteSummaryRows
-                quote={selectedQuote}
-                tokenOut={currencyOut}
-                full
-                slippage={selectedQuote.quote.quoteParams.slippage}
-                warning={getQuoteWarning({
-                  selectedQuote,
-                  category: reviewQuote?.category || category,
-                  isEvmPair: isEvmChain(fromChainId) && isEvmChain(toChainId),
-                  slippage: selectedQuote.quote.quoteParams.slippage,
-                })}
-              />
-              <GasDropAmount gasDrop={selectedQuote.quote.gasDrop} chain={toChainId} loading={review.refreshing} />
-            </Stack>
-
-            {priceImpactInfo?.message && <div className="mt-4" />}
-            <PiWarning quote={selectedQuote} />
-
-            <span className="my-4 block text-center text-xs font-medium text-gray">
-              <Trans>Routed via</Trans> <QuoteProviderName quote={selectedQuote} showIcon={false} />
-            </span>
-
-            {review.pending && (
-              <div
-                className="mb-3 flex items-center justify-between gap-3 rounded-xl bg-warning-20 p-3 text-xs text-warning"
-                role="alert"
-              >
-                <span>
-                  {initialQuote?.quote.gasDrop && !selectedQuote.quote.gasDrop
-                    ? t`Gas Drop is no longer available for this route`
-                    : t`Quote updated. Please accept the new amounts.`}
-                </span>
-                <button type="button" className="font-medium underline" onClick={review.accept}>{t`Accept`}</button>
-              </div>
-            )}
-            {review.error && (
-              <div className="mb-3 text-xs text-warning" role="alert">
-                {review.error} <button type="button" className="underline" onClick={review.refresh}>{t`Retry`}</button>
-              </div>
-            )}
-            <ButtonPrimary disabled={review.refreshing || !!review.pending || !!review.error} onClick={handleSwap}>
-              {review.refreshing ? t`Refreshing route` : t`Confirm Swap`}
-            </ButtonPrimary>
+      ) : txError || reviewError ? (
+        <TransactionErrorContent message={txError || reviewError} onDismiss={dismiss} />
+      ) : (
+        <div className="flex w-full flex-col p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <span className="text-xl font-medium">{t`Confirm Swap Details`}</span>
+            <CloseIcon onClick={dismiss} />
           </div>
-        )
-      }}
-    />
+          <span className="mb-4 text-xs text-subText">{t`Please review the details of your swap`}</span>
+          <TokenBoxInfo
+            title={t`Input Amount`}
+            chainId={fromChainId}
+            currency={currencyIn}
+            amount={amount || ''}
+            usdValue={selectedQuote?.quote.inputUsd || 0}
+          />
+          <div className="z-[1] -my-1 mx-auto flex size-5 items-center justify-center rounded-full border border-border bg-tabActive p-0.5 text-subText">
+            <ArrowDown />
+          </div>
+          <TokenBoxInfo
+            title={t`Output Amount`}
+            chainId={toChainId}
+            currency={currencyOut}
+            amount={selectedQuote?.quote.formattedOutputAmount || ''}
+            usdValue={selectedQuote?.quote.outputUsd || 0}
+          />
+          <div className="mt-4 flex justify-between rounded-2xl border border-border p-3">
+            <span className="text-xs font-medium text-subText">{t`Recipient`}</span>
+            <div className="flex items-center text-sm text-subText">
+              <ExternalLink
+                className="text-text"
+                style={{ textDecoration: 'none' }}
+                href={
+                  toChainId === NonEvmChain.Solana
+                    ? `https://solscan.io/account/${recipient}`
+                    : toChainId === NonEvmChain.Near
+                    ? `https://nearblocks.io/address/${recipient}`
+                    : toChainId === NonEvmChain.Bitcoin
+                    ? `https://mempool.space/address/${recipient}`
+                    : getEtherscanLink(toChainId, recipient, 'address')
+                }
+              >
+                {recipient.includes('.near') ? recipient : shortenHash(recipient)} ↗
+              </ExternalLink>
+              <CopyHelper toCopy={recipient} />
+            </div>
+          </div>
+          <div className="mt-4" />
+          <Stack className="gap-3 rounded-2xl border border-border p-4">
+            <CrossChainQuoteSummaryRows
+              quote={selectedQuote}
+              tokenOut={currencyOut}
+              full
+              slippage={selectedQuote.quote.quoteParams.slippage}
+              warning={getQuoteWarning({
+                selectedQuote,
+                category: reviewQuote?.category || category,
+                isEvmPair: isEvmChain(fromChainId) && isEvmChain(toChainId),
+                slippage: selectedQuote.quote.quoteParams.slippage,
+              })}
+            />
+            <GasDropAmount gasDrop={selectedQuote.quote.gasDrop} chain={toChainId} loading={review.refreshing} />
+          </Stack>
+
+          {priceImpactInfo?.message && <div className="mt-4" />}
+          <PiWarning quote={selectedQuote} />
+
+          <span className="my-4 block text-center text-xs font-medium text-gray">
+            <Trans>Routed via</Trans> <QuoteProviderName quote={selectedQuote} showIcon={false} />
+          </span>
+
+          {review.pending && (
+            <div
+              className="mb-3 flex items-center justify-between gap-3 rounded-xl bg-warning-20 p-3 text-xs text-warning"
+              role="alert"
+            >
+              <span>
+                {initialQuote?.quote.gasDrop && !selectedQuote.quote.gasDrop
+                  ? t`Gas Drop is no longer available for this route`
+                  : t`Quote updated. Please accept the new amounts.`}
+              </span>
+              <button type="button" className="font-medium underline" onClick={review.accept}>{t`Accept`}</button>
+            </div>
+          )}
+          {review.error && (
+            <div className="mb-3 text-xs text-warning" role="alert">
+              {review.error} <button type="button" className="underline" onClick={review.refresh}>{t`Retry`}</button>
+            </div>
+          )}
+          <ButtonPrimary disabled={review.refreshing || !!review.pending || !!review.error} onClick={handleSwap}>
+            {review.refreshing ? t`Refreshing route` : t`Confirm Swap`}
+          </ButtonPrimary>
+        </div>
+      )}
+    </TransactionConfirmationModal>
   )
 }

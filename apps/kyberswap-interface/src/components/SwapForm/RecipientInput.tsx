@@ -17,6 +17,7 @@ type RecipientInputProps = {
   hideLabel?: boolean
   error?: boolean
   onChange: (value: string) => void
+  onClose: () => void
   onToggle: () => void
   onPaste?: ClipboardEventHandler<HTMLInputElement>
 } & RecipientAddressType
@@ -37,7 +38,7 @@ export const RecipientToggle = ({ expanded, onToggle }: Pick<RecipientInputProps
 
 /** Shared recipient UI. Collapsing only changes visibility; the form owns the receiving address. */
 export const RecipientInput = (props: RecipientInputProps) => {
-  const { value, expanded, hideLabel, error, onChange, onToggle } = props
+  const { value, expanded, hideLabel, error, onChange, onToggle, onClose, onPaste } = props
   const networkName = props.mode === 'evm' ? 'EVM' : props.networkName
 
   return (
@@ -63,6 +64,8 @@ export const RecipientInput = (props: RecipientInputProps) => {
           disabled={!expanded}
           placeholder={hideLabel ? undefined : t`Enter ${networkName} receiving address`}
           onChange={onChange}
+          onClose={onClose}
+          onPaste={onPaste}
         />
       </Collapse>
     </Stack>
@@ -77,10 +80,11 @@ type RecipientAddressInputProps = RecipientAddressType & {
   placeholder?: string
   onChange: (value: string) => void
   onPaste?: ClipboardEventHandler<HTMLInputElement>
+  onClose?: () => void
 }
 
 export const RecipientAddressInput = (props: RecipientAddressInputProps) => {
-  const { value, error, disabled, autoFocus, placeholder, onChange, onPaste } = props
+  const { value, error, disabled, autoFocus, placeholder, onChange, onPaste, onClose } = props
   const networkName = props.mode === 'evm' ? 'EVM' : props.networkName
   return (
     <AddressInput
@@ -97,12 +101,12 @@ export const RecipientAddressInput = (props: RecipientAddressInputProps) => {
       }}
       onPaste={onPaste}
       icon={
-        value ? (
+        onClose || value ? (
           <button
             type="button"
-            aria-label={t`Clear address`}
+            aria-label={onClose ? t`Close recipient` : t`Clear address`}
             className="flex shrink-0 items-center border-0 bg-transparent p-0 text-subText hover:text-text"
-            onClick={() => onChange('')}
+            onClick={() => (onClose ? onClose() : onChange(''))}
           >
             <X size={14} />
           </button>

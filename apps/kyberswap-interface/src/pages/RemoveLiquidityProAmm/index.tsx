@@ -28,6 +28,8 @@ import { TextDashed } from 'components/Text'
 import { MouseoverTooltip } from 'components/Tooltip'
 import TransactionConfirmationModal, {
   ConfirmationModalContent,
+  Mode,
+  Phase,
   TransactionErrorContent,
 } from 'components/TransactionConfirmationModal'
 import { TutorialType } from 'components/Tutorial'
@@ -473,101 +475,104 @@ function Remove({ tokenId }: { tokenId: bigint }) {
       <TransactionConfirmationModal
         isOpen={showConfirm}
         onDismiss={handleDismissConfirmation}
-        attemptingTxn={attemptingTxn}
-        hash={txnHash}
-        content={() =>
-          removeLiquidityError ? (
-            <TransactionErrorContent onDismiss={handleDismissConfirmation} message={removeLiquidityError} />
-          ) : (
-            <ConfirmationModalContent
-              title={t`Remove Liquidity`}
-              onDismiss={handleDismissConfirmation}
-              topContent={() => (
-                <>
-                  <div className="mt-6" />
-                  {positionSDK && <ProAmmPoolInfo position={positionSDK} tokenId={tokenId.toString()} />}
-                  <ProAmmPooledTokens
-                    liquidityValue0={liquidityValue0}
-                    liquidityValue1={liquidityValue1}
-                    title={t`Remove Amount`}
-                  />
-                  {positionSDK ? (
-                    claimFee ? (
-                      <ProAmmFee
-                        totalFeeRewardUSD={totalFeeRewardUSD}
-                        feeValue0={feeValue0}
-                        feeValue1={feeValue1}
-                        position={positionSDK}
-                        tokenId={tokenId}
-                      />
-                    ) : null
-                  ) : (
-                    <Loader />
-                  )}
+        {...(attemptingTxn
+          ? { mode: Mode.PENDING, phase: Phase.SIGNING }
+          : txnHash
+          ? { mode: Mode.SUBMITTED, txHash: txnHash }
+          : { mode: Mode.CUSTOM })}
+      >
+        {attemptingTxn ? (
+          pendingText
+        ) : txnHash ? null : removeLiquidityError ? (
+          <TransactionErrorContent onDismiss={handleDismissConfirmation} message={removeLiquidityError} />
+        ) : (
+          <ConfirmationModalContent
+            title={t`Remove Liquidity`}
+            onDismiss={handleDismissConfirmation}
+            topContent={() => (
+              <>
+                <div className="mt-6" />
+                {positionSDK && <ProAmmPoolInfo position={positionSDK} tokenId={tokenId.toString()} />}
+                <ProAmmPooledTokens
+                  liquidityValue0={liquidityValue0}
+                  liquidityValue1={liquidityValue1}
+                  title={t`Remove Amount`}
+                />
+                {positionSDK ? (
+                  claimFee ? (
+                    <ProAmmFee
+                      totalFeeRewardUSD={totalFeeRewardUSD}
+                      feeValue0={feeValue0}
+                      feeValue1={feeValue1}
+                      position={positionSDK}
+                      tokenId={tokenId}
+                    />
+                  ) : null
+                ) : (
+                  <Loader />
+                )}
 
-                  <OutlineCard className="mt-4 p-4">
-                    <AutoColumn className="gap-3">
-                      <div className="text-xs font-medium">
-                        <Trans>More Information</Trans>
+                <OutlineCard className="mt-4 p-4">
+                  <AutoColumn className="gap-3">
+                    <div className="text-xs font-medium">
+                      <Trans>More Information</Trans>
+                    </div>
+                    <Divider />
+                    <RowBetween>
+                      <TextDashed fontSize={12} fontWeight={500} className="text-subText" minWidth="max-content">
+                        <MouseoverTooltip
+                          width="200px"
+                          text={
+                            <div>
+                              <Trans>
+                                During your swap if the price changes by more than this %, your transaction will revert.
+                                Read more{' '}
+                                <ExternalLink href="https://docs.kyberswap.com/getting-started/foundational-topics/decentralized-finance/slippage">
+                                  here ↗
+                                </ExternalLink>
+                              </Trans>
+                            </div>
+                          }
+                          placement="auto"
+                        >
+                          <Trans>Max Slippage</Trans>
+                        </MouseoverTooltip>
+                      </TextDashed>
+                      <div className={cn('text-xs text-text', isWarningSlippage && 'text-warning')}>
+                        {formatSlippage(allowedSlippage)}
                       </div>
-                      <Divider />
-                      <RowBetween>
-                        <TextDashed fontSize={12} fontWeight={500} className="text-subText" minWidth="max-content">
-                          <MouseoverTooltip
-                            width="200px"
-                            text={
-                              <div>
-                                <Trans>
-                                  During your swap if the price changes by more than this %, your transaction will
-                                  revert. Read more{' '}
-                                  <ExternalLink href="https://docs.kyberswap.com/getting-started/foundational-topics/decentralized-finance/slippage">
-                                    here ↗
-                                  </ExternalLink>
-                                </Trans>
-                              </div>
-                            }
-                            placement="auto"
+                    </RowBetween>
+                  </AutoColumn>
+                </OutlineCard>
+
+                {slippageStatus === SLIPPAGE_STATUS.HIGH && (
+                  <WarningCard className="mt-5 px-4 py-2.5">
+                    <div className="flex items-center">
+                      <AlertTriangle size="16px" className="text-warning" />
+                      <div className="ml-3 flex-1 text-xs text-text">
+                        <Trans>
+                          <TextUnderlineColor
+                            className="min-w-max"
+                            href={SLIPPAGE_EXPLANATION_URL}
+                            target="_blank"
+                            rel="noreferrer"
                           >
-                            <Trans>Max Slippage</Trans>
-                          </MouseoverTooltip>
-                        </TextDashed>
-                        <div className={cn('text-xs text-text', isWarningSlippage && 'text-warning')}>
-                          {formatSlippage(allowedSlippage)}
-                        </div>
-                      </RowBetween>
-                    </AutoColumn>
-                  </OutlineCard>
-
-                  {slippageStatus === SLIPPAGE_STATUS.HIGH && (
-                    <WarningCard className="mt-5 px-4 py-2.5">
-                      <div className="flex items-center">
-                        <AlertTriangle size="16px" className="text-warning" />
-                        <div className="ml-3 flex-1 text-xs text-text">
-                          <Trans>
-                            <TextUnderlineColor
-                              className="min-w-max"
-                              href={SLIPPAGE_EXPLANATION_URL}
-                              target="_blank"
-                              rel="noreferrer"
-                            >
-                              Slippage
-                            </TextUnderlineColor>
-                            <TextUnderlineTransparent>
-                              is high. Your transaction may be front-run
-                            </TextUnderlineTransparent>
-                          </Trans>
-                        </div>
+                            Slippage
+                          </TextUnderlineColor>
+                          <TextUnderlineTransparent>
+                            is high. Your transaction may be front-run
+                          </TextUnderlineTransparent>
+                        </Trans>
                       </div>
-                    </WarningCard>
-                  )}
-                </>
-              )}
-              bottomContent={modalFooter}
-            />
-          )
-        }
-        pendingText={pendingText}
-      />
+                    </div>
+                  </WarningCard>
+                )}
+              </>
+            )}
+            bottomContent={modalFooter}
+          />
+        )}
+      </TransactionConfirmationModal>
       <Container>
         <AddRemoveTabs
           hideShare

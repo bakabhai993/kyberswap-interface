@@ -1,13 +1,15 @@
-import { ChainId, Currency, Token } from '@kyberswap/ks-sdk-core'
+import { ChainId, Token } from '@kyberswap/ks-sdk-core'
 import { Trans, t } from '@lingui/macro'
-import React, { useState } from 'react'
+import React, { PropsWithChildren, useState } from 'react'
 import { ArrowUpCircle, BarChart2 } from 'react-feather'
 import { useWatchAsset } from 'wagmi'
 
 import { ReactComponent as Alert } from 'assets/images/alert.svg'
 import { ButtonLight, ButtonOutlined, ButtonPrimary } from 'components/Button'
+import IconButton from 'components/Button/IconButton'
 import { Collapse } from 'components/Collapse'
 import { AutoColumn } from 'components/Column'
+import Dots from 'components/Dots'
 import Loader from 'components/Loader'
 import Modal from 'components/Modal'
 import { RowBetween, RowFixed } from 'components/Row'
@@ -22,43 +24,74 @@ import { friendlyError } from 'utils/errorMessage'
 import { getEtherscanLink } from 'utils/explorer'
 import { getTokenLogoURL } from 'utils/tokenLogo'
 
-type ConfirmationPendingContentProps = {
-  onDismiss: () => void
-  pendingText: string | React.ReactNode
-  // Override the default title/subtitle, e.g. to show a "Preparing Transaction"
-  // phase before the wallet prompt actually opens. Defaults preserve the
-  // original "Waiting For Confirmation" copy.
-  title?: React.ReactNode
-  subtitle?: React.ReactNode
-}
+export const Mode = {
+  CUSTOM: 'custom',
+  PENDING: 'pending',
+  SUBMITTED: 'submitted',
+} as const
 
-export function ConfirmationPendingContent({
-  onDismiss,
-  pendingText,
-  title,
-  subtitle,
-}: ConfirmationPendingContentProps) {
+export const Phase = {
+  PREPARING: 'preparing',
+  SIGNING: 'signing',
+} as const
+
+type PendingPhase = (typeof Phase)[keyof typeof Phase]
+
+type TransactionStatusLayoutProps = PropsWithChildren<{
+  title: React.ReactNode
+  icon: React.ReactNode
+  onDismiss?: () => void
+  actions?: React.ReactNode
+}>
+
+const TransactionStatusLayout = ({ title, icon, onDismiss, children, actions }: TransactionStatusLayoutProps) => (
+  <Stack className="w-full gap-6 overflow-y-auto p-5">
+    <HStack className="items-center justify-between gap-3">
+      <span className="text-xl font-medium">{title}</span>
+      <IconButton aria-label={t`Close`} onClick={onDismiss}>
+        <CloseIcon />
+      </IconButton>
+    </HStack>
+    <Stack className="w-full items-center gap-4 text-center">
+      <div className="flex h-12 w-full shrink-0 items-center justify-center">{icon}</div>
+      {children}
+    </Stack>
+    {actions}
+  </Stack>
+)
+
+type TransactionPendingProps = PropsWithChildren<{
+  phase?: PendingPhase
+  onDismiss?: () => void
+}>
+
+const TransactionPending = ({ phase = Phase.SIGNING, onDismiss, children }: TransactionPendingProps) => {
   return (
-    <div className="w-full overflow-y-auto">
-      <div className="flex flex-col gap-2 p-5">
-        <RowBetween className="min-h-6 shrink-0">
-          <div />
-          <CloseIcon onClick={onDismiss} />
-        </RowBetween>
-        <div className="flex flex-col items-center justify-center gap-4 text-center">
-          <div className="flex size-16 shrink-0 items-center justify-center">
-            <Loader size="64px" className="text-primary" strokeWidth="1" />
-          </div>
-          <div className="flex w-full flex-col items-center justify-center gap-3">
-            <span className="text-xl font-medium">{title ?? <Trans>Waiting For Confirmation</Trans>}</span>
-            <span className="max-w-full text-sm font-semibold">{pendingText}</span>
-            <span className="text-sm font-medium text-subText-40">
-              {subtitle ?? <Trans>Confirm this transaction in your wallet</Trans>}
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
+    <TransactionStatusLayout
+      title={<Trans>Waiting For Confirmation</Trans>}
+      icon={<Loader size="48px" className="text-primary" strokeWidth="1" />}
+      onDismiss={onDismiss}
+      actions={
+        <ButtonOutlined onClick={onDismiss}>
+          <Trans>Cancel</Trans>
+        </ButtonOutlined>
+      }
+    >
+      <Stack className="w-full items-center gap-2" role="status" aria-live="polite">
+        <div className="w-full text-sm font-medium">{children}</div>
+        <span className="text-sm font-medium text-subText">
+          {phase === Phase.PREPARING ? (
+            <Dots absolute>
+              <Trans>Preparing your transaction</Trans>
+            </Dots>
+          ) : (
+            <Dots absolute>
+              <Trans>Confirm this transaction in your wallet</Trans>
+            </Dots>
+          )}
+        </span>
+      </Stack>
+    </TransactionStatusLayout>
   )
 }
 
@@ -72,6 +105,7 @@ function AddTokenToInjectedWallet({ token, chainId }: AddTokenToInjectedWalletPr
   // Routes wallet_watchAsset through the active connector's provider so it works for the
   // metaMask SDK on mobile (no window.ethereum) as well as desktop injected wallets.
   const { mutate: watchAsset } = useWatchAsset()
+
   const handleClick = () => {
     watchAsset(
       {
@@ -92,6 +126,7 @@ function AddTokenToInjectedWallet({ token, chainId }: AddTokenToInjectedWalletPr
   }
 
   if (!connector || connector?.name === 'WalletConnect') return null
+
   const { name } = connector
   const icon = CONNECTOR_ICON_OVERRIDE_MAP[connector.id] ?? connector.icon
 
@@ -107,66 +142,63 @@ function AddTokenToInjectedWallet({ token, chainId }: AddTokenToInjectedWalletPr
   )
 }
 
-type TransactionSubmittedContentProps = {
-  submittedDetails?: React.ReactNode
-  onDismiss: () => void
-  hash: string | undefined
-  scanLink?: string
-  chainId: ChainId
-  tokenAddToMetaMask?: Token
-  /** Optional follow-up offered above Close, e.g. protecting the token just bought. */
-  extraAction?: React.ReactNode
-}
+type TransactionSubmittedProps = PropsWithChildren<{
+  onDismiss?: () => void
+  txHash: string
+  explorerUrl?: string
+  chainId?: ChainId
+  tokenToAdd?: Token
+  /** Optional follow-up offered to the left of Close, e.g. protecting the token just bought. */
+  secondaryAction?: React.ReactNode
+}>
 
-export function TransactionSubmittedContent({
+const TransactionSubmitted = ({
   onDismiss,
-  chainId,
-  hash,
-  tokenAddToMetaMask,
-  submittedDetails,
-  scanLink,
-  extraAction,
-}: TransactionSubmittedContentProps) {
-  return (
-    <div className="w-full overflow-y-auto">
-      <Stack className="gap-2 p-5">
-        <RowBetween className="min-h-6 shrink-0">
-          <div />
-          <CloseIcon onClick={onDismiss} />
-        </RowBetween>
+  chainId: sourceChainId,
+  txHash,
+  tokenToAdd,
+  children,
+  explorerUrl,
+  secondaryAction,
+}: TransactionSubmittedProps) => {
+  const { chainId: activeChainId } = useActiveWeb3React()
+  const chainId = sourceChainId ?? activeChainId
 
-        <Stack className="items-center gap-4 text-center">
-          <ArrowUpCircle strokeWidth={0.5} className="size-12 shrink-0 text-primary" />
-          <Stack className="w-full items-center gap-[5px]">
-            <span className="text-base font-medium leading-6">
-              <Trans>Transaction Submitted</Trans>
-            </span>
-            {hash && (
-              <ExternalLinkNoLineHeight href={scanLink || getEtherscanLink(chainId, hash, 'transaction')}>
-                <span className="text-sm font-medium text-primary">
-                  <Trans>View transaction</Trans>
-                </span>
-              </ExternalLinkNoLineHeight>
-            )}
-          </Stack>
-          {submittedDetails}
-          {tokenAddToMetaMask?.address && <AddTokenToInjectedWallet token={tokenAddToMetaMask} chainId={chainId} />}
-          <Stack className="w-full items-center gap-2">
-            {extraAction}
+  return (
+    <TransactionStatusLayout
+      title={<Trans>Transaction Submitted</Trans>}
+      icon={<ArrowUpCircle strokeWidth={1} className="size-12 shrink-0 text-primary" />}
+      onDismiss={onDismiss}
+      actions={
+        <Stack className="w-full items-center gap-3">
+          {tokenToAdd?.address && <AddTokenToInjectedWallet token={tokenToAdd} chainId={chainId} />}
+          <div className="grid w-full auto-cols-fr grid-flow-col items-stretch gap-2">
+            {secondaryAction}
             <ButtonPrimary onClick={onDismiss}>
               <Trans>Close</Trans>
             </ButtonPrimary>
-          </Stack>
+          </div>
         </Stack>
+      }
+    >
+      <Stack className="w-full items-center gap-2">
+        {children}
+        {txHash && (
+          <ExternalLinkNoLineHeight href={explorerUrl || getEtherscanLink(chainId, txHash, 'transaction')}>
+            <span className="text-sm font-medium">
+              <Trans>View transaction</Trans>
+            </span>
+          </ExternalLinkNoLineHeight>
+        )}
       </Stack>
-    </div>
+    </TransactionStatusLayout>
   )
 }
 
 type ConfirmationModalContentProps = {
   title: string
   showGridListOption?: boolean
-  onDismiss: () => void
+  onDismiss?: () => void
   topContent: () => React.ReactNode
   bottomContent: () => React.ReactNode
 }
@@ -198,7 +230,7 @@ export function ConfirmationModalContent({
 
 type TransactionErrorContentProps = {
   message: string
-  onDismiss: () => void
+  onDismiss?: () => void
   confirmAction?: () => void
   confirmText?: string
   confirmBtnStyle?: React.CSSProperties
@@ -206,7 +238,7 @@ type TransactionErrorContentProps = {
   suggestionMessage?: React.ReactNode
 }
 
-export function TransactionErrorContent({
+export const TransactionErrorContent = ({
   message,
   onDismiss,
   confirmAction,
@@ -214,119 +246,99 @@ export function TransactionErrorContent({
   confirmBtnStyle,
   dismissBtnStyle,
   suggestionMessage,
-}: TransactionErrorContentProps) {
+}: TransactionErrorContentProps) => {
   const [showDetail, setShowDetail] = useState<boolean>(false)
 
   return (
-    <div className="w-full overflow-y-auto">
-      <Stack className="gap-2 p-5">
-        <RowBetween className="min-h-6 shrink-0">
-          <span className="text-xl font-medium leading-none">
-            <Trans>Error</Trans>
-          </span>
-          <CloseIcon onClick={onDismiss} />
-        </RowBetween>
-        <Stack className="items-center gap-4 text-center">
-          <Alert className="size-12 shrink-0" />
-          <Stack className="w-full items-center gap-[5px]">
-            <span className="text-base font-medium leading-6 text-red">{friendlyError(message)}</span>
-            {message !== friendlyError(message) && (
-              <Stack className="w-full items-center">
-                <span
-                  className="cursor-pointer text-sm font-medium text-primary hover:text-primary/80"
-                  onClick={() => setShowDetail(prev => !prev)}
-                >
-                  {showDetail ? t`Show less` : t`Show more`}
-                </span>
-                <Collapse open={showDetail} className="w-full" contentGap={2}>
-                  <div className="max-h-[200px] w-full overflow-y-scroll break-words rounded bg-buttonBlack/40 p-3 text-center text-[10px] leading-4 text-text">
-                    {typeof message === 'string' ? message : JSON.stringify(message)}
-                  </div>
-                </Collapse>
-              </Stack>
-            )}
-            {suggestionMessage}
+    <TransactionStatusLayout
+      title={<Trans>Error</Trans>}
+      icon={<Alert className="size-12 shrink-0" />}
+      onDismiss={onDismiss}
+      actions={
+        <HStack className="w-full gap-2">
+          {confirmAction && confirmText ? (
+            <ButtonOutlined onClick={onDismiss} style={dismissBtnStyle}>
+              <Trans>Dismiss</Trans>
+            </ButtonOutlined>
+          ) : (
+            <ButtonPrimary onClick={onDismiss} style={dismissBtnStyle}>
+              <Trans>Dismiss</Trans>
+            </ButtonPrimary>
+          )}
+          {confirmAction && confirmText && (
+            <ButtonPrimary onClick={confirmAction} style={confirmBtnStyle}>
+              {confirmText}
+            </ButtonPrimary>
+          )}
+        </HStack>
+      }
+    >
+      <Stack className="w-full items-center gap-2">
+        <span className="text-base font-medium text-red">{friendlyError(message)}</span>
+        {message !== friendlyError(message) && (
+          <Stack className="w-full items-center">
+            <button
+              type="button"
+              className="text-sm font-medium text-primary hover:text-primary/80"
+              onClick={() => setShowDetail(prev => !prev)}
+            >
+              {showDetail ? t`Show less` : t`Show more`}
+            </button>
+            <Collapse open={showDetail} className="w-full" contentGap={2}>
+              <div className="max-h-[200px] w-full overflow-y-scroll break-words rounded bg-buttonBlack/40 p-2 text-center text-xs font-medium text-subText">
+                {typeof message === 'string' ? message : JSON.stringify(message)}
+              </div>
+            </Collapse>
           </Stack>
-
-          <HStack className="w-full gap-2">
-            {confirmAction && confirmText ? (
-              <ButtonOutlined onClick={onDismiss} style={dismissBtnStyle}>
-                <Trans>Dismiss</Trans>
-              </ButtonOutlined>
-            ) : (
-              <ButtonPrimary onClick={onDismiss} style={dismissBtnStyle}>
-                <Trans>Dismiss</Trans>
-              </ButtonPrimary>
-            )}
-            {confirmAction && confirmText && (
-              <ButtonPrimary onClick={confirmAction} style={confirmBtnStyle}>
-                {confirmText}
-              </ButtonPrimary>
-            )}
-          </HStack>
-        </Stack>
+        )}
+        {suggestionMessage}
       </Stack>
-    </div>
+    </TransactionStatusLayout>
   )
 }
 
-type TransactionConfirmationModalProps = {
-  submittedDetails?: React.ReactNode
-  isOpen: boolean
-  onDismiss: () => void
-  hash: string | undefined
-  content: () => React.ReactNode
-  attemptingTxn: boolean
-  attemptingTxnContent?: () => React.ReactNode
-  pendingText: string | React.ReactNode
-  tokenAddToMetaMask?: Currency
-  maxWidth?: string | number
-  width?: string
-  scanLink?: string
-}
+type Props = PropsWithChildren<{
+  isOpen?: boolean
+  onDismiss?: () => void
+}> &
+  (
+    | { mode: typeof Mode.CUSTOM }
+    | { mode: typeof Mode.PENDING; phase: PendingPhase }
+    | {
+        mode: typeof Mode.SUBMITTED
+        txHash: string
+        chainId?: ChainId
+        explorerUrl?: string
+        tokenToAdd?: Token
+        secondaryAction?: React.ReactNode
+      }
+  )
 
-export default function TransactionConfirmationModal({
-  isOpen,
-  onDismiss,
-  scanLink,
-  attemptingTxn,
-  attemptingTxnContent,
-  submittedDetails,
-  hash,
-  pendingText,
-  content,
-  tokenAddToMetaMask,
-  maxWidth = 420,
-  width,
-}: TransactionConfirmationModalProps) {
-  const { chainId } = useActiveWeb3React()
+const TransactionConfirmationModal = (props: Props) => {
+  const { isOpen = false, onDismiss, children } = props
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onDismiss={onDismiss}
-      maxHeight={90}
-      maxWidth={!attemptingTxn && !hash ? maxWidth : undefined}
-      width={!attemptingTxn && !hash ? width : undefined}
-    >
-      {attemptingTxn ? (
-        attemptingTxnContent ? (
-          attemptingTxnContent()
-        ) : (
-          <ConfirmationPendingContent onDismiss={onDismiss} pendingText={pendingText} />
-        )
-      ) : hash ? (
-        <TransactionSubmittedContent
-          chainId={chainId}
-          scanLink={scanLink}
-          hash={hash}
+    <Modal isOpen={isOpen} onDismiss={onDismiss} maxHeight={90}>
+      {props.mode === Mode.PENDING ? (
+        <TransactionPending phase={props.phase} onDismiss={onDismiss}>
+          {children}
+        </TransactionPending>
+      ) : props.mode === Mode.SUBMITTED ? (
+        <TransactionSubmitted
+          txHash={props.txHash}
+          chainId={props.chainId}
+          explorerUrl={props.explorerUrl}
+          tokenToAdd={props.tokenToAdd}
+          secondaryAction={props.secondaryAction}
           onDismiss={onDismiss}
-          tokenAddToMetaMask={tokenAddToMetaMask as Token}
-          submittedDetails={submittedDetails}
-        />
+        >
+          {children}
+        </TransactionSubmitted>
       ) : (
-        content()
+        children
       )}
     </Modal>
   )
 }
+
+export default TransactionConfirmationModal

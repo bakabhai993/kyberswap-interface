@@ -24,7 +24,13 @@ export const CrossChainRecipient = () => {
 
 type Props = Pick<
   ReturnType<typeof useCrossChainRecipient>,
-  'recipient' | 'recipientError' | 'recipientAddressType' | 'setRecipient' | 'showRecipientInput' | 'toggleRecipient'
+  | 'recipient'
+  | 'recipientError'
+  | 'recipientAddressType'
+  | 'setRecipient'
+  | 'showRecipientInput'
+  | 'toggleRecipient'
+  | 'closeRecipient'
 > & { hideLabel?: boolean; onToggle?: () => void; onPaste?: ClipboardEventHandler<HTMLInputElement> }
 
 export const CrossChainRecipientInput = ({
@@ -37,6 +43,7 @@ export const CrossChainRecipientInput = ({
   toggleRecipient,
   onToggle,
   onPaste,
+  closeRecipient,
 }: Props) => (
   <RecipientInput
     {...recipientAddressType}
@@ -47,5 +54,6 @@ export const CrossChainRecipientInput = ({
     onChange={setRecipient}
     onToggle={onToggle ?? toggleRecipient}
     onPaste={onPaste}
+    onClose={closeRecipient}
   />
 )

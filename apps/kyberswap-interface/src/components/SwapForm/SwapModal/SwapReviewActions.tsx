@@ -140,10 +140,12 @@ const SwapReviewActions = ({
     reservedOrderLink,
     reservedStopMarketLink,
   } = review
+
   const shouldDisableConfirmButton = isBuildingRoute || !!buildError
   const isSlippageNotEnough = isSlippageBuildError(buildError)
   const disableSwap = (isShowAcceptNewAmount && !hasAcceptedNewAmount) || shouldDisableConfirmButton
   const disableAcceptNewAmount = hasAcceptedNewAmount
+
   return (
     <div className="flex flex-col gap-4">
       <SlippageWarningNote rawSlippage={slippage} />
@@ -179,7 +181,7 @@ const SwapReviewActions = ({
           </div>
         ) : (
           <ButtonPrimary onClick={onDismissBuildError}>
-            <span className="text-sm font-medium leading-none">{honeypot?.isFOT ? 'Adjust Settings' : 'Dismiss'}</span>
+            <span className="text-sm font-medium">{honeypot?.isFOT ? 'Adjust Settings' : 'Dismiss'}</span>
           </ButtonPrimary>
         )
       ) : (
@@ -205,19 +207,9 @@ const SwapReviewActions = ({
             id="confirm-swap-or-send"
             className="flex items-center gap-1"
           >
-            {shouldDisableConfirmButton ? (
-              <span className="text-sm font-medium leading-none">
-                <Trans>Swap</Trans>
-              </span>
-            ) : disableSwap ? (
-              <span>
-                <Trans>Confirm Swap</Trans>
-              </span>
-            ) : (
-              <span className="text-sm font-medium leading-none">
-                <Trans>Confirm Swap</Trans>
-              </span>
-            )}
+            <span className="text-sm font-medium">
+              <Trans>Confirm Swap</Trans>
+            </span>
           </ButtonError>
         </div>
       )}

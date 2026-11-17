@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 
 export type RecipientAddressType = { mode: 'evm' } | { mode: 'nonEvm'; networkName: string }
 
-/** null follows the connected wallet; a non-empty string is an explicit recipient. */
+/** null follows the connected wallet; a string keeps the custom recipient input active, including an empty draft. */
 export type EvmRecipient = ReturnType<typeof useLocalEvmRecipient>
 
 export const useEvmRecipient = (account?: string, shared?: EvmRecipient): EvmRecipient => {
@@ -16,11 +16,15 @@ const useLocalEvmRecipient = (account?: string) => {
 
   return useMemo(
     () => ({
-      recipient: customRecipient ?? account ?? '',
+      recipient: customRecipient || account || '',
       inputValue: customRecipient ?? '',
-      hasCustomRecipient: customRecipient !== null,
+      recipientInputEnabled: customRecipient !== null,
       expanded,
-      setRecipient: (value: string) => setCustomRecipient(value || null),
+      setRecipient: (value: string) => setCustomRecipient(value),
+      closeRecipient: () => {
+        setCustomRecipient(null)
+        setExpanded(false)
+      },
       useMyWallet: () => setCustomRecipient(null),
       toggleExpanded: () => setExpanded(previous => !previous),
       applyRecipient: (value: string) => {

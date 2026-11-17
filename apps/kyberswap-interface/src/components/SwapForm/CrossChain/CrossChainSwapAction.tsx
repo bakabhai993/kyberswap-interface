@@ -27,8 +27,7 @@ export const CrossChainSwapAction = () => {
     openReview,
     closeReview,
     isSubmitting,
-    txHash,
-    txError,
+    submission,
     confirmSwap,
     priceImpactAction,
     reviewHasVeryHighPriceImpact,
@@ -212,9 +211,7 @@ export const CrossChainSwapAction = () => {
       <CrossChainSwapConfirmation
         quote={reviewQuote}
         isOpen={showPreview}
-        isSubmitting={isSubmitting}
-        txHash={txHash}
-        txError={txError}
+        submission={submission}
         hasVeryHighPriceImpact={reviewHasVeryHighPriceImpact}
         onConfirm={confirmSwap}
         onDismiss={closeReview}

@@ -126,7 +126,10 @@ Valid uppercase or unprefixed EVM input is normalized to its checksummed `0x`
 address before storing the recipient. Prefixed lowercase addresses, ENS names,
 incomplete input, and invalid checksums remain unchanged.
 EVM-to-EVM forms initially hide recipient controls until a custom address is applied.
-Clearing the input restores the selected wallet; collapsing does not change the recipient.
+Clearing the input restores the selected wallet while keeping the input enabled.
+Close clears and disables the input; collapse only changes its expanded state.
+Recipient hooks own these states and derive the active address source separately,
+so an empty draft uses the connected wallet icon rather than the pasted-address icon.
 The setting is disabled for wrap/unwrap, which receives into the connected wallet.
 Recipient resolution is shared by Settings and the form: ENS resolves through its
 registered resolver on Ethereum before quote/build, with default RPC retries as in
@@ -174,6 +177,13 @@ setting and rebuilds the route.
 value and records the hash and captured swap metadata in `state/transactions`.
 Dismissal detaches review UI callbacks; submission still owns persistence if the
 wallet returns a hash afterward.
+
+Both swap modes share preparing, wallet-confirmation and submitted presentation.
+Cross-chain execution observes signing at the wallet boundary, including SDK-created
+clients, and publishes submitted as soon as the adapter reports the source swap hash.
+Approval hashes do not count as submitted swaps. Provider confirmation continues
+independently; closing the modal detaches UI updates without dropping the transaction.
+Submitted is not settlement: processing/history owns the final outcome.
 
 ## Cross-chain flow
 

@@ -33,9 +33,10 @@ export const SingleChainSwapContent = ({ isCurrencyLoading = false }: { isCurren
     recipientError,
     recipientMessage,
     onRecipientChange,
-    hasCustomRecipient,
+    recipientInputEnabled,
     showRecipientInput,
     toggleRecipient,
+    closeRecipient,
     parsedAmount,
     wrapType,
     wrapInputError,
@@ -93,12 +94,12 @@ export const SingleChainSwapContent = ({ isCurrencyLoading = false }: { isCurren
           <SingleChainQuoteDetails
             chainId={chainId}
             recipientToggle={
-              hasCustomRecipient ? (
+              recipientInputEnabled ? (
                 <RecipientToggle expanded={showRecipientInput} onToggle={toggleRecipient} />
               ) : undefined
             }
             recipient={
-              hasCustomRecipient ? (
+              recipientInputEnabled ? (
                 <RecipientInput
                   hideLabel
                   mode="evm"
@@ -107,6 +108,7 @@ export const SingleChainSwapContent = ({ isCurrencyLoading = false }: { isCurren
                   error={recipientError}
                   onChange={onRecipientChange}
                   onToggle={toggleRecipient}
+                  onClose={closeRecipient}
                 />
               ) : undefined
             }

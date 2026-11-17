@@ -22,7 +22,7 @@ const UpdatedBadge = ({ $level, outputAmount }: Props) => {
     <div
       data-level={$level}
       className={cn(
-        'flex items-center gap-1 rounded-[36px] px-2 py-1 text-xs font-normal leading-none',
+        'flex items-center gap-1 rounded-[36px] px-2 py-1 text-xs font-normal',
         $level === 'worst' && 'bg-red-10 text-red',
         $level === 'worse' && 'bg-warning-10 text-warning',
         $level === 'better' && 'bg-primary-10 text-primary',

@@ -9,7 +9,12 @@ import { RecipientAddressInput } from './RecipientInput'
 import { RecipientAddressType, useEvmRecipient } from './hooks/useEvmRecipient'
 
 vi.mock('components/AddressInputPanel', () => ({
-  AddressInput: ({ value, onChange }: any) => <input value={value} onInput={onChange} />,
+  AddressInput: ({ value, onChange, icon }: any) => (
+    <div>
+      <input value={value} onInput={onChange} />
+      {icon}
+    </div>
+  ),
 }))
 vi.mock('components/Tooltip', () => ({ MouseoverTooltip: () => null }))
 vi.mock('components/Collapse', () => ({ Collapse: () => null }))
@@ -84,4 +89,21 @@ it('does not checksum a non-EVM recipient that also looks like EVM hex', async (
     input.dispatchEvent(new Event('input', { bubbles: true }))
   })
   expect(input.value).toBe(value)
+})
+
+it.each(['', 'alice.eth'])('closes the recipient independently of its value (%s)', async value => {
+  const onClose = vi.fn()
+  const onChange = vi.fn()
+  await act(async () => {
+    root.render(
+      <I18nProvider i18n={i18n}>
+        <RecipientAddressInput mode="evm" value={value} onChange={onChange} onClose={onClose} />
+      </I18nProvider>,
+    )
+  })
+  const close = container.querySelector('button')
+  if (!close) throw new Error('Recipient close button missing')
+  await act(async () => close.click())
+  expect(onClose).toHaveBeenCalledOnce()
+  expect(onChange).not.toHaveBeenCalled()
 })

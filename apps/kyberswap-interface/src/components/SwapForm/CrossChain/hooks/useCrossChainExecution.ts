@@ -24,6 +24,13 @@ import { outboxKey } from 'state/crossChainSwap/model'
 import { useAppDispatch } from 'state/hooks'
 import { NonEvmChain, type NormalizedTxResponse, isEvmChain } from 'types/crossChain'
 
+import { observeEvmWalletSigning, observeWalletSigning } from './observeWalletSigning'
+
+export type CrossChainSubmission =
+  | { phase: 'idle' | 'preparing' | 'signing' }
+  | { phase: 'submitted'; txHash: string }
+  | { phase: 'error'; error: string }
+
 /**
  * Owns execution and persistence. Unified Swap supplies the current input
  * connection; legacy callers keep the existing global-wallet fallback.
@@ -37,9 +44,11 @@ export const useCrossChainExecution = (
   const { data: walletClient } = useGatedWalletClient()
 
   const [searchParams] = useSearchParams()
-  const [isSubmitting, setSubmittingTx] = useState(false)
-  const [txHash, setTxHash] = useState('')
-  const [txError, setTxError] = useState('')
+  const [submission, setSubmission] = useState<CrossChainSubmission>({ phase: 'idle' })
+  const submissionPhase = submission.phase
+  const isSubmitting = submissionPhase === 'preparing' || submissionPhase === 'signing'
+  const txHash = submission.phase === 'submitted' ? submission.txHash : ''
+  const txError = submission.phase === 'error' ? submission.error : ''
 
   const activeSubmission = useRef<symbol | null>(null)
 
@@ -76,13 +85,16 @@ export const useCrossChainExecution = (
       : nearWallet
   const activeBitcoinWallet = inputConnection?.family === NonEvmChain.Bitcoin ? inputConnection.wallet : undefined
 
-  const sendBtcFn = async (params: { recipient: string; amount: string | number }) => {
+  const sendBtcFn = async (
+    params: { recipient: string; amount: string | number },
+    onSigning: (signing: boolean) => void,
+  ) => {
     const feeRate = await fetch('https://mempool.space/api/v1/fees/recommended').then(res => res.json())
 
     const selectedWallet = activeBitcoinWallet || availableWallets.find(item => item.type === walletInfo.walletType)
     if (!selectedWallet) throw new Error('Not connected wallet')
 
-    return selectedWallet.sendBitcoin({
+    return observeWalletSigning(selectedWallet, ['sendBitcoin'], onSigning).sendBitcoin({
       ...params,
       sender: inputConnection?.family === NonEvmChain.Bitcoin ? inputAddress : walletInfo?.address || undefined,
       ...(feeRate?.fastestFee
@@ -110,7 +122,7 @@ export const useCrossChainExecution = (
     const amount = formatUnits(BigInt(amountInWei), currencyIn.decimals)
 
     if (isEvmChain(fromChainId) && !walletClient) {
-      setTxError(t`The route is outdated. Please refresh and try again.`)
+      setSubmission({ phase: 'error', error: t`The route is outdated. Please refresh and try again.` })
       return
     }
 
@@ -132,9 +144,43 @@ export const useCrossChainExecution = (
       !executionSender ||
       !isQuoteExecutable(selectedQuote, executionSender, receiver)
     ) {
-      setTxError(t`The route is outdated. Please refresh and try again.`)
+      setSubmission({ phase: 'error', error: t`The route is outdated. Please refresh and try again.` })
       return
     }
+
+    const submissionId = Symbol('cross-chain submission')
+    activeSubmission.current = submissionId
+    const isCurrentSubmission = () => activeSubmission.current === submissionId
+
+    setSubmission({ phase: 'preparing' })
+
+    let broadcastHash = ''
+    let capturedOutboxKey: string | undefined
+
+    const onSigning = (signing: boolean) => {
+      if (isCurrentSubmission() && !broadcastHash) setSubmission({ phase: signing ? 'signing' : 'preparing' })
+    }
+    const executionWallet = walletClient ? observeEvmWalletSigning(walletClient, onSigning) : walletClient
+    const executionSolanaWallet = observeWalletSigning(
+      activeSolanaWallet,
+      ['signTransaction', 'signAllTransactions'],
+      onSigning,
+    )
+    const executionNearWallet = {
+      ...activeNearWallet,
+      wallet: activeNearWallet.wallet
+        ? observeWalletSigning(
+            activeNearWallet.wallet,
+            ['signAndSendTransactions', 'signAndSendTransaction'],
+            onSigning,
+          )
+        : activeNearWallet.wallet,
+    }
+    const executionSendTransaction = observeWalletSigning(
+      { sendTransaction },
+      ['sendTransaction'],
+      onSigning,
+    ).sendTransaction
 
     const adaptedWallet = adaptRelaySolanaWallet(
       solanaAddress?.toString() || '1nc1nerator11111111111111111111111111111111',
@@ -143,7 +189,7 @@ export const useCrossChainExecution = (
       async (transaction, options) => {
         try {
           if (transaction instanceof VersionedTransaction || transaction instanceof Transaction) {
-            const signature = await sendTransaction(transaction, connection, options)
+            const signature = await executionSendTransaction(transaction, connection, options)
             return { signature }
           } else {
             throw new Error('Invalid transaction type')
@@ -154,16 +200,6 @@ export const useCrossChainExecution = (
         }
       },
     )
-
-    const submission = Symbol('cross-chain submission')
-    activeSubmission.current = submission
-    const isCurrentSubmission = () => activeSubmission.current === submission
-
-    setSubmittingTx(true)
-    setTxError('')
-
-    let broadcastHash = ''
-    let capturedOutboxKey: string | undefined
 
     // Broadcast persistence survives review dismissal; only UI updates depend on this submission still being current.
     const persistBroadcast = (transaction: NormalizedTxResponse) => {
@@ -192,7 +228,7 @@ export const useCrossChainExecution = (
       }
 
       dispatch(addTransaction({ ...transaction, sender: executionSender || transaction.sender }))
-      if (isCurrentSubmission()) setTxHash(broadcastHash)
+      if (isCurrentSubmission()) setSubmission({ phase: 'submitted', txHash: broadcastHash })
       if (alreadyCaptured) return
 
       const swapDetails = {
@@ -240,7 +276,8 @@ export const useCrossChainExecution = (
       if (isEvmChain(fromChainId)) {
         const blackjackRes = await checkBlackjack(sender)
         if (blackjackRes?.data?.blacklisted) {
-          if (isCurrentSubmission()) setTxError('There was an error with your transaction.')
+          if (isCurrentSubmission())
+            setSubmission({ phase: 'error', error: t`There was an error with your transaction.` })
           return
         }
       }
@@ -250,11 +287,11 @@ export const useCrossChainExecution = (
         fromChainId === 'solana'
           ? selectedQuote.adapter.getName() === 'Relay' // for backward compatibility
             ? adaptedWallet
-            : (activeSolanaWallet as any)
-          : (walletClient as any),
-        activeNearWallet,
-        sendBtcFn,
-        sendTransaction,
+            : (executionSolanaWallet as any)
+          : (executionWallet as any),
+        executionNearWallet,
+        params => sendBtcFn(params, onSigning),
+        executionSendTransaction,
         connection,
         // Legacy pages retain local-only history, including MyNearWallet redirects.
         syncWithBackend
@@ -307,8 +344,6 @@ export const useCrossChainExecution = (
 
         persistBroadcast(enriched)
       }
-
-      if (isCurrentSubmission()) setTxHash(res?.sourceTxHash || '')
     } catch (error) {
       const errorMessage =
         (typeof error === 'string' ? error : error?.message) || t`An error occurred. Refresh the page and try again.`
@@ -317,7 +352,7 @@ export const useCrossChainExecution = (
       // remains in the outbox and the independent status controller continues.
       if (broadcastHash) return
 
-      if (isCurrentSubmission()) setTxError(errorMessage)
+      if (isCurrentSubmission()) setSubmission({ phase: 'error', error: errorMessage })
 
       trackingHandler(TRACKING_EVENT_TYPE.CC_SWAP_FAILED, {
         from_token: currencyIn.symbol,
@@ -332,7 +367,9 @@ export const useCrossChainExecution = (
     } finally {
       if (isCurrentSubmission()) {
         activeSubmission.current = null
-        setSubmittingTx(false)
+        setSubmission(previous =>
+          previous.phase === 'preparing' || previous.phase === 'signing' ? { phase: 'idle' } : previous,
+        )
       }
     }
   }
@@ -340,9 +377,7 @@ export const useCrossChainExecution = (
   const resetSubmission = useCallback(() => {
     // Closing a review detaches its UI; an in-flight transaction still records its result in history.
     activeSubmission.current = null
-    setTxHash('')
-    setTxError('')
-    setSubmittingTx(false)
+    setSubmission({ phase: 'idle' })
   }, [])
 
   useEffect(() => {
@@ -353,5 +388,5 @@ export const useCrossChainExecution = (
     }
   }, [reviewedQuote, resetSubmission])
 
-  return { isSubmitting, txHash, txError, submitSwap, resetSubmission }
+  return { submission, isSubmitting, submissionPhase, txHash, txError, submitSwap, resetSubmission }
 }

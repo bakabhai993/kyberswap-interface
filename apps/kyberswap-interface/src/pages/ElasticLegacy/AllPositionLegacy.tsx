@@ -11,7 +11,11 @@ import CopyHelper from 'components/Copy'
 import CurrencyLogo from 'components/CurrencyLogo'
 import Divider from 'components/Divider'
 import DoubleCurrencyLogo from 'components/DoubleLogo'
-import TransactionConfirmationModal, { TransactionErrorContent } from 'components/TransactionConfirmationModal'
+import TransactionConfirmationModal, {
+  Mode,
+  Phase,
+  TransactionErrorContent,
+} from 'components/TransactionConfirmationModal'
 import { ELASTIC_BASE_FEE_UNIT } from 'constants/legacyPools'
 import { useActiveWeb3React } from 'hooks'
 import {
@@ -281,10 +285,19 @@ const Row = memo(
         <TransactionConfirmationModal
           isOpen={!!showPendingModal}
           onDismiss={handleDismiss}
-          hash={txnHash}
-          attemptingTxn={attemptingTxn}
-          pendingText={showPendingModal === 'collectFee' ? t`Collecting Fees` : t`Removing liquidity`}
-          content={() => (
+          {...(attemptingTxn
+            ? { mode: Mode.PENDING, phase: Phase.SIGNING }
+            : txnHash
+            ? { mode: Mode.SUBMITTED, txHash: txnHash }
+            : { mode: Mode.CUSTOM })}
+        >
+          {attemptingTxn ? (
+            showPendingModal === 'collectFee' ? (
+              t`Collecting Fees`
+            ) : (
+              t`Removing liquidity`
+            )
+          ) : txnHash ? null : (
             <div className="flex w-full flex-col">
               {removeLiquidityError ? (
                 <TransactionErrorContent
@@ -302,7 +315,7 @@ const Row = memo(
               ) : null}
             </div>
           )}
-        />
+        </TransactionConfirmationModal>
       </div>
     )
   },

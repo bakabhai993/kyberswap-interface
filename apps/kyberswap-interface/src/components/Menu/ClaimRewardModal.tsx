@@ -4,7 +4,11 @@ import { ButtonPrimary } from 'components/Button'
 import CurrencyLogo from 'components/CurrencyLogo'
 import { useClaimReward } from 'components/Menu/hooks/useClaimReward'
 import { HStack, Stack } from 'components/Stack'
-import TransactionConfirmationModal, { TransactionErrorContent } from 'components/TransactionConfirmationModal'
+import TransactionConfirmationModal, {
+  Mode,
+  Phase,
+  TransactionErrorContent,
+} from 'components/TransactionConfirmationModal'
 import { KNC } from 'constants/tokens'
 import { useActiveWeb3React } from 'hooks'
 import { ApplicationModal } from 'state/application/actions'
@@ -80,11 +84,14 @@ const ClaimRewardModal = () => {
       onDismiss={() => {
         toggle()
       }}
-      attemptingTxn={attemptingTxn}
-      hash={txHash}
-      content={modalContent}
-      pendingText={t`Claiming ${rewardAmounts} KNC`}
-    />
+      {...(attemptingTxn
+        ? { mode: Mode.PENDING, phase: Phase.SIGNING }
+        : txHash
+        ? { mode: Mode.SUBMITTED, txHash }
+        : { mode: Mode.CUSTOM })}
+    >
+      {attemptingTxn ? t`Claiming ${rewardAmounts} KNC` : txHash ? null : modalContent()}
+    </TransactionConfirmationModal>
   )
 }
 

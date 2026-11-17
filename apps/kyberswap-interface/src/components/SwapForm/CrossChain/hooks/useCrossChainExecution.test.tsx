@@ -9,6 +9,8 @@ import type { NormalizedTxResponse } from 'types/crossChain'
 
 const mocks = vi.hoisted(() => ({
   wallets: undefined as any,
+  sendTransaction: vi.fn(),
+  request: vi.fn(),
   execute: vi.fn(),
   enqueue: vi.fn(),
   dispatch: vi.fn(),
@@ -25,7 +27,13 @@ vi.mock('components/Web3Provider/BitcoinProvider', () => ({
   useBitcoinWallet: () => ({ walletInfo: {}, availableWallets: [] }),
 }))
 vi.mock('hooks/useGatedWalletClient', () => ({
-  useGatedWalletClient: () => ({ data: { account: { address: 'sender' } } }),
+  useGatedWalletClient: () => ({
+    data: {
+      account: { address: 'sender' },
+      sendTransaction: mocks.sendTransaction,
+      transport: { request: mocks.request },
+    },
+  }),
 }))
 vi.mock('react-router-dom', () => ({ useSearchParams: () => [new URLSearchParams()] }))
 vi.mock('services/blackjack', () => ({
@@ -131,6 +139,8 @@ it('persists broadcast before confirmation, retaining reviewed identity even whe
   )
   const captured = mocks.enqueue.mock.calls[0][0].transaction
   expect(execution.txHash).toBe('real-source-hash')
+  expect(execution.submissionPhase).toBe('submitted')
+  expect(execution.isSubmitting).toBe(false)
   expect(mocks.onSubmit).toHaveBeenCalledOnce()
   expect(mocks.track).toHaveBeenCalledOnce()
   await render(null)
@@ -263,6 +273,7 @@ it.each(['near', 'solana', 'bitcoin'] as const)(
       signAndSendTransactions: vi.fn(),
       publicKey: { toString: () => 'slot-sender' },
       sendTransaction: vi.fn(),
+      request: vi.fn(),
       signTransaction: vi.fn(function (this: unknown) {
         return this
       }),
@@ -273,10 +284,11 @@ it.each(['near', 'solana', 'bitcoin'] as const)(
     Object.assign(quote.quote.quoteParams, { fromChain: family, sender: 'slot-sender' })
     mocks.execute.mockImplementation(async (...args) => {
       if (family === 'near') {
-        expect(args[2].wallet).toBe(signer)
+        await args[2].wallet.signAndSendTransactions({ transactions: [] })
+        expect(signer.signAndSendTransactions).toHaveBeenCalledOnce()
         expect(args[2].signedAccountId).toBe('slot-sender')
       } else if (family === 'solana') {
-        expect(args[1].signTransaction()).toBe(signer)
+        expect(await args[1].signTransaction()).toBe(signer)
       } else {
         vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ json: async () => ({ fastestFee: 2 }) }))
         await args[3]({ recipient: 'recipient', amount: '100' })
@@ -363,4 +375,121 @@ it.each(['broadcast', 'rejection'])('isolates a late %s from a newer pending sub
   expect(execution.isSubmitting).toBe(false)
   expect(execution.txError).toBe('')
   expect(mocks.onSubmit).toHaveBeenCalledTimes(2)
+})
+
+const deferred = <T,>() => {
+  let resolve!: (value: T) => void
+  let reject!: (error: Error) => void
+  const promise = new Promise<T>((yes, no) => {
+    resolve = yes
+    reject = no
+  })
+  return { promise, resolve, reject }
+}
+
+it('reports actual wallet prompts and never treats an approval hash as a submitted swap', async () => {
+  const prepared = deferred<void>()
+  const approval = deferred<string>()
+  const approvalConfirmed = deferred<void>()
+  const swap = deferred<string>()
+  const confirmation = deferred<NormalizedTxResponse>()
+  mocks.sendTransaction.mockReturnValueOnce(approval.promise).mockReturnValueOnce(swap.promise)
+  mocks.execute.mockImplementation(async (...args) => {
+    await prepared.promise
+    await args[1].sendTransaction({ data: 'approval' })
+    await approvalConfirmed.promise
+    const hash = await args[1].sendTransaction({ data: 'swap' })
+    args[6](hash)
+    return confirmation.promise
+  })
+  await render(makeQuote())
+  let submitted!: Promise<void>
+  await act(async () => {
+    submitted = execution.submitSwap()
+  })
+  expect(execution.submissionPhase).toBe('preparing')
+  expect(mocks.sendTransaction).not.toHaveBeenCalled()
+  await act(async () => prepared.resolve())
+  expect(execution.submissionPhase).toBe('signing')
+  await act(async () => approval.resolve('approval-hash'))
+  expect(execution.submissionPhase).toBe('preparing')
+  expect(execution.txHash).toBe('')
+  expect(mocks.enqueue).not.toHaveBeenCalled()
+  await act(async () => approvalConfirmed.resolve())
+  expect(execution.submissionPhase).toBe('signing')
+  await act(async () => swap.resolve('swap-hash'))
+  expect(execution.submissionPhase).toBe('submitted')
+  expect(execution.txHash).toBe('swap-hash')
+  await act(async () => execution.submitSwap())
+  expect(mocks.execute).toHaveBeenCalledOnce()
+  await act(async () => {
+    confirmation.reject(new Error('confirmation timeout'))
+    await submitted
+  })
+  expect(execution.submissionPhase).toBe('submitted')
+  expect(execution.txError).toBe('')
+})
+
+it('keeps a reopened review detached from late wallet and broadcast callbacks', async () => {
+  const signed = deferred<string>()
+  mocks.sendTransaction.mockReturnValue(signed.promise)
+  mocks.execute.mockImplementation(async (...args) => {
+    const hash = await args[1].sendTransaction({})
+    args[6](hash)
+    return { sourceTxHash: hash }
+  })
+  await render(makeQuote())
+  let submitted!: Promise<void>
+  await act(async () => {
+    submitted = execution.submitSwap()
+  })
+  expect(execution.submissionPhase).toBe('signing')
+  await render(null)
+  await render(makeQuote())
+  expect(execution.submissionPhase).toBe('idle')
+  await act(async () => {
+    signed.resolve('late-hash')
+    await submitted
+  })
+  expect(execution.submissionPhase).toBe('idle')
+  expect(execution.txHash).toBe('')
+  expect(mocks.enqueue).toHaveBeenCalledWith(
+    expect.objectContaining({ transaction: expect.objectContaining({ sourceTxHash: 'late-hash' }) }),
+  )
+})
+
+it('reports a wallet rejection before broadcast as an error', async () => {
+  mocks.sendTransaction.mockRejectedValue(new Error('User rejected'))
+  mocks.execute.mockImplementation(async (...args) => args[1].sendTransaction({}))
+  await render(makeQuote())
+  await act(async () => execution.submitSwap())
+  expect(execution.submissionPhase).toBe('error')
+  expect(execution.isSubmitting).toBe(false)
+  expect(execution.txHash).toBe('')
+  expect(execution.txError).toBe('User rejected')
+})
+
+it('observes SDK transport signing without showing confirmation during read-only RPC calls', async () => {
+  const read = deferred<string>()
+  const signed = deferred<string>()
+  mocks.request.mockReturnValueOnce(read.promise).mockReturnValueOnce(signed.promise)
+  mocks.execute.mockImplementation(async (...args) => {
+    await args[1].transport.request({ method: 'eth_chainId' })
+    const hash = await args[1].transport.request({ method: 'eth_sendTransaction', params: [{}] })
+    return { sourceTxHash: hash }
+  })
+  await render(makeQuote())
+  let submitted!: Promise<void>
+  await act(async () => {
+    submitted = execution.submitSwap()
+  })
+  expect(execution.submissionPhase).toBe('preparing')
+  await act(async () => read.resolve('0x1'))
+  expect(execution.submissionPhase).toBe('signing')
+  await act(async () => {
+    signed.resolve('sdk-hash')
+    await submitted
+  })
+  expect(execution.submissionPhase).toBe('submitted')
+  expect(execution.txHash).toBe('sdk-hash')
 })

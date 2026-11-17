@@ -75,7 +75,7 @@ it('preserves pasted text and collapse state across reverse and back', async () 
   mocks.wallets = { inputAddress: 'receiver.near', outputAddress: '0xapp', outputConnection: {} }
   await render(NonEvmChain.Near, 1)
   expect(result.recipientInputValue).toBe('paste.near')
-  expect(result.hasCustomRecipient).toBe(true)
+  expect(result.recipientInputEnabled).toBe(true)
   mocks.wallets = { inputAddress: '0xapp', outputAddress: 'receiver.near', outputConnection: {} }
   await render()
   expect(result.recipient).toBe('paste.near')
@@ -99,7 +99,7 @@ it('keeps the EVM receiver independent from the app connection for non-EVM input
   mocks.account = '0xchanged'
   await render(NonEvmChain.Near, 1)
   expect(result.recipient).toBe('0xreceiver')
-  expect(result.hasCustomRecipient).toBe(false)
+  expect(result.recipientInputEnabled).toBe(false)
 })
 it('preserves legacy EVM recipient behavior outside the wallet controller', async () => {
   mocks.wallets = undefined
@@ -116,7 +116,7 @@ it('preserves legacy EVM recipient behavior outside the wallet controller', asyn
 it('keeps the EVM input empty until edited while defaulting the receiver to the connected wallet', async () => {
   await render(1, 56)
   expect(result.recipientInputValue).toBe('')
-  expect(result.hasCustomRecipient).toBe(false)
+  expect(result.recipientInputEnabled).toBe(false)
   expect(result.showRecipientInput).toBe(false)
   expect(result.receiver).toBe('0xapp')
   expect(result.isReadOnly).toBe(false)
@@ -151,15 +151,30 @@ it.each([
   if (typeof from !== 'number' || typeof to !== 'number') expect(result.isPastedRecipient).toBe(true)
 })
 
-it('clearing the EVM input restores the connected wallet', async () => {
-  await render(1, 56)
-  await act(async () => result.applyRecipient('0xcustom'))
+it.each([
+  [1, 1],
+  [1, 56],
+  [1, NonEvmChain.Near],
+  [NonEvmChain.Near, 1],
+] as const)('keeps an empty draft until explicitly closed for %s to %s', async (from, to) => {
+  await render(from, to)
+  const walletRecipient = result.recipient
+  await act(async () => result.applyRecipient('custom-address'))
   await act(async () => result.setRecipient(''))
-  expect(result.recipient).toBe('0xapp')
+  expect(result.recipient).toBe(walletRecipient)
   expect(result.recipientInputValue).toBe('')
-  expect(result.hasCustomRecipient).toBe(false)
+  expect(result.isPastedRecipient).toBe(false)
+  expect(result.recipientInputEnabled).toBe(true)
   expect(result.showRecipientInput).toBe(true)
-  expect(result.isReadOnly).toBe(false)
+  await act(async () => result.toggleRecipient())
+  expect(result.showRecipientInput).toBe(false)
+  expect(result.recipientInputEnabled).toBe(true)
+  await act(async () => result.toggleRecipient())
+  expect(result.showRecipientInput).toBe(true)
+  await act(async () => result.closeRecipient())
+  expect(result.recipientInputEnabled).toBe(false)
+  expect(result.showRecipientInput).toBe(false)
+  expect(result.recipient).toBe(walletRecipient)
 })
 
 it('keeps ENS text in the form but uses its resolved address for quotes', async () => {
@@ -179,7 +194,7 @@ it('applying an empty recipient restores wallet mode', async () => {
   await act(async () => result.applyRecipient('paste.near'))
   await act(async () => result.applyRecipient(''))
   expect(result.recipient).toBe(wallet)
-  expect(result.hasCustomRecipient).toBe(false)
+  expect(result.recipientInputEnabled).toBe(false)
 })
 
 it('shares one EVM recipient draft across both quote modes', async () => {
@@ -197,4 +212,29 @@ it('shares one EVM recipient draft across both quote modes', async () => {
   await act(async () => result.setRecipient('0xupdated'))
   await act(async () => root.render(<SharedForm to={1} />))
   expect(result.recipientInputValue).toBe('0xupdated')
+})
+
+it('keeps an empty non-EVM draft open without a receiver wallet and resumes wallet mode on connection', async () => {
+  await render()
+  await act(async () => result.applyRecipient('paste.near'))
+  expect(result.isPastedRecipient).toBe(true)
+  mocks.wallets.outputAddress = ''
+  mocks.wallets.outputConnection = undefined
+  await act(async () => result.setRecipient(''))
+  expect(result.recipientInputEnabled).toBe(true)
+  expect(result.isPastedRecipient).toBe(false)
+  expect(result.recipient).toBe('')
+  expect(result.isReadOnly).toBe(true)
+
+  mocks.wallets.outputAddress = 'new.near'
+  mocks.wallets.outputConnection = { address: 'new.near' }
+  await render()
+  expect(result.recipient).toBe('new.near')
+  expect(result.isPastedRecipient).toBe(false)
+  expect(result.recipientInputEnabled).toBe(true)
+  expect(result.isReadOnly).toBe(false)
+
+  await act(async () => result.setRecipient('other.near'))
+  expect(result.recipient).toBe('other.near')
+  expect(result.isPastedRecipient).toBe(true)
 })

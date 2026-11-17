@@ -5,7 +5,11 @@ import { ButtonOutlined, ButtonPrimary } from 'components/Button'
 import CurrencyLogo from 'components/CurrencyLogo'
 import DoubleCurrencyLogo from 'components/DoubleLogo'
 import { MouseoverTooltip } from 'components/Tooltip'
-import TransactionConfirmationModal, { TransactionErrorContent } from 'components/TransactionConfirmationModal'
+import TransactionConfirmationModal, {
+  Mode,
+  Phase,
+  TransactionErrorContent,
+} from 'components/TransactionConfirmationModal'
 import { ELASTIC_BASE_FEE_UNIT } from 'constants/legacyPools'
 import { useActiveWeb3React } from 'hooks'
 import { Position as SubgraphPosition, usePositionFees, useRemoveLiquidityLegacy } from 'hooks/useElasticLegacy'
@@ -167,10 +171,15 @@ const Row = ({
       <TransactionConfirmationModal
         isOpen={!!showPendingModal}
         onDismiss={handleDismiss}
-        hash={txnHash}
-        attemptingTxn={attemptingTxn}
-        pendingText={t`Removing liquidity`}
-        content={() => (
+        {...(attemptingTxn
+          ? { mode: Mode.PENDING, phase: Phase.SIGNING }
+          : txnHash
+          ? { mode: Mode.SUBMITTED, txHash: txnHash }
+          : { mode: Mode.CUSTOM })}
+      >
+        {attemptingTxn ? (
+          t`Removing liquidity`
+        ) : txnHash ? null : (
           <div className="flex w-full flex-col">
             {removeLiquidityError ? (
               <TransactionErrorContent
@@ -188,7 +197,7 @@ const Row = ({
             ) : null}
           </div>
         )}
-      />
+      </TransactionConfirmationModal>
     </div>
   )
 }

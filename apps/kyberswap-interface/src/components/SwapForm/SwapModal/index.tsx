@@ -1,15 +1,14 @@
-import { Currency, CurrencyAmount, Token } from '@kyberswap/ks-sdk-core'
-import { t } from '@lingui/macro'
+import { Currency, CurrencyAmount } from '@kyberswap/ks-sdk-core'
 
-import Modal from 'components/Modal'
 import SetExitPriceButton from 'components/StopMarket/SetExitPriceButton'
 import { useSwapFormContext } from 'components/SwapForm/SwapFormContext'
 import SwapReviewContent from 'components/SwapForm/SwapModal/SwapReviewContent'
+import { SwapStatusAmount, SwapStatusAmounts } from 'components/SwapForm/SwapModal/SwapStatusAmounts'
 import type { SwapReviewState } from 'components/SwapForm/hooks/useSwapReviewSession'
-import {
-  ConfirmationPendingContent,
+import TransactionConfirmationModal, {
+  Mode,
+  Phase,
   TransactionErrorContent,
-  TransactionSubmittedContent,
 } from 'components/TransactionConfirmationModal'
 import { useActiveWeb3React } from 'hooks'
 import { getERC8056DisplayAmount } from 'hooks/useERC8056Token'
@@ -17,7 +16,7 @@ import { getCurrencyDisplaySymbol } from 'utils/tokenInfo'
 
 type SingleChainSwapModalProps = {
   isOpen: boolean
-  tokenAddToMetaMask: Currency | undefined
+  tokenToAdd: Currency | undefined
   review: SwapReviewState
   onConfirm?: () => void
   onDismiss?: () => void
@@ -26,46 +25,60 @@ type SingleChainSwapModalProps = {
 
 const SingleChainSwapModal = ({
   isOpen,
-  tokenAddToMetaMask,
-  onDismiss,
-  onConfirm,
-  onDismissError,
+  tokenToAdd,
   review,
+  onConfirm,
+  onDismiss,
+  onDismissError,
 }: SingleChainSwapModalProps) => {
-  const { buildResult, error, txHash, phase } = review
   const { chainId } = useActiveWeb3React()
   const { routeSummary, displayTypedValue, outputERC8056Info } = useSwapFormContext()
+
+  const { buildResult, error, txHash, phase } = review
+  const isSubmitting = phase === Phase.PREPARING || phase === Phase.SIGNING
+  const isSubmitted = !!txHash
+
   const currencyIn = routeSummary?.parsedAmountIn?.currency
   const currencyOut = routeSummary?.parsedAmountOut?.currency
 
   const amountOut = currencyOut && CurrencyAmount.fromRawAmount(currencyOut, buildResult?.data?.amountOut || '0')
-  const amountInDisplay = displayTypedValue || routeSummary?.parsedAmountIn?.toSignificant(6)
-  const symbolIn = getCurrencyDisplaySymbol(currencyIn)
-  const amountOutDisplay = getERC8056DisplayAmount(outputERC8056Info, amountOut)?.toSignificant(6)
-  const symbolOut = getCurrencyDisplaySymbol(currencyOut)
-
-  // text to show while loading
-  const pendingText = t`Swapping ${amountInDisplay} ${symbolIn} for ${amountOutDisplay} ${symbolOut}`
+  const input: SwapStatusAmount = {
+    currency: currencyIn,
+    chainId,
+    amount: displayTypedValue || routeSummary?.parsedAmountIn?.toSignificant(6),
+    symbol: getCurrencyDisplaySymbol(currencyIn),
+  }
+  const output: SwapStatusAmount = {
+    currency: currencyOut,
+    chainId,
+    amount: getERC8056DisplayAmount(outputERC8056Info, amountOut)?.toSignificant(6),
+    symbol: getCurrencyDisplaySymbol(currencyOut),
+  }
 
   return (
-    <Modal isOpen={isOpen} onDismiss={() => onDismiss?.()} maxHeight={90}>
-      {phase === 'preparing' || phase === 'signing' ? (
-        <ConfirmationPendingContent
-          onDismiss={() => onDismiss?.()}
-          pendingText={pendingText}
-          title={phase === 'signing' ? undefined : t`Preparing Transaction`}
-          subtitle={phase === 'signing' ? undefined : t`Estimating gas & network fees…`}
-        />
-      ) : txHash ? (
-        <TransactionSubmittedContent
-          chainId={chainId}
-          hash={txHash}
-          onDismiss={() => onDismiss?.()}
-          tokenAddToMetaMask={tokenAddToMetaMask as Token}
-          extraAction={
-            <SetExitPriceButton currency={currencyOut} amount={routeSummary?.parsedAmountOut} onNavigate={onDismiss} />
+    <TransactionConfirmationModal
+      isOpen={isOpen}
+      onDismiss={() => onDismiss?.()}
+      {...(isSubmitting
+        ? { mode: Mode.PENDING, phase }
+        : isSubmitted
+        ? {
+            mode: Mode.SUBMITTED,
+            chainId,
+            txHash,
+            tokenToAdd: tokenToAdd?.isToken ? tokenToAdd : undefined,
+            secondaryAction: (
+              <SetExitPriceButton
+                currency={currencyOut}
+                amount={routeSummary?.parsedAmountOut}
+                onNavigate={onDismiss}
+              />
+            ),
           }
-        />
+        : { mode: Mode.CUSTOM })}
+    >
+      {isSubmitting || isSubmitted ? (
+        <SwapStatusAmounts input={input} output={output} />
       ) : error ? (
         <TransactionErrorContent onDismiss={() => onDismissError?.()} message={error} />
       ) : (
@@ -77,7 +90,7 @@ const SingleChainSwapModal = ({
           buildResult={buildResult}
         />
       )}
-    </Modal>
+    </TransactionConfirmationModal>
   )
 }
 

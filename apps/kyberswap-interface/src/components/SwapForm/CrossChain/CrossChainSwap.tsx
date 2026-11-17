@@ -42,12 +42,12 @@ export const CrossChainOutputFooter = () => {
 
 /** Cross-chain information and execution, independent of the shared fields. */
 const CrossChainSwap = () => {
-  const { currencyOut, fromChainId, toChainId, selectedQuote, loading, warning, hasCustomRecipient } =
+  const { currencyOut, fromChainId, toChainId, selectedQuote, loading, warning, recipientInputEnabled } =
     useCrossChainSwap()
   const [showBitcoin, setShowBitcoin] = useState(false)
   const walletIntentModal = useCrossChainWalletIntent(fromChainId, () => setShowBitcoin(true))
   const output = currencyOut && 'isNative' in currencyOut ? currencyOut : undefined
-  const showRecipient = hasCustomRecipient || (isEvmChain(fromChainId) && !!toChainId && isEvmChain(toChainId))
+  const showRecipient = recipientInputEnabled || (isEvmChain(fromChainId) && !!toChainId && isEvmChain(toChainId))
   const { message } = useHoneypotWarning({
     chainId: output?.chainId,
     tokenAddress: output?.wrapped.address,

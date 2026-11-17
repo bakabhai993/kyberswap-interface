@@ -79,7 +79,7 @@ const SingleChainSwapReview = ({
       )}
       <SingleChainSwapModal
         isOpen={isProcessingSwap}
-        tokenAddToMetaMask={currencyOut}
+        tokenToAdd={currencyOut}
         review={review}
         onConfirm={confirmSwap}
         onDismiss={dismissReview}

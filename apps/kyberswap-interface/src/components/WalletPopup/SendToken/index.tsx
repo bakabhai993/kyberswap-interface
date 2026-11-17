@@ -9,7 +9,11 @@ import { ButtonPrimary } from 'components/Button'
 import CurrencyInputPanel from 'components/CurrencyInputPanel'
 import { RowBetween } from 'components/Row'
 import { MouseoverTooltip } from 'components/Tooltip'
-import TransactionConfirmationModal, { TransactionErrorContent } from 'components/TransactionConfirmationModal'
+import TransactionConfirmationModal, {
+  Mode,
+  Phase,
+  TransactionErrorContent,
+} from 'components/TransactionConfirmationModal'
 import CurrencyListHasBalance from 'components/WalletPopup/SendToken/CurrencyListSelect'
 import WarningBrave from 'components/WalletPopup/SendToken/WarningBrave'
 import useSendToken from 'components/WalletPopup/SendToken/useSendToken'
@@ -290,13 +294,16 @@ export default function SendToken({
       </ButtonPrimary>
 
       <TransactionConfirmationModal
-        hash={flowState.txHash}
         isOpen={flowState.showConfirm}
         onDismiss={hideModalConfirm}
-        attemptingTxn={flowState.attemptingTxn}
-        content={confirmationContent}
-        pendingText={flowState.pendingText}
-      />
+        {...(flowState.attemptingTxn
+          ? { mode: Mode.PENDING, phase: Phase.SIGNING }
+          : flowState.txHash
+          ? { mode: Mode.SUBMITTED, txHash: flowState.txHash }
+          : { mode: Mode.CUSTOM })}
+      >
+        {flowState.attemptingTxn ? flowState.pendingText : flowState.txHash ? null : confirmationContent()}
+      </TransactionConfirmationModal>
     </div>
   )
 }

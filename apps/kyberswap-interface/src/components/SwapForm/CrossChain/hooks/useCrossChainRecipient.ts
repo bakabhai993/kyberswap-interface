@@ -51,10 +51,11 @@ export const useCrossChainRecipient = (fromChainId: Chain, toChainId?: Chain, sh
     hasIndependentReceiver && wallets?.outputConnection && wallets.outputAddress
       ? { ...wallets.outputConnection, address: wallets.outputAddress }
       : undefined
-  const isPastedRecipient = hasIndependentReceiver && recipientInput.mode === 'paste'
+  const recipientInputEnabled = hasIndependentReceiver ? recipientInput.mode === 'paste' : evm.recipientInputEnabled
+  const isPastedRecipient = hasIndependentReceiver && recipientInputEnabled && !!recipientInput.pastedAddress
   const showRecipientInput = hasIndependentReceiver ? recipientInput.expanded : evm.expanded
   const recipient = hasIndependentReceiver
-    ? recipientInput.mode === 'paste'
+    ? isPastedRecipient
       ? recipientInput.pastedAddress
       : receiverWallet?.address || ''
     : evm.recipient
@@ -76,7 +77,7 @@ export const useCrossChainRecipient = (fromChainId: Chain, toChainId?: Chain, sh
     setRecipientInput(previous => ({ ...previous, ...change }))
   }
   const setRecipient = (value: string) => {
-    if (hasIndependentReceiver) updateInput({ pastedAddress: value, mode: value ? 'paste' : 'wallet' })
+    if (hasIndependentReceiver) updateInput({ pastedAddress: value, mode: 'paste' })
     else evm.setRecipient(value)
   }
   const applyRecipient = (value: string) => {
@@ -88,6 +89,10 @@ export const useCrossChainRecipient = (fromChainId: Chain, toChainId?: Chain, sh
   const selectWalletRecipient = () => {
     if (hasIndependentReceiver) updateInput({ mode: 'wallet' })
     else evm.useMyWallet()
+  }
+  const closeRecipient = () => {
+    if (hasIndependentReceiver) updateInput({ pastedAddress: '', mode: 'wallet', expanded: false })
+    else evm.closeRecipient()
   }
   const toggleRecipient = () => {
     if (hasIndependentReceiver) updateInput({ expanded: !recipientInput.expanded })
@@ -108,7 +113,7 @@ export const useCrossChainRecipient = (fromChainId: Chain, toChainId?: Chain, sh
     recipient,
     recipientError: recipientLookup.error,
     recipientMessage: recipientLookup.message,
-    hasCustomRecipient: hasIndependentReceiver ? isPastedRecipient : evm.hasCustomRecipient,
+    recipientInputEnabled,
     recipientAddressType,
     recipientInputValue: hasIndependentReceiver ? recipientInput.pastedAddress : evm.inputValue,
     receiverWallet,
@@ -123,5 +128,6 @@ export const useCrossChainRecipient = (fromChainId: Chain, toChainId?: Chain, sh
     applyRecipient,
     selectWalletRecipient,
     toggleRecipient,
+    closeRecipient,
   }
 }

@@ -10408,8 +10408,8 @@ msgid "Remove without fees"
 msgstr "Remove without fees"
 
 #: src/components/StopMarket/SetExitPriceButton.tsx
-msgid "Set exit price"
-msgstr "Set exit price"
+msgid "Set Exit Price"
+msgstr "Set Exit Price"
 
 #: src/pages/CrossChainSwap/components/QuoteSteps.tsx
 msgid "Route via"

@@ -27,6 +27,8 @@ import Row, { AutoRow, RowBetween, RowFixed } from 'components/Row'
 import Slider from 'components/Slider'
 import TransactionConfirmationModal, {
   ConfirmationModalContent,
+  Mode,
+  Phase,
   TransactionErrorContent,
 } from 'components/TransactionConfirmationModal'
 import { wagmiConfig } from 'components/Web3Provider'
@@ -660,22 +662,25 @@ export default function ZapOut({
         <TransactionConfirmationModal
           isOpen={showConfirm}
           onDismiss={handleDismissConfirmation}
-          attemptingTxn={attemptingTxn}
-          hash={txHash ? txHash : ''}
-          content={() =>
-            zapOutError ? (
-              <TransactionErrorContent onDismiss={handleDismissConfirmation} message={zapOutError} />
-            ) : (
-              <ConfirmationModalContent
-                title={t`You will receive`}
-                onDismiss={handleDismissConfirmation}
-                topContent={modalHeader}
-                bottomContent={modalBottom}
-              />
-            )
-          }
-          pendingText={pendingText}
-        />
+          {...(attemptingTxn
+            ? { mode: Mode.PENDING, phase: Phase.SIGNING }
+            : txHash
+            ? { mode: Mode.SUBMITTED, txHash }
+            : { mode: Mode.CUSTOM })}
+        >
+          {attemptingTxn ? (
+            pendingText
+          ) : txHash ? null : zapOutError ? (
+            <TransactionErrorContent onDismiss={handleDismissConfirmation} message={zapOutError} />
+          ) : (
+            <ConfirmationModalContent
+              title={t`You will receive`}
+              onDismiss={handleDismissConfirmation}
+              topContent={modalHeader}
+              bottomContent={modalBottom}
+            />
+          )}
+        </TransactionConfirmationModal>
         <AutoColumn className="gap-3">
           <GridColumn>
             <FirstColumn>

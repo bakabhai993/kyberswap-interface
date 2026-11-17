@@ -207,7 +207,7 @@ export const SwapFeeAndRecipientDetails = ({
                 <SwapFeeLabel />
               </DetailLabel>
               {isFeeUpdated && (
-                <div className="flex rounded-[36px] bg-warning/30 px-1 py-0.5 text-[10px] leading-3 text-warning">
+                <div className="flex rounded-[36px] bg-warning/30 px-1 py-0.5 text-[10px] text-warning">
                   <Trans>Updated</Trans>
                 </div>
               )}

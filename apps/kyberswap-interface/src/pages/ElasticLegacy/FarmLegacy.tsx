@@ -7,7 +7,11 @@ import { ButtonLight, ButtonPrimary } from 'components/Button'
 import CurrencyLogo from 'components/CurrencyLogo'
 import DoubleCurrencyLogo from 'components/DoubleLogo'
 import { MouseoverTooltip } from 'components/Tooltip'
-import TransactionConfirmationModal, { TransactionErrorContent } from 'components/TransactionConfirmationModal'
+import TransactionConfirmationModal, {
+  Mode,
+  Phase,
+  TransactionErrorContent,
+} from 'components/TransactionConfirmationModal'
 import { PROMM_FARM_ABI } from 'constants/abis'
 import { ZERO_ADDRESS } from 'constants/index'
 import { ELASTIC_BASE_FEE_UNIT } from 'constants/legacyPools'
@@ -328,15 +332,20 @@ export default function FarmLegacy({
       <TransactionConfirmationModal
         isOpen={!!showConfirmModal}
         onDismiss={handleDismiss}
-        hash={txHash}
-        attemptingTxn={attemptingTxn}
-        pendingText={t`Claiming rewards`}
-        content={() => (
+        {...(attemptingTxn
+          ? { mode: Mode.PENDING, phase: Phase.SIGNING }
+          : txHash
+          ? { mode: Mode.SUBMITTED, txHash }
+          : { mode: Mode.CUSTOM })}
+      >
+        {attemptingTxn ? (
+          t`Claiming rewards`
+        ) : txHash ? null : (
           <div className="flex w-full flex-col">
             {errorMessage ? <TransactionErrorContent onDismiss={handleDismiss} message={errorMessage} /> : null}
           </div>
         )}
-      />
+      </TransactionConfirmationModal>
     </div>
   )
 }

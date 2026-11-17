@@ -8,7 +8,11 @@ import InfoHelper from 'components/InfoHelper'
 import { RowBetween, RowFit } from 'components/Row'
 import { HStack, Stack } from 'components/Stack'
 import { MouseoverTooltip } from 'components/Tooltip'
-import TransactionConfirmationModal, { TransactionErrorContent } from 'components/TransactionConfirmationModal'
+import TransactionConfirmationModal, {
+  Mode,
+  Phase,
+  TransactionErrorContent,
+} from 'components/TransactionConfirmationModal'
 import { useActiveWeb3React } from 'hooks'
 import { useClaimVotingRewards, useVotingActions, useVotingInfo } from 'hooks/kyberdao'
 import useTheme from 'hooks/useTheme'
@@ -405,16 +409,20 @@ export default function Vote() {
       <TransactionConfirmationModal
         isOpen={showConfirm}
         onDismiss={() => setShowConfirm(false)}
-        attemptingTxn={attemptingTxn}
-        hash={txHash}
-        pendingText={pendingText}
-        content={() => {
-          if (transactionError) {
-            return <TransactionErrorContent message={transactionError} onDismiss={() => setShowConfirm(false)} />
-          }
-          return <></>
-        }}
-      />
+        {...(attemptingTxn
+          ? { mode: Mode.PENDING, phase: Phase.SIGNING }
+          : txHash
+          ? { mode: Mode.SUBMITTED, txHash }
+          : { mode: Mode.CUSTOM })}
+      >
+        {attemptingTxn ? (
+          pendingText
+        ) : txHash ? null : transactionError ? (
+          <TransactionErrorContent message={transactionError} onDismiss={() => setShowConfirm(false)} />
+        ) : (
+          <></>
+        )}
+      </TransactionConfirmationModal>
     </KyberDAOPage>
   )
 }

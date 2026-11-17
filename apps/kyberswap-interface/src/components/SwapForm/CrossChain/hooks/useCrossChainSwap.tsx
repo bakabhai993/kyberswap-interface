@@ -4,6 +4,7 @@ import type { EvmRecipient } from 'components/SwapForm/hooks/useEvmRecipient'
 import type { Chain } from 'types/crossChain'
 import type { PriceImpactAction } from 'utils/prices'
 
+import type { CrossChainSubmission } from './useCrossChainExecution'
 import type { useCrossChainPair } from './useCrossChainPair'
 import type { useCrossChainQuote } from './useCrossChainQuote'
 import type { useCrossChainRecipient } from './useCrossChainRecipient'
@@ -36,9 +37,8 @@ export type CrossChainSwapState = ReturnType<typeof useCrossChainPair> &
     openReview: (checkAllowance: () => Promise<boolean>) => Promise<void>
     priceImpactAction: PriceImpactAction
     reviewHasVeryHighPriceImpact: boolean
+    submission: CrossChainSubmission
     isSubmitting: boolean
-    txHash: string
-    txError: string
     confirmSwap: () => void
     amount: string
     setAmount: (amount: string) => void

@@ -129,36 +129,35 @@ const RouteOptionsContent = ({
                   onClick={() => onSelect(quote)}
                 >
                   <Stack className="gap-2">
-                    <HStack className="flex-wrap items-center justify-between gap-2">
-                      <HStack className="min-w-0 items-center gap-1.5 whitespace-nowrap">
-                        <HStack className="items-center gap-1">
-                          <TokenLogoWithChain
-                            currency={tokenOut}
-                            chainId={quote.quote.quoteParams.toChain}
-                            size={20}
-                            chainLogoStyle={{
-                              bottom: 0,
-                              top: 'auto',
-                            }}
-                          />
-                          <span className="text-xl font-medium">{formattedOutputAmount}</span>
-                          <span className="text-lg font-medium text-subText">{tokenOut?.symbol}</span>
+                    <HStack className="flex-wrap items-start justify-between gap-2">
+                      <Stack className="min-w-0 gap-0">
+                        <HStack className="min-w-0 items-center gap-1.5 whitespace-nowrap">
+                          <HStack className="items-center gap-1">
+                            <TokenLogoWithChain
+                              currency={tokenOut}
+                              chainId={quote.quote.quoteParams.toChain}
+                              size={20}
+                              chainLogoStyle={{
+                                bottom: 0,
+                                top: 'auto',
+                              }}
+                            />
+                            <span className="text-xl font-medium">{formattedOutputAmount}</span>
+                            <span className="text-lg font-medium text-subText">{tokenOut?.symbol}</span>
+                          </HStack>
+                          <span className="text-sm font-medium text-subText">~{formattedOutputUsd}</span>
                         </HStack>
-                        <span className="text-sm font-medium text-subText">~{formattedOutputUsd}</span>
                         {gasDrop && native && (
-                          <>
-                            <span className="text-subText">•</span>
-                            <HStack className="items-center gap-0 whitespace-nowrap">
-                              <span className="flex shrink-0 text-primary" aria-label={t`Gas Drop`}>
-                                <GasStation size={16} />
-                              </span>
-                              <span className="text-sm font-medium text-subText">
-                                +{formattedGasDropAmount} {native.symbol}
-                              </span>
-                            </HStack>
-                          </>
+                          <HStack className="items-center gap-0 whitespace-nowrap pl-2.5">
+                            <span className="flex shrink-0 text-subText" aria-label={t`Gas Drop`}>
+                              <GasStation size={16} />
+                            </span>
+                            <span className="text-sm font-medium text-subText">
+                              +{formattedGasDropAmount} {native.symbol}
+                            </span>
+                          </HStack>
                         )}
-                      </HStack>
+                      </Stack>
 
                       {routeBadge ? (
                         routeBadge(quote, index)
