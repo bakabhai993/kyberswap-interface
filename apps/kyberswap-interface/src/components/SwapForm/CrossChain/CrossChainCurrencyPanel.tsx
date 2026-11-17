@@ -143,14 +143,18 @@ export const CrossChainCurrencyPanel = ({
               className="open-currency-select-button"
               onClick={() => setOpen(true)}
             >
-              <Aligner className="gap-1">
+              <Aligner className="gap-2">
                 <HStack className="items-center gap-2">
                   <div className="relative shrink-0">
-                    <img
-                      src={currency && 'logo' in currency ? currency.logo : UnknownToken}
-                      alt={currency?.symbol}
-                      className="size-5 rounded-full"
-                    />
+                    {currencyLoading && !currency ? (
+                      <Skeleton width={20} height={20} variant="darkSubtle" rounded />
+                    ) : (
+                      <img
+                        src={currency && 'logo' in currency ? currency.logo : UnknownToken}
+                        alt={currency?.symbol}
+                        className="size-5 rounded-full"
+                      />
+                    )}
                     <img
                       src={NonEvmChainInfo[chain].icon}
                       alt={NonEvmChainInfo[chain].name}
@@ -164,13 +168,13 @@ export const CrossChainCurrencyPanel = ({
                     data-testid="token-symbol-container"
                   >
                     {currencyLoading && !currency ? (
-                      <Skeleton width={64} height={16} />
+                      <Skeleton width={64} height={16} variant="darkSubtle" />
                     ) : (
                       currency?.symbol || <Trans>Select a token</Trans>
                     )}
                   </StyledTokenName>
                 </HStack>
-                <DropdownSVG />
+                <DropdownSVG className="shrink-0" />
               </Aligner>
             </CurrencySelect>
           }
