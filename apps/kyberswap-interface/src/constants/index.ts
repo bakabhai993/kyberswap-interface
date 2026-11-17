@@ -31,7 +31,6 @@ export const APP_PATHS = {
   POOL_DETAIL: '/pools/:chain/:protocol/:address',
   DISCOVER: '/discover',
   CROSS_CHAIN: '/cross-chain', // Legacy links redirect to Unified Swap.
-  KYBER_CROSS: '/kybercross',
   KYBERDAO: '/kyberdao',
   KYBERDAO_STAKE: '/kyberdao/stake-knc',
   KYBERDAO_VOTE: '/kyberdao/vote',

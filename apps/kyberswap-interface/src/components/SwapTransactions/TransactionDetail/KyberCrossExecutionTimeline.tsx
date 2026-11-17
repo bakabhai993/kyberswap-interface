@@ -1,7 +1,7 @@
 import { Trans, t } from '@lingui/macro'
 import { format } from 'date-fns'
 import { CheckCircle, Circle, XCircle } from 'react-feather'
-import type { TrackingExecution } from 'services/crossChain/adapters/KyberCrossAdapter/api'
+import type { TrackingExecution } from 'services/crossChain/adapters/KyberCrossAdapter/types'
 import { getChainName } from 'services/crossChain/utils'
 
 import Loader from 'components/Loader'

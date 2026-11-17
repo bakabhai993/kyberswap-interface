@@ -73,7 +73,6 @@ export const useCrossChainPair = ({ fromChainId, toChainId, tokenIn, tokenOut }:
     isOutputCurrencyLoading:
       Boolean(tokenOut) &&
       (outputEvm.isLoading || (isToSolana && isLoadingSolanaOut) || (isToNear && nearTokens.length === 0)),
-    nearTokens,
   }
 }
 

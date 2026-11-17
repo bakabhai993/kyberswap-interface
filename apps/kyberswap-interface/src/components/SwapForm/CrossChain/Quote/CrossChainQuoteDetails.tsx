@@ -1,9 +1,9 @@
 import { ReactNode } from 'react'
 
+import { useCrossChainSwap } from 'components/SwapForm/CrossChain/CrossChainSwapProvider'
 import { CrossChainQuoteLayout } from 'components/SwapForm/CrossChain/Quote/CrossChainQuoteLayout'
 import { CrossChainQuoteSelector } from 'components/SwapForm/CrossChain/Quote/CrossChainQuoteSelector'
 import { CrossChainQuoteSummaryRows } from 'components/SwapForm/CrossChain/Quote/CrossChainQuoteSummary'
-import { useCrossChainSwap } from 'components/SwapForm/CrossChain/hooks/useCrossChainSwap'
 import { SwapRate } from 'components/SwapForm/Quote/SwapRate'
 import { RecipientToggle } from 'components/SwapForm/RecipientInput'
 import SlippageSetting from 'components/SwapForm/Settings/SlippageSetting'

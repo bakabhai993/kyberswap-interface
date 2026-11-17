@@ -1,14 +1,15 @@
 // @vitest-environment happy-dom
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
-import { act } from 'react'
+import { act, createContext, useContext } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 
+import CrossChainSwapProvider, {
+  useOptionalCrossChainSwap,
+} from 'components/SwapForm/CrossChain/CrossChainSwapProvider'
+import { CrossChainSwapAction } from 'components/SwapForm/CrossChain/Execution/CrossChainSwapAction'
 import { NonEvmChain } from 'types/crossChain'
-
-import { CrossChainSwapAction } from './CrossChainSwapAction'
-import CrossChainSwapProvider, { useOptionalCrossChainSwap } from './hooks/useCrossChainSwap'
 
 const mocks = vi.hoisted(() => ({
   degen: false,
@@ -22,12 +23,20 @@ const mocks = vi.hoisted(() => ({
   selectedQuote: { quote: { priceImpact: 11 as number | null } },
   reviewQuote: null as unknown,
 }))
-vi.mock('state/user/hooks', () => ({ useDegenModeManager: () => [mocks.degen] }))
+// Model store notifications even when the engine's input props are unchanged.
+const StoreRevision = createContext(0)
+let storeRevision = 0
+vi.mock('state/user/hooks', () => ({
+  useDegenModeManager: () => {
+    useContext(StoreRevision)
+    return [mocks.degen]
+  },
+}))
 vi.mock('react-router-dom', () => ({ useSearchParams: () => [new URLSearchParams(), mocks.setParams] }))
 vi.mock('components/Button', () => ({ ButtonPrimary: (props: any) => <button {...props} /> }))
 vi.mock('components/Dots', () => ({ default: ({ children }: any) => <span>{children}</span> }))
 vi.mock('components/Tooltip', () => ({ MouseoverTooltip: ({ children }: any) => <span>{children}</span> }))
-vi.mock('./CrossChainSwapConfirmation', () => ({
+vi.mock('components/SwapForm/CrossChain/Execution/CrossChainSwapConfirmation', () => ({
   CrossChainSwapConfirmation: ({ isOpen, onConfirm, onDismiss }: any) =>
     isOpen ? (
       <>
@@ -40,7 +49,7 @@ vi.mock('./CrossChainSwapConfirmation', () => ({
       </>
     ) : null,
 }))
-vi.mock('./hooks/useCrossChainPair', () => ({
+vi.mock('components/SwapForm/CrossChain/hooks/useCrossChainPair', () => ({
   useCrossChainPair: () => ({
     fromChainId: 'bitcoin',
     toChainId: 1,
@@ -48,10 +57,10 @@ vi.mock('./hooks/useCrossChainPair', () => ({
     currencyOut: { symbol: 'ETH' },
   }),
 }))
-vi.mock('./hooks/useCrossChainRecipient', () => ({
+vi.mock('components/SwapForm/CrossChain/hooks/useCrossChainRecipient', () => ({
   useCrossChainRecipient: () => ({ sender: 'sender', receiver: 'receiver' }),
 }))
-vi.mock('./hooks/useCrossChainQuote', () => ({
+vi.mock('components/SwapForm/CrossChain/Quote/useCrossChainQuote', () => ({
   useCrossChainQuote: () => ({
     amountInWei: '1',
     selectedQuote: mocks.selectedQuote,
@@ -63,7 +72,7 @@ vi.mock('./hooks/useCrossChainQuote', () => ({
     invalidateQuotes: mocks.invalidateQuotes,
   }),
 }))
-vi.mock('./hooks/useCrossChainExecution', () => ({
+vi.mock('components/SwapForm/CrossChain/Execution/useCrossChainExecution', () => ({
   useCrossChainExecution: (_quote: unknown, { onSubmit }: { onSubmit: () => void }) => ({
     submitSwap: () => {
       mocks.confirmSwap()
@@ -72,10 +81,10 @@ vi.mock('./hooks/useCrossChainExecution', () => ({
     resetSubmission: vi.fn(),
   }),
 }))
-vi.mock('./hooks/useCrossChainApproval', () => ({
+vi.mock('components/SwapForm/CrossChain/Execution/useCrossChainApproval', () => ({
   useCrossChainApproval: () => ({ approvalState: 3, revalidateAllowance: mocks.allowance }),
 }))
-vi.mock('./hooks/useCrossChainBalance', () => ({ useCrossChainBalance: () => '100' }))
+vi.mock('components/SwapForm/CrossChain/hooks/useCrossChainBalance', () => ({ useCrossChainBalance: () => '100' }))
 vi.mock('components/SwapWallets/SwapWalletContext', () => ({ useSwapWallets: () => ({ inputAddress: 'sender' }) }))
 vi.mock('hooks', () => ({ useActiveWeb3React: () => ({ chainId: 1 }) }))
 vi.mock('hooks/useApproveCallback', () => ({ ApprovalState: { NOT_APPROVED: 1 } }))
@@ -93,20 +102,15 @@ let root: ReturnType<typeof createRoot>
 const ReadyAction = () => (useOptionalCrossChainSwap() ? <CrossChainSwapAction /> : null)
 const render = async () => {
   await act(async () => {
-    await import('./hooks/CrossChainSwapEngine')
+    await import('components/SwapForm/CrossChain/CrossChainSwapEngine')
     root.render(
-      <I18nProvider i18n={i18n}>
-        <CrossChainSwapProvider
-          fromChain={NonEvmChain.Bitcoin}
-          toChain={1}
-          tokenIn="BTC"
-          tokenOut="ETH"
-          amount="1"
-          setAmount={vi.fn()}
-        >
-          <ReadyAction />
-        </CrossChainSwapProvider>
-      </I18nProvider>,
+      <StoreRevision.Provider value={++storeRevision}>
+        <I18nProvider i18n={i18n}>
+          <CrossChainSwapProvider fromChain={NonEvmChain.Bitcoin} toChain={1} tokenIn="BTC" tokenOut="ETH" amount="1">
+            <ReadyAction />
+          </CrossChainSwapProvider>
+        </I18nProvider>
+      </StoreRevision.Provider>,
     )
   })
   await vi.waitFor(async () => {

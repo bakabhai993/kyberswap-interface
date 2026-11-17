@@ -13,11 +13,7 @@ export const selectGasDropQuotes = (quotes: Quote[]) =>
  * usable partial results; cancellation ignores late data. Empty results let the owning hook
  * decide fallback policy. This boundary never retries through direct provider adapters.
  */
-export const getQuotesForMode = async ({
-  onQuotes,
-  onQuoteReady,
-  ...options
-}: Omit<Parameters<typeof getQuotes>[0], 'quoteMode'>) => {
+export const getQuotesForMode = async ({ onQuotes, onQuoteReady, ...options }: Parameters<typeof getQuotes>[0]) => {
   const { params, signal } = options
   const selectQuotes = params.gasDrop ? selectGasDropQuotes : selectOrdinaryQuotes
   let results: Quote[] = []
@@ -28,7 +24,6 @@ export const getQuotesForMode = async ({
   try {
     await getQuotes({
       ...options,
-      quoteMode: 'stream',
       onQuotes: quotes => {
         if (signal.aborted) return
         results = selectQuotes(quotes)

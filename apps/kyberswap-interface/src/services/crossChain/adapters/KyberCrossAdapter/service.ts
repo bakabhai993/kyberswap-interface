@@ -1,5 +1,5 @@
 import { ChainId } from '@kyberswap/ks-sdk-core'
-import type { ExecutionTx } from 'services/crossChain/adapters/KyberCrossAdapter/api'
+import type { ExecutionTx } from 'services/crossChain/adapters/KyberCrossAdapter/types'
 import {
   type Address,
   type Hash,

@@ -22,8 +22,6 @@ export interface QuoteParams {
   sender: string
   recipient: string
   publicKey?: string
-  includedSources?: string[]
-  excludedSources?: string[]
 }
 
 export interface EvmQuoteParams extends QuoteParams {
@@ -87,7 +85,7 @@ export interface SwapProvider {
   canSupport(category: string, tokenIn?: Currency, tokenOut?: Currency): boolean
 }
 
-// Only KyberSwap and KyberCross fetch quotes directly in the client.
+// Only the same-chain KyberSwap adapter fetches quotes directly in the client.
 export interface QuoteProvider extends SwapProvider {
   getSupportedChains(): Chain[]
   getQuote(params: QuoteParams, signal?: AbortSignal): Promise<NormalizedQuote>

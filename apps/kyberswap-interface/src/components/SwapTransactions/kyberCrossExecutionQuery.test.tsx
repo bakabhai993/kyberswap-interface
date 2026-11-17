@@ -9,7 +9,8 @@ import {
 } from '@tanstack/react-query'
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
-import type { ScanTxStatusResponse, TrackingExecution } from 'services/crossChain/adapters/KyberCrossAdapter/api'
+import type { ScanTxStatusResponse } from 'services/crossChain/adapters/KyberCrossAdapter/api'
+import type { TrackingExecution } from 'services/crossChain/adapters/KyberCrossAdapter/types'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { HistoryTransaction } from 'components/SwapTransactions/history'

@@ -1,277 +1,82 @@
 # SwapForm
 
-`SwapForm` contains the shared form and quote/review orchestration for Unified Swap.
-`SwapForm.tsx` maps the active quote into one `UnifiedSwapForm`, which owns the
-input/output panels, token selection tracking, balances and display units.
-Same-chain and cross-chain components supply their details and execution controls.
-
+Shared form, quote and execution components for Unified Swap and embedded EVM swaps.
 The [Swap page](../../pages/Swap/README.md) owns pair/amount selection, the shared
-EVM recipient draft, wallet connections and History. The cross-chain data boundary stays mounted; its quote/execution engine loads lazily on first cross-chain use and stays mounted
-afterward. Same-chain disables quote requests while retaining the shared fields.
+EVM recipient draft and History visibility. `SwapForm.tsx` maps the active quote
+into `UnifiedSwapForm`, which owns amount display, balances and token-selection
+tracking. `SwapFormLayout` composes panels, details and actions.
 
-## Structure and owners
+## Structure and ownership
 
-| Module                                                | Responsibility                                                                                     |
-| ----------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| [`SwapFormLayout.tsx`](SwapFormLayout.tsx)            | Compose input/output panels, reverse control, details and action slots.                            |
-| [`SingleChain/`](SingleChain/)                        | EVM form/provider, quote-to-review coordination and transaction submission.                        |
-| [`CrossChain/`](CrossChain/)                          | Cross-chain form, recipient controls, route options and confirmation.                              |
-| [`hooks/`](hooks/)                                    | Pair URL selection, same-chain request/build logic, input amount, recipient and review session.    |
-| [`SwapWallets`](../SwapWallets/)                      | Signing slots, connection models and wallet selection controls.                                    |
-| [`CurrencyInput/`](CurrencyInput/)                    | EVM input/output fields and ERC-8056 display information.                                          |
-| [`Quote/`](Quote/)                                    | Rate, fee and quote detail presentation.                                                           |
-| [`SwapActionButton/`](SwapActionButton/)              | Same-chain prerequisites, approval/permit, wrap/unwrap and review entry.                           |
-| [`SwapModal/`](SwapModal/)                            | Same-chain review data and content, plus layout primitives shared with cross-chain review.         |
-| [`Settings/`](Settings/) and [`Warnings/`](Warnings/) | Slippage, sources, MEV, Degen Mode and risk presentation.                                          |
-| [`SwapFormContext.tsx`](SwapFormContext.tsx)          | Same-chain display context: route, raw/display amounts, recipient, slippage and ERC-8056 metadata. |
+| Module                                                                 | Responsibility                                                                  |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `SingleChain/`                                                         | EVM quote provider, review/build coordination and submission.                   |
+| `CrossChain/CrossChainSwapProvider.tsx` and `CrossChainSwapEngine.tsx` | Stable lazy boundary and coordination of quote, recipient and execution owners. |
+| `CrossChain/Quote/`                                                    | Stream requests, pools, selection, refresh, Gas Drop and quote presentation.    |
+| `CrossChain/Execution/`                                                | Approval, review prerequisites, confirmation and wallet submission.             |
+| `CrossChain/hooks/`                                                    | Pair metadata, recipient state and balances.                                    |
+| `hooks/`                                                               | Shared form input/recipient logic and same-chain request/build lifecycle.       |
+| `CurrencyInput/`                                                       | EVM amount fields and ERC-8056 display conversion.                              |
+| `Quote/`, `SwapModal/`                                                 | Shared quote and review presentation.                                           |
+| `SwapActionButton/`                                                    | Same-chain prerequisites, approval/permit, wrap/unwrap and review entry.        |
+| `Settings/`, `Warnings/`                                               | Preferences, sources, recipient settings and risk presentation.                 |
 
-`SwapFormContext` is not the cross-chain state owner. `SingleChainSwapProvider`
-and `CrossChainSwapProvider` own their respective quote lifecycles. Their scope
-includes both the form and the page's route panel.
+`SwapFormContext` supplies same-chain display data. Quote lifecycles belong to
+`SingleChainSwapProvider` and `CrossChainSwapProvider`, shared by the form and route
+panel. The cross-chain engine reads the page-owned amount without receiving a setter.
+Signing connections belong to [SwapWallets](../SwapWallets/); committed token
+selection belongs to the pair owner, while [TokenSelectorModal](../TokenSelectorModal/README.md)
+owns browsing and selection interaction.
 
-## Quote and form boundaries
+## Form and loading boundaries
 
-`SingleChainSwapFormProvider` connects balances and preferences to the EVM quote
-engine. `CrossChainSwapProvider` owns streamed quotes and cross-chain execution.
 The cross-chain wallet providers and engine load on first use and stay mounted
-across mode changes. Same-chain entry does not load non-EVM wallet SDKs; browsing
-a non-EVM token list loads its providers locally. Existing transfers still load
-the status updater for polling and terminal settlement enrichment.
-Same-chain disables cross-chain requests and invalidates its active quote/review.
-The pair, amount and EVM recipient drafts remain outside the lazy boundary.
+across mode changes. Same-chain entry does not load non-EVM wallet SDKs. Switching
+to same-chain disables cross-chain requests and invalidates its quote/review while
+preserving pair, amount and recipient drafts outside the lazy boundary.
 
-`SingleChainSwapContent` and `CrossChainSwap` render only mode-specific information
-and actions. The form and route panel read the same quote provider; neither starts
-a second quote request. Legacy KyberCross adapts its quotes through
-`KyberCrossSwapForm` and reuses the common fields.
+Both modes share input/output fields. Loading previews preserve the fields and
+page layout without starting another quote or wallet lifecycle. Currency panels
+own selector visibility; form owners calculate amounts and commit selections.
+ERC-8056 display conversion stays at the input/output boundary; quotes, approvals
+and execution use raw token units.
 
-The pair owner also keeps a one-time output-selector default per page mount:
-changing input from a same-chain pair to another chain defaults output browsing to
-the input chain until an output token is selected. Dismissing the popup preserves
-this default; after selection it is done until the page reloads/remounts.
+## Quotes and review
 
-## Shared amount panels
+Same-chain requests use `useRouteRequest` and `useGetRoute`; the provider shares
+one route with the form and route panel. `useBuildRoute` builds the reviewed
+payload using its sender, recipient, slippage, permit and attribution. Confirmation
+executes that payload and router, not a newer displayed quote. Wrap/unwrap uses
+its dedicated callback instead of aggregator quote/build.
 
-`CurrencyInput/InputCurrencyPanel` and `OutputCurrencyPanel` adapt swap data to
-[`CurrencyInputPanel`](../CurrencyInputPanel/index.tsx). The shared component owns
-amount/token presentation, balance controls and selector open state. Forms own
-amount calculations, validation and committed token selection; the
-[TokenSelectorModal](../TokenSelectorModal/README.md) owns browsing and selection
-interaction. `CrossChainOutputFooter` supplies Gas Drop through the output footer.
+Cross-chain requests use the aggregator stream. Adapters execute normalized built
+quotes and track transactions. Preview quotes with placeholder addresses are
+read-only. [Quote and Gas Drop](CrossChain/Quote/README.md) documents pool ownership
+and mode selection. Provider payloads, spender/router and quote credentials must
+survive normalization for execution and reconciliation.
 
-## Quote lifecycle during review
+Opening review freezes its quote and pauses refresh. Submit consumes the cached
+quote immediately; closing resumes fetching without resurrecting consumed data.
+Closing an unsubmitted review can reuse a fresh quote. Review identities and
+submission guards prevent stale asynchronous results from replacing a newer session.
+Degen Mode and allowance checks belong to the review/execution controller.
 
-Both modes use the same submit/close contract:
+Submission persists the source hash even if review has closed. UI callbacks detach
+on dismissal, but transaction persistence and backend registration continue.
+[Transaction state](../../state/crossChainSwap/) owns reconciliation and settlement;
+submitted does not mean settled.
 
-| Event | Behavior |
-| --- | --- |
-| Open Review | Capture the execution snapshot and pause scheduled/manual quote refresh. Already-running requests may finish without replacing that snapshot. |
-| Submit | Invalidate before wallet preparation/signing, even if the attempt later fails or is rejected. Cancel old quote work and retain the review snapshot; do not fetch a replacement yet. |
-| Close after Submit | Resume fetching. The CTA stays disabled while loading or without a usable route. |
-| Close without Submit | Resume normal refresh scheduling. Reuse fresh cache without extending its expiry; fetch if expired. |
-| Close while the wallet is pending | Detach the old review UI. Its transaction can still be persisted, but late results cannot overwrite a newer review. |
+## Recipients and extension points
 
-`SingleChainSwapProvider` connects submit to `useGetRoute.invalidateQuote`;
-TanStack Query owns cancellation, invalidation and resume. Loading includes requests
-paused for connectivity, so an offline refetch cannot expose the retained route as
-actionable. Reconnection resumes that request; a failed GET removes the actionable
-route until a successful refresh.
+The EVM recipient draft is shared across modes. Non-EVM routes use the selected
+receiver connection or pasted recipient owned by `useCrossChainRecipient`.
+Recipient popups own temporary edits and apply through the recipient owner.
+Clearing a draft restores the wallet receiver; collapsing preserves the draft.
+Resolution and validation belong to `useRecipientAddress`, including ENS and
+non-EVM checks. Pending or invalid recipients cannot execute.
 
-`CrossChainSwapEngine` connects execution's submit callback to
-`useCrossChainQuote.invalidateQuotes`. This clears ordinary, Gas Drop and alternative
-pools; `useQuoteSession` preserves the review and resumes fetching on close. Only the
-active mode reloads, with alternatives alongside Gas Drop. Failed/empty replacement
-requests cannot restore invalidated quotes; an unusable Gas Drop result falls back
-to ordinary mode. See the [quote lifecycle](CrossChain/Quote/README.md#lifetime-and-review).
-
-The execution controllers block concurrent submissions; the query/pools own quote
-freshness. Broadcast persists the transaction and does not invalidate or refresh
-quotes again.
-
-## Same-chain EVM flow
-
-```text
-Pair + typed amount + settings
-  → useRouteRequest / useGetRoute
-  → routeSummary shared by form and route panel
-  → wallet/network/input checks → approval or permit
-  → open review → useBuildRoute
-  → inspect built amounts and warnings → confirm
-  → useSingleChainSwapExecution → wallet → local transaction history
-```
-
-### Quotes and prerequisites
-
-`SingleChainSwapProvider` parses input, resolves the recipient and detects
-wrap/unwrap. `useRouteRequest` constructs the aggregator request and query key;
-`useGetRoute` owns debouncing, query state, polling and the refresh countdown.
-Automatic refresh runs every 10 seconds while enabled and
-pauses whenever the review session is open. Manual refresh shares the same
-request lifecycle and has a short cooldown.
-
-The response is parsed into `routeSummary` for display. Fee validation compares
-the response with the fee intent captured by that exact request. Fee/tip request
-construction belongs to the fee hooks, rather than the row displaying the fee.
-
-`SwapActionButton` handles unsupported chains, wallet connection, source-network
-switching, restricted tokens, input/balance errors and route availability before
-review. Approval and permit use the route's API-returned `routerAddress`. Native
-payment uses `paysNativeOnSwap` and bypasses token allowance/permit. Wrap/unwrap
-uses `useWrapCallback` instead of requesting/building an aggregator route.
-
-Settings → Send to another Wallet opens a recipient popup for all Swap modes,
-independently of Degen Mode. The popup owns temporary edits; recipient hooks own
-Apply and expanding the form input. Popup and form share the address field.
-Valid uppercase or unprefixed EVM input is normalized to its checksummed `0x`
-address before storing the recipient. Prefixed lowercase addresses, ENS names,
-incomplete input, and invalid checksums remain unchanged.
-EVM-to-EVM forms initially hide recipient controls until a custom address is applied.
-Clearing the input restores the selected wallet while keeping the input enabled.
-Close clears and disables the input; collapse only changes its expanded state.
-Recipient hooks own these states and derive the active address source separately,
-so an empty draft uses the connected wallet icon rather than the pasted-address icon.
-The setting is disabled for wrap/unwrap, which receives into the connected wallet.
-Recipient resolution is shared by Settings and the form: ENS resolves through its
-registered resolver on Ethereum before quote/build, with default RPC retries as in
-the legacy form. Successful lookups remain cached without background refresh.
-Non-EVM format checks run locally; Bitcoin and Solana libraries load on demand.
-If a library fails to load, the non-empty recipient passes unchanged to the route
-provider for validation. Loaded validators still reject invalid addresses. Draft
-text is preserved, and pending/invalid recipients cannot execute. These checks do
-not verify account existence or ownership.
-
-### Review and execution
-
-[`useSwapReviewSession`](hooks/useSwapReviewSession.ts) owns this lifecycle:
-
-```text
-closed → building → review → preparing → signing → submitted
-                         └────────────────────────→ error
-```
-
-A build failure remains in the review phase with a build error for the modal to
-explain. `useSingleChainSwapReview` binds the session to build, submit and dismiss
-actions; `SingleChainSwapReview` renders the review button and modal.
-
-`useBuildRoute` sends the raw route summary with sender, resolved recipient,
-slippage, deadline, permit and attribution. The returned build data contains the
-executable payload and router. Confirmation submits that built payload/router;
-it must not substitute a newer displayed quote.
-
-The review identity includes wallet, chain, pair, amount, recipient and Degen
-Mode. Changes invalidate the session and cancel outstanding builds. Changing
-slippage makes `useSingleChainSwapReview` rebuild an open/building review before
-the previous build can be confirmed. Initial builds and rebuilds share the same
-price-impact gate. Session generations prevent late callbacks from restoring dismissed
-or replaced review UI.
-
-`SwapModal/useSwapReviewData` and `reviewData.ts` derive built amounts, output
-changes, minimum received and warnings. `SwapReviewContent` composes summary,
-details and actions. Output changes can require explicit acceptance, including
-the additional `ConfirmOutputChangeModal` for the configured threshold. Build
-errors and output acceptance gate the modal action; the controller owns the
-Degen Mode prerequisite. Suggested slippage feeds back through the shared
-setting and rebuilds the route.
-
-`useSingleChainSwapExecution` sends the reviewed payload with the correct native
-value and records the hash and captured swap metadata in `state/transactions`.
-Dismissal detaches review UI callbacks; submission still owns persistence if the
-wallet returns a hash afterward.
-
-Both swap modes share preparing, wallet-confirmation and submitted presentation.
-Cross-chain execution observes signing at the wallet boundary, including SDK-created
-clients, and publishes submitted as soon as the adapter reports the source swap hash.
-Approval hashes do not count as submitted swaps. Provider confirmation continues
-independently; closing the modal detaches UI updates without dropping the transaction.
-Submitted is not settlement: processing/history owns the final outcome.
-
-## Cross-chain flow
-
-```text
-Pair → token resolution + sender/receiver
-  → debounced request → pair classification + fee policy
-  → aggregator stream → normalized provider quotes
-  → selected route → prerequisite/allowance checks
-  → reviewQuote snapshot → confirm → provider adapter
-  → source hash → local record + backend sync → settlement updater
-```
-
-### Quotes and Gas Drop
-
-`useCrossChainPair` resolves currencies and `useCrossChainRecipient` combines the
-selected signing connections with recipient input. Preview quotes can use placeholder
-addresses and are marked `isReadOnly`; they are not executable.
-
-`useCrossChainQuote` coordinates aggregator quotes and Gas Drop. `useQuotePool` owns
-requests/results, while `useQuoteSession` owns selection, refresh and review snapshots.
-The form and Route Options consume the same state. See the
-[quote and Gas Drop README](CrossChain/Quote/README.md) for ownership, decision rules,
-source precedence and lifecycle.
-
-### Approval, review and submission
-
-`CrossChainSwapAction` presents the first unmet prerequisite: loading/approval
-work, token selection and restrictions, positive amount, input wallet, available
-route, balance, source network, recipient, executable quote, then allowance.
-EVM approval targets `selectedQuote.quote.contractAddress`.
-`useCrossChainApproval` revalidates allowance before opening review.
-`CrossChainSwapProvider` and `useSingleChainSwapReview` own Degen Mode gates
-before review and confirmation, using shared price-impact rules. Cross-chain
-rechecks after allowance; same-chain checks the built amounts. Both use
-`SwapButtonWithPriceImpact` for presentation. Buttons and modals report intent;
-controllers own navigation to Settings and review transitions.
-
-`CrossChainSwapConfirmation` receives `reviewQuote`, submission state and actions
-as props. Amounts, recipient, slippage and warnings come from that snapshot. The
-component shares visual primitives with the same-chain modal; the two modes keep
-their own review/execution controllers.
-
-`useCrossChainExecution` checks the live signer against the reviewed quote before
-calling `adapter.executeSwap`. Inside Unified Swap, the page's input connection
-is authoritative. A receiver address or preview placeholder cannot substitute
-for a signing connection. Stream quotes may still require provider-specific
-build/SDK calls during execution.
-
-On broadcast, execution persists the source transaction and queues backend sync
-when `quoteId` and `quoteToken` are available, without refreshing quotes again.
-Closing the modal resets its UI, but an in-flight submission still persists its result.
-A timeout after a captured source hash does not turn that broadcast into an unsubmitted failure. Settlement
-belongs to the page-level transaction updater, not the confirmation modal.
-
-## Shared business rules
-
-- Slippage comes from the shared user preference. Preserve each API's expected
-  units; UI percentages are formatted from those values.
-- Display amounts and executable amounts have different purposes. ERC-8056
-  display scaling belongs to the display hooks/context; quote/build/native-value
-  conversion belongs to the existing amount helpers. Do not send formatted text
-  as an executable amount.
-- Keep the raw provider payload, spender/router and quote credentials through
-  normalization. UI summaries alone are insufficient to execute or reconcile.
-- Wallet connections belong to `SwapWalletProvider`; pasted recipient state
-  belongs to `useCrossChainRecipient`. Pair reversal coordinates through the page
-  and leaves the app/header wallet unchanged. Unified cross-chain EVM recipient
-  input shows only the user-entered value; the effective receiver defaults to the
-  connected wallet until a custom recipient is entered.
-- Form loading should preserve interactive inputs and settings. Refresh indicators
-  display controller state; they do not schedule requests.
-- Shared hooks also serve embedded swaps and `pages/KyberCross`. Keep caller
-  configuration explicit, including direct/stream policy and backend sync options.
-
-## Where to make changes
-
-| Change                                         | Start here                                                                                                               |
-| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Form layout, amount fields or reverse control  | `UnifiedSwapForm.tsx`, `SwapFormLayout.tsx`, `CurrencyInput/`                                                            |
-| Same-chain request parameters, fees or refresh | `hooks/useRouteRequest.ts`, `hooks/useGetRoute.ts`, fee hooks, `SingleChain/SingleChainSwapProvider.tsx`                 |
-| Same-chain approve/permit/wrap behavior        | `SwapActionButton/index.tsx` and the corresponding shared hooks                                                          |
-| Same-chain review state or submission          | `hooks/useSwapReviewSession.ts`, `SingleChain/useSingleChainSwapReview.ts`, `SingleChain/useSingleChainSwapExecution.ts` |
-| Review amounts, output acceptance or warnings  | `SwapModal/useSwapReviewData.ts`, `SwapModal/reviewData.ts`, `SwapModal/SwapReviewActions.tsx`                           |
-| Cross-chain quotes, refresh or Gas Drop        | [Quote and Gas Drop ownership](CrossChain/Quote/README.md)                                                               |
-| Cross-chain action prerequisites or allowance  | `CrossChain/CrossChainSwapAction.tsx`, `CrossChain/hooks/useCrossChainApproval.ts`                                       |
-| Cross-chain confirmation content               | `CrossChain/CrossChainSwapConfirmation.tsx`, `CrossChain/Quote/`                                                         |
-| Provider-specific execution or settlement      | `CrossChain/hooks/useCrossChainExecution.ts`, `src/services/crossChain/adapters/`, `src/state/crossChainSwap/`           |
-
-Paths in the last table are relative to this directory unless prefixed with
-`src/`. For page composition and integration boundaries,
-continue with the [Swap page README](../../pages/Swap/README.md).
+Change form geometry in `UnifiedSwapForm`/`SwapFormLayout`, quote behavior in its
+mode's provider/hooks, and submission behavior in its execution owner. Keep lazy
+boundaries and shared quote subscriptions intact when moving components. Update
+loading previews alongside layout changes. Shared amount and recipient controls
+also serve embedded swaps.

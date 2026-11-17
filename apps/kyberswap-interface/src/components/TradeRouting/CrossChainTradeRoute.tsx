@@ -6,7 +6,7 @@ import { normalizeAdapterName } from 'services/crossChain/utils'
 import { formatUnits } from 'viem'
 
 import UnknownToken from 'assets/svg/kyber/unknown-token.svg'
-import { useCrossChainSwap } from 'components/SwapForm/CrossChain/hooks/useCrossChainSwap'
+import { useCrossChainSwap } from 'components/SwapForm/CrossChain/CrossChainSwapProvider'
 import { TokenLogoWithChain } from 'components/TokenLogo/TokenLogoWithChain'
 import RouteGraphView, { EmptyRouteGraph } from 'components/TradeRouting/RouteGraphView'
 import TradeRoutePanel, { TradeRouteSkeleton } from 'components/TradeRouting/TradeRoutePanel'
@@ -32,7 +32,7 @@ const buildCrossChainGraph = (steps: RouteStep[]) =>
     steps.map((step, index) => {
       const provider =
         registry.getAdapter(step.provider) ||
-        CrossChainSwapFactory.getKyberCrossBridgeSources().find(
+        CrossChainSwapFactory.getBridgeProviders().find(
           source => normalizeAdapterName(source.getName()) === normalizeAdapterName(step.provider),
         )
       const id = `${index}:${step.type}:${step.provider}`

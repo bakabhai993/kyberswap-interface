@@ -3,12 +3,10 @@ import { Repeat, TrendingDown } from 'react-feather'
 import { useLocation } from 'react-router-dom'
 import { useMedia } from 'react-use'
 
-import { ReactComponent as CrossChainIcon } from 'assets/svg/cross_chain_icon.svg'
 import { ReactComponent as LimitOrderIcon } from 'assets/svg/limit_order.svg'
 import NavGroup, { type DropdownAlign } from 'components/Header/groups/NavGroup'
 import { DropdownTextAnchor, NewLabel, StyledNavLink } from 'components/Header/styleds'
 import { TutorialIds } from 'components/Tutorial/TutorialSwap/constant'
-import { ENABLE_KYBERCROSS_DIRECT } from 'constants/env'
 import { APP_PATHS } from 'constants/index'
 import { isSupportLimitOrder, isSupportStopMarket } from 'constants/networks'
 import { useActiveWeb3React } from 'hooks'
@@ -29,8 +27,7 @@ const SwapNavGroup = ({ dropdownAlign }: Props) => {
   const { networkInfo, chainId } = useActiveWeb3React()
   const { pathname } = useLocation()
   const isActive =
-    isSwapLikePath(pathname) ||
-    [APP_PATHS.LIMIT, APP_PATHS.STOP_MARKET, APP_PATHS.KYBER_CROSS].some(path => pathname.startsWith(path))
+    isSwapLikePath(pathname) || [APP_PATHS.LIMIT, APP_PATHS.STOP_MARKET].some(path => pathname.startsWith(path))
 
   const upToSmall = useMedia(`(max-width: ${MEDIA_WIDTHS.upToSmall}px)`)
 
@@ -99,24 +96,6 @@ const SwapNavGroup = ({ dropdownAlign }: Props) => {
                 </IconWrapper>
                 <div className="flex">
                   <Trans>Stop Market</Trans>
-                  <NewLabel isNew>New</NewLabel>
-                </div>
-              </div>
-            </StyledNavLink>
-          )}
-
-          {ENABLE_KYBERCROSS_DIRECT && (
-            <StyledNavLink
-              id="kybercross-nav-link"
-              to={APP_PATHS.KYBER_CROSS}
-              style={{ flexDirection: 'column', width: '100%' }}
-            >
-              <div className="flex items-center gap-3">
-                <IconWrapper>
-                  <CrossChainIcon height={15} />
-                </IconWrapper>
-                <div className="flex">
-                  <span>KyberCross</span>
                   <NewLabel isNew>New</NewLabel>
                 </div>
               </div>

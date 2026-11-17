@@ -5,7 +5,7 @@ import type { getQuotes } from 'services/crossChain/quote/adapterQuotes'
 import type { Quote } from 'services/crossChain/registry'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { useCrossChainQuote } from 'components/SwapForm/CrossChain/hooks/useCrossChainQuote'
+import { useCrossChainQuote } from 'components/SwapForm/CrossChain/Quote/useCrossChainQuote'
 
 const mocks = vi.hoisted(() => ({
   wallets: undefined as any,
@@ -15,7 +15,7 @@ const mocks = vi.hoisted(() => ({
   tokenInUsd: 1,
   outputUsd: 100,
   slippage: 50,
-  state: { crossChainSwap: { excludedSources: ['Relay'], quoteMode: 'direct' } },
+  state: { crossChainSwap: { excludedSources: ['Relay'] } },
 }))
 vi.mock('components/SwapWallets/SwapWalletContext', () => ({ useSwapWallets: () => mocks.wallets }))
 vi.mock('@solana/wallet-adapter-react', () => ({
@@ -1495,12 +1495,11 @@ describe('unified quote session after aggregator integration', () => {
     expect(mocks.getQuotes).toHaveBeenCalledTimes(3)
   })
 
-  it('requests stream quotes with pair fees even when the legacy setting is direct', async () => {
+  it('requests aggregator quotes with pair fees', async () => {
     await act(async () => render('100'))
     await flushQuotes()
     expect(mocks.getQuotes).toHaveBeenCalledTimes(1)
     expect(mocks.getQuotes.mock.calls[0][0]).toMatchObject({
-      quoteMode: 'stream',
       excludedSources: ['Relay'],
       params: { amount: '100000000', feeBps: 10, slippage: 50, sender: 'sender', recipient: 'recipient' },
     })

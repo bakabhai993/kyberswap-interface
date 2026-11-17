@@ -1,5 +1,3 @@
-import { useWalletSelector } from '@near-wallet-selector/react-hook'
-import { useWallet } from '@solana/wallet-adapter-react'
 import { useState } from 'react'
 import {
   BTC_DEFAULT_RECEIVER,
@@ -14,7 +12,6 @@ import {
 } from 'components/SwapForm/hooks/useEvmRecipient'
 import { useRecipientAddress } from 'components/SwapForm/hooks/useRecipientAddress'
 import { useSwapWallets } from 'components/SwapWallets/SwapWalletContext'
-import { useBitcoinWallet } from 'components/Web3Provider/BitcoinProvider'
 import { ZERO_ADDRESS } from 'constants/index'
 import { useActiveWeb3React } from 'hooks'
 import { Chain, NonEvmChain, isNonEvmChain } from 'types/crossChain'
@@ -35,9 +32,6 @@ const getPreviewAddress = (chain: Chain | undefined, account: string | undefined
  */
 export const useCrossChainRecipient = (fromChainId: Chain, toChainId?: Chain, sharedRecipient?: EvmRecipient) => {
   const { account } = useActiveWeb3React()
-  const { signedAccountId } = useWalletSelector()
-  const { walletInfo } = useBitcoinWallet()
-  const { publicKey } = useWallet()
   const wallets = useSwapWallets()
 
   const [recipientInput, setRecipientInput] = useState<RecipientInput>(EMPTY_INPUT)
@@ -60,17 +54,7 @@ export const useCrossChainRecipient = (fromChainId: Chain, toChainId?: Chain, sh
       : receiverWallet?.address || ''
     : evm.recipient
 
-  // The provider is authoritative inside SwapWalletProvider. Direct wallet hooks
-  // remain the fallback for legacy consumers.
-  const senderAddress = wallets
-    ? wallets.inputAddress
-    : fromChainId === NonEvmChain.Near
-    ? signedAccountId
-    : fromChainId === NonEvmChain.Solana
-    ? publicKey?.toString()
-    : fromChainId === NonEvmChain.Bitcoin
-    ? walletInfo?.address
-    : account
+  const senderAddress = wallets?.inputAddress
 
   const updateInput = (change: Partial<RecipientInput>) => {
     if (!hasIndependentReceiver) return

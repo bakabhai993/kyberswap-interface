@@ -5,7 +5,6 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ButtonEmpty } from 'components/Button'
 import { HStack, Stack } from 'components/Stack'
 import { LimitTab } from 'components/TradeLayout/LimitTab'
-import { ENABLE_KYBERCROSS_DIRECT } from 'constants/env'
 import { APP_PATHS } from 'constants/index'
 import { isSupportLimitOrder } from 'constants/networks'
 import { useActiveWeb3React } from 'hooks'
@@ -21,11 +20,10 @@ export enum TAB {
   SETTINGS = 'settings',
   LIQUIDITY_SOURCES = 'liquidity_sources',
   LIMIT = 'limit',
-  KYBER_CROSS = 'kyber_cross',
   CROSS_CHAIN_SOURCES = 'cross_chain_sources',
 }
 
-export type MainTab = TAB.SWAP | TAB.LIMIT | TAB.KYBER_CROSS
+export type MainTab = TAB.SWAP | TAB.LIMIT
 
 export const isSettingTab = (tab: TAB) =>
   [TAB.INFO, TAB.SETTINGS, TAB.LIQUIDITY_SOURCES, TAB.CROSS_CHAIN_SOURCES].includes(tab)
@@ -112,9 +110,7 @@ export const Tabs = ({ activeTab, onTabChange, customChainId }: Props) => {
       tokenIn: fromCurrency || getDefaultSwapTokenId(inputChain),
       tokenOut: toCurrency || getDefaultSwapTokenId(outputChain),
     }
-    if (tab === TAB.KYBER_CROSS) {
-      navigateFn(getTradeLocation('kybercross', pair, searchParams))
-    } else if (tab === TAB.SWAP) {
+    if (tab === TAB.SWAP) {
       navigateFn(getTradeLocation('swap', pair, searchParams))
     } else if (sameChain) {
       navigateFn(getTradeLocation('limit', pair, searchParams))
@@ -129,7 +125,6 @@ export const Tabs = ({ activeTab, onTabChange, customChainId }: Props) => {
   const features = requestedFeatures.length ? requestedFeatures : [TAB.SWAP, TAB.LIMIT]
   const showSwap = !isEmbeddedSwap || features.includes(TAB.SWAP)
   const showLimit = (!isEmbeddedSwap || features.includes(TAB.LIMIT)) && isSupportLimitOrder(chainId)
-  const showKyberCross = !isEmbeddedSwap && ENABLE_KYBERCROSS_DIRECT
 
   return (
     <Stack className="items-start sm:flex-row sm:items-center sm:justify-between">
@@ -144,14 +139,6 @@ export const Tabs = ({ activeTab, onTabChange, customChainId }: Props) => {
         {showSwap && showLimit && <TabDivider />}
         {showLimit && (
           <LimitTab onClick={() => onClickTab(TAB.LIMIT)} active={activeTab === TAB.LIMIT} customChainId={chainId} />
-        )}
-        {showKyberCross && (
-          <>
-            <TabDivider />
-            <Tab onClick={() => onClickTab(TAB.KYBER_CROSS)} $isActive={TAB.KYBER_CROSS === activeTab}>
-              <span className="font-medium">KyberCross</span>
-            </Tab>
-          </>
         )}
       </HStack>
     </Stack>

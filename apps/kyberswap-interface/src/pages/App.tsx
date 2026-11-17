@@ -17,7 +17,6 @@ import RouteFallback from 'components/RouteFallback'
 import RouteSeo from 'components/Seo/RouteSeo'
 import SingaporeWarningPopup from 'components/SingaporeWarningPopup'
 import SupportButton from 'components/SupportButton'
-import { ENABLE_KYBERCROSS_DIRECT } from 'constants/env'
 import { APP_PATHS, PRIVACY_POLICY_PATH, TERMS_OF_USE } from 'constants/index'
 import { LEGACY_POOL_APP_PATHS } from 'constants/legacyPools'
 import {
@@ -53,7 +52,6 @@ const Consent = lazy(() => import('pages/Oauth/Consent'))
 const ElasticSnapshot = lazy(() => import('pages/ElasticSnapshot'))
 const MarketOverview = lazy(() => import('pages/MarketOverview'))
 
-const KyberCrossPage = lazy(() => import('pages/KyberCross'))
 const PartnerSwap = lazy(() => import('pages/PartnerSwap'))
 const MyPool = lazy(() => import('pages/MyPool'))
 
@@ -260,7 +258,6 @@ export default function App() {
               <Route path={`${APP_PATHS.PARTNER_SWAP}`} element={<PartnerSwap />} />
               <Route path={`${APP_PATHS.USER_SWAP}/:tipsId?`} element={<PartnerSwap mode="user" />} />
               <Route path={`${APP_PATHS.USER_SWAP_CREATE_TIPS}`} element={<RedirectToCreateTips />} />
-              {ENABLE_KYBERCROSS_DIRECT && <Route path={APP_PATHS.KYBER_CROSS} element={<KyberCrossPage />} />}
 
               <Route path={APP_PATHS.LIMIT} element={<RedirectPathToTradeNetwork />} />
               {isSupportLimitOrder(chainId) && (

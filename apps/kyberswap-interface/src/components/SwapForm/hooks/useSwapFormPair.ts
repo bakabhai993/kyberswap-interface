@@ -1,6 +1,6 @@
 import { Currency as EvmCurrency } from '@kyberswap/ks-sdk-core'
 import { useState } from 'react'
-import { type To, useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 
 import { APP_PATHS } from 'constants/index'
 import usePageLocation from 'hooks/usePageLocation'
@@ -36,7 +36,7 @@ const matches = (currency: EvmCurrency | undefined, id: string, chain: Chain) =>
  * Selected metadata bridges the interval before URL lookup catches up, but is used only while ID/chain still match.
  * URL resolution owns loading; available selected metadata suppresses its loading placeholder.
  */
-export const useSwapFormPair = (getPairLocation: (pair: SwapPair, params: URLSearchParams) => To = getSwapLocation) => {
+export const useSwapFormPair = () => {
   const navigate = useNavigate()
   const { pathname, isEmbeddedSwap } = usePageLocation()
 
@@ -98,7 +98,7 @@ export const useSwapFormPair = (getPairLocation: (pair: SwapPair, params: URLSea
     }
 
     navigate(
-      getPairLocation(
+      getSwapLocation(
         isCrossChainPair(pair.fromChain, pair.toChain)
           ? pair
           : {

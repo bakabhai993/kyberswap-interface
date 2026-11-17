@@ -1,7 +1,6 @@
-import type { TrackingExecution } from 'services/crossChain/adapters/KyberCrossAdapter/api'
+import type { TrackingExecution } from 'services/crossChain/adapters/KyberCrossAdapter/types'
 import {
   getGasDropQuote,
-  getKyberCrossBridgeProviders,
   getKyberCrossRouteSnapshot,
   mapRouteStateToSwapStatus,
   normalizeProvider,
@@ -33,7 +32,6 @@ const createTrackingExecution = (overrides: Partial<TrackingExecution> = {}): Tr
 describe('KyberCross bridge providers', () => {
   it('normalizes and maps the CCIP source to the KyberCross provider id', () => {
     expect(normalizeProvider('CCIP')).toBe('ccip')
-    expect(getKyberCrossBridgeProviders(['CCIP'])).toEqual(['ccip'])
   })
 })
 

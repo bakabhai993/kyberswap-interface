@@ -1,50 +1,25 @@
 import { ChainId, Currency } from '@kyberswap/ks-sdk-core'
-import { WalletAdapterProps } from '@solana/wallet-adapter-base'
-import { Connection } from '@solana/web3.js'
-import { BaseSwapAdapter, NormalizedQuote, QuoteParams } from 'services/crossChain/adapters/BaseSwapAdapter'
-import {
-  type NearIntentsBridgeMetadata,
-  type QuoteRequest,
-  kyberCrossApi,
-} from 'services/crossChain/adapters/KyberCrossAdapter/api'
+import { BaseSwapAdapter } from 'services/crossChain/adapters/BaseSwapAdapter'
+import { kyberCrossApi } from 'services/crossChain/adapters/KyberCrossAdapter/api'
+import { chainIdToViemChain } from 'services/crossChain/adapters/KyberCrossAdapter/chains'
 import { KyberCross } from 'services/crossChain/adapters/KyberCrossAdapter/constants'
 import { executeKyberCross } from 'services/crossChain/adapters/KyberCrossAdapter/service'
 import {
-  type KyberCrossRawQuote,
-  chainIdToKyberCrossChainName,
-  chainIdToViemChain,
-  kyberCrossSupportedChains,
-} from 'services/crossChain/adapters/KyberCrossAdapter/types'
-import {
   NormalizedProvider,
-  getGasDropQuote,
-  getKyberCrossBridgeProviders,
   getKyberCrossRoutePlan,
   getKyberCrossRouteSnapshot,
   mapRouteStateToSwapStatus,
   normalizeProvider,
   parseKyberCrossQuote,
 } from 'services/crossChain/adapters/KyberCrossAdapter/utils'
-import type { QuoteProvider } from 'services/crossChain/adapters/types'
-import { normalizeQuote } from 'services/crossChain/quote/normalizeQuote'
 import { Quote } from 'services/crossChain/registry'
-import { type Address, type Hash, WalletClient, formatUnits } from 'viem'
+import { type Address, type Hash, WalletClient } from 'viem'
 
 import kyberswapIcon from 'assets/images/kyberswap.ico'
-import { ETHER_ADDRESS, ZERO_ADDRESS } from 'constants/index'
-import { Chain, NormalizedTxResponse, SwapStatus } from 'types/crossChain'
+import { ZERO_ADDRESS } from 'constants/index'
+import { NormalizedTxResponse, SwapStatus } from 'types/crossChain'
 
-const getKyberCrossChainName = (chainId: Chain): QuoteRequest['from_chain'] => {
-  const chainName = chainIdToKyberCrossChainName[chainId as ChainId]
-  if (!chainName) throw new Error(`Unsupported KyberCross chain: ${chainId}`)
-
-  return chainName
-}
-
-const getKyberCrossTokenAddress = (token: Currency): Address =>
-  (token.isNative ? ETHER_ADDRESS : token.wrapped.address) as Address
-
-export class KyberCrossAdapter extends BaseSwapAdapter implements QuoteProvider {
+export class KyberCrossAdapter extends BaseSwapAdapter {
   getName(): string {
     return KyberCross
   }
@@ -53,95 +28,7 @@ export class KyberCrossAdapter extends BaseSwapAdapter implements QuoteProvider 
     return kyberswapIcon
   }
 
-  getSupportedChains(): Chain[] {
-    return kyberCrossSupportedChains
-  }
-
-  async getQuote(params: QuoteParams, signal?: AbortSignal): Promise<NormalizedQuote> {
-    // KyberCross internal testing uses zero UI fees.
-    params = { ...params, feeBps: 0 }
-
-    const request: QuoteRequest = {
-      from_chain: getKyberCrossChainName(params.fromChain),
-      from_token: getKyberCrossTokenAddress(params.fromToken as Currency),
-      from_token_decimals: params.fromToken.decimals,
-      from_address: params.sender as Address,
-      to_chain: getKyberCrossChainName(params.toChain),
-      to_token: getKyberCrossTokenAddress(params.toToken as Currency),
-      to_token_decimals: params.toToken.decimals,
-      to_address: params.recipient as Address,
-      refund_address: params.sender as Address,
-      amount: params.amount,
-      ...(params.gasDrop ? { gas_drop: true } : {}),
-      slippage_bps: params.slippage,
-      partner_fee_bps: params.feeBps,
-      all_route_plans: true,
-      include_bridges: getKyberCrossBridgeProviders(params.includedSources),
-      exclude_bridges: getKyberCrossBridgeProviders(params.excludedSources),
-    }
-
-    const quoteResponse = await kyberCrossApi.getQuote(request, signal)
-    return this.normalizeQuote(params, {
-      request_id: quoteResponse.request_id,
-      data: quoteResponse.data,
-      isNativeToken: (params.fromToken as Currency).isNative,
-    })
-  }
-
-  private normalizeQuote(params: QuoteParams, rawQuote: KyberCrossRawQuote): NormalizedQuote {
-    const data = rawQuote.data
-    if (!data || !('route_plans' in data) || !data.route_plans[0]) throw new Error('No KyberCross route plans found')
-
-    const routePlan = data.route_plans[0]
-
-    const gasDrop = getGasDropQuote(routePlan)
-    const outputAmount = BigInt(routePlan.expected_output_amount)
-    const formattedOutputAmount = formatUnits(outputAmount, params.toToken.decimals)
-    const formattedInputAmount = formatUnits(BigInt(params.amount), params.fromToken.decimals)
-    const inputUsd = params.tokenInUsd * +formattedInputAmount
-    const outputUsd = params.tokenOutUsd * +formattedOutputAmount
-
-    return normalizeQuote({
-      quoteParams: params,
-      gasDrop,
-      minimumOutputAmount: BigInt(routePlan.min_output_amount),
-      outputAmount,
-      inputUsd,
-      outputUsd,
-      timeEstimate: routePlan.estimated_duration_sec ?? 0,
-      contractAddress: rawQuote.isNativeToken ? ZERO_ADDRESS : data.ks_allowance_hub_address,
-      rawQuote,
-      additionalFeeUsd: 0,
-      platformFeePercent: params.feeBps / 100,
-    })
-  }
-
-  getRouteQuotes(quote: NormalizedQuote, isReadOnly: boolean): Quote[] {
-    const rawQuote = parseKyberCrossQuote(quote.rawQuote)
-    const data = rawQuote.data
-    if (!data || !('route_plans' in data) || !data.route_plans.length)
-      throw new Error('No KyberCross route plans found')
-
-    return data.route_plans.map(routePlan => ({
-      id: `${this.getName()}:${routePlan.id}`,
-      adapter: this,
-      isReadOnly,
-      // Each selectable quote owns only its route, including the route used for build and execution.
-      quote: this.normalizeQuote(quote.quoteParams, {
-        ...rawQuote,
-        data: { ...data, route_plans: [routePlan] },
-      }),
-    }))
-  }
-
-  async executeSwap(
-    quote: Quote,
-    walletClient: WalletClient,
-    _nearWalletClient?: unknown,
-    _sendBtcFn?: (params: { recipient: string; amount: string | number }) => Promise<string>,
-    _sendTransaction?: WalletAdapterProps['sendTransaction'],
-    _connection?: Connection,
-  ): Promise<NormalizedTxResponse> {
+  async executeSwap(quote: Quote, walletClient: WalletClient): Promise<NormalizedTxResponse> {
     const normalizedQuote = quote.quote
     const quoteParams = normalizedQuote.quoteParams
     const rawQuote = parseKyberCrossQuote(normalizedQuote.rawQuote)
@@ -154,8 +41,7 @@ export class KyberCrossAdapter extends BaseSwapAdapter implements QuoteProvider 
 
     const kyberCrossRoute = getKyberCrossRouteSnapshot(routePlan)
     const normalizedRouteProvider = normalizeProvider(routePlan.bridge.provider)
-    const build =
-      'route_plans' in quoteData ? (await kyberCrossApi.build(quoteData.route_plans[0])).data : quoteData.build
+    const build = quoteData.build
 
     const buildTx = build.tx
 
@@ -168,7 +54,9 @@ export class KyberCrossAdapter extends BaseSwapAdapter implements QuoteProvider 
     const bridgeMetadata = routePlan.bridge.metadata
     const nearIntentsDepositAddress =
       normalizedRouteProvider === NormalizedProvider.NearIntents
-        ? (bridgeMetadata as NearIntentsBridgeMetadata)?.deposit_address
+        ? typeof bridgeMetadata?.deposit_address === 'string'
+          ? bridgeMetadata.deposit_address
+          : undefined
         : undefined
 
     const txHash = await executeKyberCross({

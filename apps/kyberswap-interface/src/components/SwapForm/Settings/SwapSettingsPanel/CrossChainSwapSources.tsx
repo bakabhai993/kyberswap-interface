@@ -14,38 +14,30 @@ import {
   SourceName,
 } from 'components/SwapForm/Settings/LiquiditySourcesPanel/components'
 import useTracking, { TRACKING_EVENT_TYPE } from 'hooks/useTracking'
-import { type CrossChainQuoteMode, updateExcludedSources, updateKyberCrossExcludedSources } from 'state/crossChainSwap'
+import { updateExcludedSources } from 'state/crossChainSwap'
 import { useAppDispatch, useAppSelector } from 'state/hooks'
 
 const EMPTY_SOURCES: string[] = []
 
 type Props = {
   onBack?: () => void
-  quoteMode?: CrossChainQuoteMode
 }
 
-const CrossChainSwapSources = ({ onBack, quoteMode: mode }: Props) => {
+const CrossChainSwapSources = ({ onBack }: Props) => {
   const { trackingHandler } = useTracking()
   const [searchText, setSearchText] = useState('')
 
   const checkAllRef = useRef<HTMLInputElement | null>(null)
 
-  const quoteMode = mode ?? 'stream'
-  const sources = useMemo(() => CrossChainSwapFactory.getSelectableSources(quoteMode), [quoteMode])
+  const sources = useMemo(() => CrossChainSwapFactory.getSelectableSources(), [])
   const sourceNames = useMemo(() => sources.map(item => item.getName()), [sources])
-  const storedExcludedSources = useAppSelector(
-    state =>
-      (quoteMode === 'direct'
-        ? state.crossChainSwap.kyberCrossExcludedSources
-        : state.crossChainSwap.excludedSources) || EMPTY_SOURCES,
-  )
+  const storedExcludedSources = useAppSelector(state => state.crossChainSwap.excludedSources || EMPTY_SOURCES)
   const excludedSources = useMemo(
     () => storedExcludedSources.filter(source => sourceNames.includes(source)),
     [sourceNames, storedExcludedSources],
   )
   const selectedSources = sources?.filter(item => !excludedSources.includes(item.getName())) || []
   const dispatch = useAppDispatch()
-  const updateSources = quoteMode === 'direct' ? updateKyberCrossExcludedSources : updateExcludedSources
 
   const handleToggleSource = (sourceName: string) => {
     const isExclude = excludedSources.find(i => i === sourceName)
@@ -54,7 +46,7 @@ const CrossChainSwapSources = ({ onBack, quoteMode: mode }: Props) => {
       ? excludedSources.filter(ex => ex !== sourceName)
       : [...excludedSources, sourceName]
 
-    dispatch(updateSources(nextExcludedSources))
+    dispatch(updateExcludedSources(nextExcludedSources))
 
     trackingHandler(TRACKING_EVENT_TYPE.CC_ROUTING_SOURCE_TOGGLED, {
       source_name: sourceName,
@@ -97,9 +89,9 @@ const CrossChainSwapSources = ({ onBack, quoteMode: mode }: Props) => {
                 className="cursor-pointer"
                 onChange={e => {
                   if (!e.currentTarget.checked) {
-                    dispatch(updateSources(sources.map(item => item.getName())))
+                    dispatch(updateExcludedSources(sources.map(item => item.getName())))
                   } else {
-                    dispatch(updateSources([]))
+                    dispatch(updateExcludedSources([]))
                   }
                 }}
               />

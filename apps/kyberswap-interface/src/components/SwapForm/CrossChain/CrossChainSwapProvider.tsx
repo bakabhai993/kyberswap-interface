@@ -1,13 +1,12 @@
 import { type ReactNode, Suspense, createContext, lazy, useCallback, useContext, useState } from 'react'
 
+import type { CrossChainSubmission } from 'components/SwapForm/CrossChain/Execution/useCrossChainExecution'
+import type { useCrossChainQuote } from 'components/SwapForm/CrossChain/Quote/useCrossChainQuote'
+import type { useCrossChainPair } from 'components/SwapForm/CrossChain/hooks/useCrossChainPair'
+import type { useCrossChainRecipient } from 'components/SwapForm/CrossChain/hooks/useCrossChainRecipient'
 import type { EvmRecipient } from 'components/SwapForm/hooks/useEvmRecipient'
 import type { Chain } from 'types/crossChain'
 import type { PriceImpactAction } from 'utils/prices'
-
-import type { CrossChainSubmission } from './useCrossChainExecution'
-import type { useCrossChainPair } from './useCrossChainPair'
-import type { useCrossChainQuote } from './useCrossChainQuote'
-import type { useCrossChainRecipient } from './useCrossChainRecipient'
 
 export type CrossChainSwapOptions = {
   evmRecipient?: EvmRecipient
@@ -17,7 +16,6 @@ export type CrossChainSwapOptions = {
   tokenIn: string
   tokenOut: string
   amount: string
-  setAmount: (amount: string) => void
 }
 
 /** Identity shared by the engine boundary and its page projection. */
@@ -40,12 +38,10 @@ export type CrossChainSwapState = ReturnType<typeof useCrossChainPair> &
     submission: CrossChainSubmission
     isSubmitting: boolean
     confirmSwap: () => void
-    amount: string
-    setAmount: (amount: string) => void
   }
 
 const CrossChainSwapContext = createContext<CrossChainSwapState | undefined>(undefined)
-const Engine = lazy(() => import('./CrossChainSwapEngine'))
+const Engine = lazy(() => import('components/SwapForm/CrossChain/CrossChainSwapEngine'))
 type Props = CrossChainSwapOptions & { children: ReactNode }
 
 /** Stable data boundary: mounting an engine never remounts the form or page. */

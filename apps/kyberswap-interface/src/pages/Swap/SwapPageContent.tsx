@@ -5,7 +5,7 @@ import { type ReactNode, Suspense, lazy, useRef } from 'react'
 import Loader from 'components/Loader'
 import LocalLoader from 'components/LocalLoader'
 import { Center, HStack, Stack } from 'components/Stack'
-import { useOptionalCrossChainSwap } from 'components/SwapForm/CrossChain/hooks/useCrossChainSwap'
+import { useOptionalCrossChainSwap } from 'components/SwapForm/CrossChain/CrossChainSwapProvider'
 import { PendingSwapForm } from 'components/SwapForm/PendingSwapForm'
 import { SwapForm } from 'components/SwapForm/SwapForm'
 import HistoryPanel, { HistoryButton } from 'components/SwapTransactions/History/HistoryPanel'
@@ -122,7 +122,6 @@ export const SwapPageForm = ({
       {activeTab === TAB.SETTINGS && (
         <SwapSettingsPanel
           chainId={singleChainId}
-          crossChainQuoteMode="stream"
           recipientSettingsReady={!isCrossChain || crossChainReady}
           showDisplaySettings
           mode={isCrossChain ? 'cross-chain' : 'single-chain'}
@@ -132,9 +131,7 @@ export const SwapPageForm = ({
           onClickCrossChainSources={() => onTabChange(TAB.CROSS_CHAIN_SOURCES)}
         />
       )}
-      {activeTab === TAB.CROSS_CHAIN_SOURCES && (
-        <CrossChainSwapSources quoteMode="stream" onBack={() => onTabChange(TAB.SETTINGS)} />
-      )}
+      {activeTab === TAB.CROSS_CHAIN_SOURCES && <CrossChainSwapSources onBack={() => onTabChange(TAB.SETTINGS)} />}
       {activeTab === TAB.LIQUIDITY_SOURCES && (
         <LiquiditySourcesPanel chainId={singleChainId} onBack={() => onTabChange(TAB.SETTINGS)} />
       )}

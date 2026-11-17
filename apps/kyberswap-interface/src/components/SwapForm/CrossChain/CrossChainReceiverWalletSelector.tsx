@@ -1,4 +1,4 @@
-import { useCrossChainSwap } from 'components/SwapForm/CrossChain/hooks/useCrossChainSwap'
+import { useCrossChainSwap } from 'components/SwapForm/CrossChain/CrossChainSwapProvider'
 import { CrossChainWalletSelector } from 'components/SwapWallets/CrossChainWalletSelector'
 import { useSwapWallets } from 'components/SwapWallets/SwapWalletContext'
 import { CONNECTOR_ICON_OVERRIDE_MAP } from 'components/Web3Provider'

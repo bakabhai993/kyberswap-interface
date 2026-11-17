@@ -3,10 +3,12 @@ import { act, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, expect, it, vi } from 'vitest'
 
-import CrossChainSwapProvider, { useOptionalCrossChainSwap } from './useCrossChainSwap'
+import CrossChainSwapProvider, {
+  useOptionalCrossChainSwap,
+} from 'components/SwapForm/CrossChain/CrossChainSwapProvider'
 
 const engine = vi.hoisted(() => ({ loaded: vi.fn(), mount: vi.fn(), stop: vi.fn(), enabled: vi.fn() }))
-vi.mock('./CrossChainSwapEngine', async () => {
+vi.mock('components/SwapForm/CrossChain/CrossChainSwapEngine', async () => {
   engine.loaded()
   const { memo, useLayoutEffect } = await import('react')
   return {
@@ -27,7 +29,6 @@ vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
 const container = document.createElement('div')
 const root = createRoot(container)
 const mounts = vi.fn()
-const setAmount = vi.fn()
 const Form = () => {
   const quote = useOptionalCrossChainSwap()
   const [draft, setDraft] = useState('')
@@ -43,15 +44,7 @@ const Form = () => {
 const render = (enabled: boolean) =>
   act(async () =>
     root.render(
-      <CrossChainSwapProvider
-        enabled={enabled}
-        fromChain={1}
-        toChain={8453}
-        tokenIn="ETH"
-        tokenOut="ETH"
-        amount="1"
-        setAmount={setAmount}
-      >
+      <CrossChainSwapProvider enabled={enabled} fromChain={1} toChain={8453} tokenIn="ETH" tokenOut="ETH" amount="1">
         <Form />
       </CrossChainSwapProvider>,
     ),

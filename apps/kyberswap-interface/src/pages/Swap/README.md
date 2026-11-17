@@ -57,14 +57,12 @@ app wallet; recipient drafts belong to the form. See the
 [TokenSelectorModal README](../../components/TokenSelectorModal/README.md) for
 browsing and selection ownership.
 
-Unified Swap uses streamed quotes. `pages/KyberCross` reuses form and provider
-modules while retaining its own quote policy, Gas Drop and source preferences.
-Preserve these caller options when changing shared modules. Only KyberSwap and
-KyberCross fetch quotes directly in the client. Other provider adapters execute
-streamed quotes and track status; their SDK chain configuration is still required
-for execution, independently of direct-quote chain filtering. The factory owns
-adapter instances; the registry resolves provider names and legacy aliases.
-Quote routing selects same-chain, direct or stream mode explicitly.
+Unified Swap requests cross-chain quotes from the aggregator stream. Provider
+adapters execute built quotes and track status; KyberCross never requests or
+rebuilds quotes in the client. Same-chain quotes use KyberSwap. The factory owns
+adapter instances and provider display metadata; the registry resolves names and
+legacy aliases. KyberCross keeps only `GET /api/v1/executions` for transaction
+status and detail reads; stream payload types are separate from HTTP transport.
 
 Transaction views share local/indexed history projections. Verified terminal
 backend data owns settlement; pending or incomplete records retain local execution
@@ -73,7 +71,4 @@ transaction. Wallet history polls while History is open or the input wallet has
 known processing transactions from local state or loaded history pages. Closing
 History stops list polling once none remain; unloaded pages are not scanned for
 pending transactions. History follows the input signer, using the connected EVM
-wallet before cross-chain wallet context is activated. The separate Direct page
-shows all local cross-chain transactions and updates each through its provider; it does
-not subscribe to wallet history, backend sync or row-level execution enrichment.
-Detail requests have their own query lifecycle and do not own settlement.
+wallet before cross-chain wallet context is activated. Detail requests have their own query lifecycle and do not own settlement.

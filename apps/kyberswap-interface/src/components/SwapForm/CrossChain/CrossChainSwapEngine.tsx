@@ -1,14 +1,13 @@
 import { memo, useLayoutEffect, useRef } from 'react'
 import { isQuoteExecutable } from 'services/crossChain/utils'
 
-import { useCrossChainExecution } from 'components/SwapForm/CrossChain/hooks/useCrossChainExecution'
+import type { CrossChainSwapOptions, CrossChainSwapState } from 'components/SwapForm/CrossChain/CrossChainSwapProvider'
+import { useCrossChainExecution } from 'components/SwapForm/CrossChain/Execution/useCrossChainExecution'
+import { useCrossChainQuote } from 'components/SwapForm/CrossChain/Quote/useCrossChainQuote'
 import { useCrossChainPair } from 'components/SwapForm/CrossChain/hooks/useCrossChainPair'
-import { useCrossChainQuote } from 'components/SwapForm/CrossChain/hooks/useCrossChainQuote'
 import { useCrossChainRecipient } from 'components/SwapForm/CrossChain/hooks/useCrossChainRecipient'
 import { usePriceImpactDegenMode } from 'components/SwapForm/SwapActionButton/usePriceImpactDegenMode'
 import { checkPriceImpact } from 'utils/prices'
-
-import type { CrossChainSwapOptions, CrossChainSwapState } from './useCrossChainSwap'
 
 type Props = CrossChainSwapOptions & { onChange: (value: CrossChainSwapState) => void }
 
@@ -17,7 +16,6 @@ const CrossChainSwapEngine = ({
   enabled = true,
   evmRecipient,
   amount,
-  setAmount,
   fromChain,
   toChain,
   tokenIn,
@@ -115,8 +113,6 @@ const CrossChainSwapEngine = ({
       reviewHasVeryHighPriceImpact,
       confirmSwap,
       closeReview,
-      amount,
-      setAmount,
     })
   })
 

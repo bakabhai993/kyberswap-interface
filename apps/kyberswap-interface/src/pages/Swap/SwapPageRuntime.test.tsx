@@ -6,7 +6,7 @@ import { expect, it, vi } from 'vitest'
 import {
   getCrossChainSwapIdentity,
   useOptionalCrossChainSwap,
-} from 'components/SwapForm/CrossChain/hooks/useCrossChainSwap'
+} from 'components/SwapForm/CrossChain/CrossChainSwapProvider'
 import { useSwapWalletSnapshot, useSwapWallets } from 'components/SwapWallets/SwapWalletContext'
 
 import SwapCrossChainProviders from './SwapCrossChainProviders'
@@ -31,7 +31,7 @@ vi.mock('components/SwapWallets/SwapWalletProvider', async () => {
     ),
   }
 })
-vi.mock('components/SwapForm/CrossChain/hooks/CrossChainSwapEngine', async () => {
+vi.mock('components/SwapForm/CrossChain/CrossChainSwapEngine', async () => {
   const { memo, useLayoutEffect } = await import('react')
   return {
     default: memo(({ onChange, fromChain }: any) => {

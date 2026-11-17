@@ -1,7 +1,7 @@
 import { ChainId } from '@kyberswap/ks-sdk-core'
 import { Suspense, lazy, useCallback, useState } from 'react'
 
-import { getCrossChainSwapIdentity } from 'components/SwapForm/CrossChain/hooks/useCrossChainSwap'
+import { getCrossChainSwapIdentity } from 'components/SwapForm/CrossChain/CrossChainSwapProvider'
 import { SingleChainSwapFormProvider } from 'components/SwapForm/SingleChain/SingleChainSwapFormProvider'
 import { useEvmRecipient } from 'components/SwapForm/hooks/useEvmRecipient'
 import { useSwapFormPair } from 'components/SwapForm/hooks/useSwapFormPair'
@@ -97,7 +97,6 @@ const SwapPage = () => {
                     enabled={pair.isCrossChain}
                     evmRecipient={evmRecipient}
                     amount={typedValue}
-                    setAmount={onUserInput}
                     tokenIn={pair.inputId}
                     tokenOut={pair.outputId}
                     fromChain={pair.inputChain}

@@ -123,13 +123,11 @@ describe('aggregator quote response', () => {
     expect(quote.outputUsd).toBe(99)
   })
 
-  it('keeps an independent request snapshot when the caller changes its amount or sources', () => {
-    const request = { ...params, includedSources: ['mayan'] }
+  it('keeps an independent request snapshot when the caller changes its amount', () => {
+    const request = { ...params }
     const quote = normalize(request)
     request.amount = '1'
-    request.includedSources.push('relay')
     expect(quote.quoteParams.amount).toBe(params.amount)
-    expect(quote.quoteParams.includedSources).toEqual(['mayan'])
   })
 
   it('preserves large JSON amounts exactly without changing SDK payload types', () => {

@@ -1,7 +1,7 @@
 import { t } from '@lingui/macro'
 import { useWalletSelector } from '@near-wallet-selector/react-hook'
 import type { SignerWalletAdapter } from '@solana/wallet-adapter-base'
-import { useConnection, useWallet } from '@solana/wallet-adapter-react'
+import { useConnection } from '@solana/wallet-adapter-react'
 import { Transaction, VersionedTransaction } from '@solana/web3.js'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useStore } from 'react-redux'
@@ -13,9 +13,12 @@ import { getSwapTrackingData } from 'services/crossChain/tracking'
 import { getChainName, isQuoteExecutable } from 'services/crossChain/utils'
 import { formatUnits } from 'viem'
 
+import {
+  observeEvmWalletSigning,
+  observeWalletSigning,
+} from 'components/SwapForm/CrossChain/Execution/observeWalletSigning'
 import { useSwapWallets } from 'components/SwapWallets/SwapWalletContext'
 import { getTipLinkAttribution } from 'components/TipLinkGeneratorModal/shared'
-import { useBitcoinWallet } from 'components/Web3Provider/BitcoinProvider'
 import { useGatedWalletClient } from 'hooks/useGatedWalletClient'
 import useTracking, { CROSS_CHAIN_MIXPANEL_TYPE, TRACKING_EVENT_TYPE, useCrossChainMixpanel } from 'hooks/useTracking'
 import type { AppState } from 'state'
@@ -24,21 +27,13 @@ import { outboxKey } from 'state/crossChainSwap/model'
 import { useAppDispatch } from 'state/hooks'
 import { NonEvmChain, type NormalizedTxResponse, isEvmChain } from 'types/crossChain'
 
-import { observeEvmWalletSigning, observeWalletSigning } from './observeWalletSigning'
-
 export type CrossChainSubmission =
   | { phase: 'idle' | 'preparing' | 'signing' }
   | { phase: 'submitted'; txHash: string }
   | { phase: 'error'; error: string }
 
-/**
- * Owns execution and persistence. Unified Swap supplies the current input
- * connection; legacy callers keep the existing global-wallet fallback.
- */
-export const useCrossChainExecution = (
-  reviewedQuote: Quote | null,
-  { syncWithBackend = true, onSubmit }: { syncWithBackend?: boolean; onSubmit?: () => void } = {},
-) => {
+/** Executes the reviewed quote with the input signing slot and persists broadcasts independently of review UI. */
+export const useCrossChainExecution = (reviewedQuote: Quote | null, { onSubmit }: { onSubmit?: () => void } = {}) => {
   const { crossChainMixpanelHandler } = useCrossChainMixpanel()
   const { trackingHandler } = useTracking()
   const { data: walletClient } = useGatedWalletClient()
@@ -56,8 +51,6 @@ export const useCrossChainExecution = (
   const store = useStore<AppState>()
 
   const nearWallet = useWalletSelector()
-  const solanaWallet = useWallet()
-  const { walletInfo, availableWallets } = useBitcoinWallet()
   const swapWallets = useSwapWallets()
   const [checkBlackjack] = useLazyCheckBlackjackQuery()
   const { connection } = useConnection()
@@ -73,16 +66,18 @@ export const useCrossChainExecution = (
         signTransaction: solanaSigner?.signTransaction?.bind(solanaAdapter),
         signAllTransactions: solanaSigner?.signAllTransactions?.bind(solanaAdapter),
       }
-    : solanaWallet
-  const solanaAddress = solanaAdapter ? solanaAdapter.publicKey : solanaWallet.publicKey
+    : {}
+  const solanaAddress = solanaAdapter?.publicKey
   const sendTransaction =
     inputConnection?.family === NonEvmChain.Solana
       ? inputConnection.wallet.sendTransaction.bind(inputConnection.wallet)
-      : solanaWallet.sendTransaction
+      : async () => {
+          throw new Error('Solana wallet not connected')
+        }
   const activeNearWallet =
     inputConnection?.family === NonEvmChain.Near
       ? { ...nearWallet, wallet: inputConnection.wallet, signedAccountId: inputAddress || null }
-      : nearWallet
+      : { ...nearWallet, wallet: null, signedAccountId: null }
   const activeBitcoinWallet = inputConnection?.family === NonEvmChain.Bitcoin ? inputConnection.wallet : undefined
 
   const sendBtcFn = async (
@@ -91,12 +86,12 @@ export const useCrossChainExecution = (
   ) => {
     const feeRate = await fetch('https://mempool.space/api/v1/fees/recommended').then(res => res.json())
 
-    const selectedWallet = activeBitcoinWallet || availableWallets.find(item => item.type === walletInfo.walletType)
+    const selectedWallet = activeBitcoinWallet
     if (!selectedWallet) throw new Error('Not connected wallet')
 
     return observeWalletSigning(selectedWallet, ['sendBitcoin'], onSigning).sendBitcoin({
       ...params,
-      sender: inputConnection?.family === NonEvmChain.Bitcoin ? inputAddress : walletInfo?.address || undefined,
+      sender: inputAddress,
       ...(feeRate?.fastestFee
         ? {
             options: { feeRate: feeRate.fastestFee * 1.2 },
@@ -105,7 +100,8 @@ export const useCrossChainExecution = (
     })
   }
 
-  const submitSwap = async (selectedQuote = reviewedQuote) => {
+  const submitSwap = async () => {
+    const selectedQuote = reviewedQuote
     if (!selectedQuote || activeSubmission.current) return
 
     onSubmit?.()
@@ -127,17 +123,7 @@ export const useCrossChainExecution = (
     }
 
     // Check the live signer against the immutable reviewed quote before opening the wallet.
-    const executionSender = swapWallets
-      ? inputAddress || undefined
-      : isEvmChain(fromChainId)
-      ? walletClient?.account.address
-      : fromChainId === NonEvmChain.Near
-      ? activeNearWallet.signedAccountId || undefined
-      : fromChainId === NonEvmChain.Solana
-      ? solanaAddress?.toString()
-      : inputConnection?.family === NonEvmChain.Bitcoin
-      ? inputAddress
-      : walletInfo.address || undefined
+    const executionSender = inputAddress || undefined
 
     if (
       (isEvmChain(fromChainId) && walletClient?.account.address.toLowerCase() !== executionSender?.toLowerCase()) ||
@@ -206,7 +192,7 @@ export const useCrossChainExecution = (
       const alreadyCaptured = broadcastHash === transaction.sourceTxHash
       broadcastHash = transaction.sourceTxHash
 
-      if (syncWithBackend && selectedQuote.quote.quoteId && selectedQuote.quote.quoteToken) {
+      if (selectedQuote.quote.quoteId && selectedQuote.quote.quoteToken) {
         // Fast BE settlement can clear sync while retaining the local transaction.
         // A late adapter confirmation must not restart registration.
         if (alreadyCaptured && capturedOutboxKey && !selectTransactionSync(store.getState(), capturedOutboxKey)) return
@@ -293,31 +279,28 @@ export const useCrossChainExecution = (
         params => sendBtcFn(params, onSigning),
         executionSendTransaction,
         connection,
-        // Legacy pages retain local-only history, including MyNearWallet redirects.
-        syncWithBackend
-          ? (sourceTxHash, tracking) => {
-              if (!sourceTxHash) return
+        (sourceTxHash, tracking) => {
+          if (!sourceTxHash) return
 
-              persistBroadcast({
-                sourceTxHash,
-                id: tracking?.id ?? sourceTxHash,
-                depositAddress: tracking?.depositAddress,
-                sender: executionSender || sender,
-                adapter: selectedQuote.adapter.getName(),
-                sourceChain: fromChainId,
-                targetChain: toChainId,
-                sourceToken: currencyIn,
-                targetToken: currencyOut,
-                inputAmount: amountInWei,
-                outputAmount: selectedQuote.quote.outputAmount.toString(),
-                timestamp: Date.now(),
-                amountInUsd: selectedQuote.quote.inputUsd,
-                amountOutUsd: selectedQuote.quote.outputUsd,
-                platformFeePercent: selectedQuote.quote.platformFeePercent,
-                recipient: receiver,
-              })
-            }
-          : undefined,
+          persistBroadcast({
+            sourceTxHash,
+            id: tracking?.id ?? sourceTxHash,
+            depositAddress: tracking?.depositAddress,
+            sender: executionSender || sender,
+            adapter: selectedQuote.adapter.getName(),
+            sourceChain: fromChainId,
+            targetChain: toChainId,
+            sourceToken: currencyIn,
+            targetToken: currencyOut,
+            inputAmount: amountInWei,
+            outputAmount: selectedQuote.quote.outputAmount.toString(),
+            timestamp: Date.now(),
+            amountInUsd: selectedQuote.quote.inputUsd,
+            amountOutUsd: selectedQuote.quote.outputUsd,
+            platformFeePercent: selectedQuote.quote.platformFeePercent,
+            recipient: receiver,
+          })
+        },
       )
 
       if (

@@ -4,7 +4,7 @@ import { Quote } from 'services/crossChain/registry'
 import { formatUnits } from 'viem'
 
 import { ErrorWarning } from 'components/ErrorWarning'
-import type { getQuoteWarning } from 'components/SwapForm/CrossChain/hooks/getQuoteWarning'
+import type { getQuoteWarning } from 'components/SwapForm/CrossChain/Quote/getQuoteWarning'
 import { QuoteDetailRow } from 'components/SwapForm/Quote/QuoteDetails'
 import { VeryHighPriceImpactNote } from 'components/SwapForm/Warnings/PriceImpactNote'
 import { MouseoverTooltip } from 'components/Tooltip'

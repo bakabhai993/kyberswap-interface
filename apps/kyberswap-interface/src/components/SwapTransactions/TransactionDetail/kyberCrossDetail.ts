@@ -1,5 +1,5 @@
 import { t } from '@lingui/macro'
-import type { TrackingExecution } from 'services/crossChain/adapters/KyberCrossAdapter/api'
+import type { TrackingExecution } from 'services/crossChain/adapters/KyberCrossAdapter/types'
 import { isExecutionFinished, mapRouteStateToSwapStatus } from 'services/crossChain/adapters/KyberCrossAdapter/utils'
 
 import type { NormalizedTxResponse } from 'types/crossChain'

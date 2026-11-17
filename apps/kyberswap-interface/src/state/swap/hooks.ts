@@ -292,7 +292,6 @@ export const useCurrencyFromUrl = () => {
   const isSwapPage =
     isSwapLikePath(pathname) ||
     pathname === APP_PATHS.CROSS_CHAIN ||
-    pathname === APP_PATHS.KYBER_CROSS ||
     pathname.startsWith(APP_PATHS.PARTNER_SWAP) ||
     pathname.startsWith(APP_PATHS.USER_SWAP)
   const { fromChain, toChain } = getSwapChains(isSwapPage ? params : new URLSearchParams(), chainId)

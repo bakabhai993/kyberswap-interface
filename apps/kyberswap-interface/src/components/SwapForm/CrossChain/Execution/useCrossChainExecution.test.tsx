@@ -4,7 +4,7 @@ import { createRoot } from 'react-dom/client'
 import type { Quote } from 'services/crossChain/registry'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 
-import { useCrossChainExecution } from 'components/SwapForm/CrossChain/hooks/useCrossChainExecution'
+import { useCrossChainExecution } from 'components/SwapForm/CrossChain/Execution/useCrossChainExecution'
 import type { NormalizedTxResponse } from 'types/crossChain'
 
 const mocks = vi.hoisted(() => ({
@@ -82,17 +82,16 @@ const makeQuote = (managed = true) =>
   } as unknown as Quote)
 let root: ReturnType<typeof createRoot>
 let execution: ReturnType<typeof useCrossChainExecution>
-const Harness = ({ quote, syncWithBackend }: { quote: Quote | null; syncWithBackend?: boolean }) => {
-  execution = useCrossChainExecution(quote, { syncWithBackend, onSubmit: mocks.onSubmit })
+const Harness = ({ quote }: { quote: Quote | null }) => {
+  execution = useCrossChainExecution(quote, { onSubmit: mocks.onSubmit })
   return null
 }
-const render = (quote: Quote | null, syncWithBackend = true) =>
-  act(async () => root.render(<Harness quote={quote} syncWithBackend={syncWithBackend} />))
+const render = (quote: Quote | null) => act(async () => root.render(<Harness quote={quote} />))
 beforeEach(() => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
   vi.resetAllMocks()
   mocks.entries = []
-  mocks.wallets = undefined
+  mocks.wallets = { inputAddress: 'sender' }
   mocks.enqueue.mockImplementation(() => {
     const entry = { key: 'captured' }
     mocks.entries = [entry]
@@ -211,7 +210,16 @@ it('blocks duplicate submits while signing and does not invalidate again on late
   expect(execution.txHash).toBe('')
   expect(mocks.enqueue).toHaveBeenCalledOnce()
 })
-it('keeps legacy callers on local history and deduplicates the broadcast callback and adapter return', async () => {
+it('does not borrow the global signer when the input wallet slot is unavailable', async () => {
+  mocks.wallets = undefined
+  await render(makeQuote())
+  await act(async () => execution.submitSwap())
+  expect(mocks.execute).not.toHaveBeenCalled()
+  expect(mocks.enqueue).not.toHaveBeenCalled()
+  expect(execution.submission.phase).toBe('error')
+})
+
+it('persists quotes without backend identity locally through broadcast and completion', async () => {
   mocks.execute.mockImplementation(async (...args) => {
     args[6]('source', { id: 'provider' })
     return { sourceTxHash: 'source', id: 'provider' }
@@ -220,20 +228,6 @@ it('keeps legacy callers on local history and deduplicates the broadcast callbac
   await act(async () => execution.submitSwap())
   expect(mocks.enqueue).not.toHaveBeenCalled()
   expect(mocks.dispatch).toHaveBeenCalledTimes(2)
-})
-
-it('keeps legacy popup execution local even when a streamed quote has backend identity', async () => {
-  const original = makeQuote()
-  const refreshed = { ...original, quote: { ...original.quote, outputAmount: 95n } }
-  mocks.execute.mockResolvedValue({ sourceTxHash: 'source', id: 'provider' })
-  await render(original, false)
-  await act(async () => execution.submitSwap(refreshed))
-  expect(mocks.execute.mock.calls[0][0]).toBe(refreshed)
-  expect(mocks.execute.mock.calls[0][6]).toBeUndefined()
-  expect(mocks.enqueue).not.toHaveBeenCalled()
-  expect(mocks.dispatch).toHaveBeenCalledOnce()
-  expect(mocks.dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: 'legacy' }))
-  expect(mocks.track).toHaveBeenCalledOnce()
 })
 
 it('executes and records the reviewed recipient instead of an adapter-returned address', async () => {

@@ -1,4 +1,4 @@
-import type { TrackingExecution } from 'services/crossChain/adapters/KyberCrossAdapter/api'
+import type { TrackingExecution } from 'services/crossChain/adapters/KyberCrossAdapter/types'
 import { isExecutionFinished } from 'services/crossChain/adapters/KyberCrossAdapter/utils'
 import { describe, expect, it } from 'vitest'
 

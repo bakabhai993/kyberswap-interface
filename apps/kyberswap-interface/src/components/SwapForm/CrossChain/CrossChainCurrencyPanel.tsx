@@ -1,7 +1,5 @@
 import { Currency as EvmCurrency } from '@kyberswap/ks-sdk-core'
 import { Trans, t } from '@lingui/macro'
-import { useWalletSelector } from '@near-wallet-selector/react-hook'
-import { useWallet } from '@solana/wallet-adapter-react'
 import { ReactNode, useState } from 'react'
 import { useMedia } from 'react-use'
 import { formatUnits } from 'viem'
@@ -17,9 +15,6 @@ import { useCrossChainBalance } from 'components/SwapForm/CrossChain/hooks/useCr
 import { CrossChainSenderWalletSelector } from 'components/SwapWallets/CrossChainSenderWalletSelector'
 import { useSwapWallets } from 'components/SwapWallets/SwapWalletContext'
 import TokenSelectorModal from 'components/TokenSelectorModal'
-import { useBitcoinWallet } from 'components/Web3Provider/BitcoinProvider'
-import { useSolanaTokenBalances } from 'components/Web3Provider/SolanaProvider'
-import { useNearBalances } from 'hooks/useNearBalances'
 import { MEDIA_WIDTHS } from 'theme'
 import { Chain, Currency, NonEvmChain, NonEvmChainInfo, NonEvmCurrency } from 'types/crossChain'
 import { formatDisplayNumber } from 'utils/numbers'
@@ -61,36 +56,11 @@ export const CrossChainCurrencyPanel = ({
 }: Props) => {
   const [open, setOpen] = useState(false)
   const wallets = useSwapWallets()
-  const { balances } = useNearBalances(!wallets && !output && chain === NonEvmChain.Near)
-  const solanaBalances = useSolanaTokenBalances()
-  const { balance: btcBalance, walletInfo } = useBitcoinWallet()
-  const { publicKey } = useWallet()
-  const { signedAccountId } = useWalletSelector()
-
-  // Both selected slots read by address; global balances are only for legacy callers.
   const selectedAddress = output ? receiverAddress : wallets?.inputAddress
-  const selectedBalance = useCrossChainBalance(chain, currency, selectedAddress)
-  const connected = output
-    ? !!receiverAddress
-    : wallets
-    ? !!wallets.inputAddress
-    : chain === NonEvmChain.Solana
-    ? !!publicKey
-    : chain === NonEvmChain.Near
-    ? !!signedAccountId
-    : !!walletInfo?.address
+  const rawBalance = useCrossChainBalance(chain, currency, selectedAddress)
+  const connected = !!selectedAddress
   const upToSmall = useMedia(`(max-width: ${MEDIA_WIDTHS.upToSmall}px)`)
 
-  const rawBalance =
-    output || wallets
-      ? selectedBalance
-      : chain === NonEvmChain.Bitcoin
-      ? btcBalance
-      : currency && 'assetId' in currency
-      ? balances[currency.assetId]
-      : currency && 'id' in currency
-      ? solanaBalances[currency.id]?.rawAmount
-      : undefined
   const balance =
     connected && rawBalance !== undefined && currency ? formatUnits(BigInt(rawBalance), currency.decimals) : ''
   const amountShortcuts =

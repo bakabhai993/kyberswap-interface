@@ -1,7 +1,7 @@
 import type { ClipboardEventHandler } from 'react'
 
+import { useCrossChainSwap } from 'components/SwapForm/CrossChain/CrossChainSwapProvider'
 import type { useCrossChainRecipient } from 'components/SwapForm/CrossChain/hooks/useCrossChainRecipient'
-import { useCrossChainSwap } from 'components/SwapForm/CrossChain/hooks/useCrossChainSwap'
 import { RecipientInput } from 'components/SwapForm/RecipientInput'
 import useTracking, { TRACKING_EVENT_TYPE } from 'hooks/useTracking'
 

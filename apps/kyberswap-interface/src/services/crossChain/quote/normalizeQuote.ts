@@ -36,8 +36,6 @@ export const normalizeQuote = (quote: QuoteInput): NormalizedQuote => {
     // Copy source filters as well; token and wallet objects retain their SDK identities.
     quoteParams: Object.freeze({
       ...params,
-      includedSources: params.includedSources?.slice(),
-      excludedSources: params.excludedSources?.slice(),
     }),
     formattedOutputAmount,
     rate: Number(formattedOutputAmount) / Number(formattedInputAmount),

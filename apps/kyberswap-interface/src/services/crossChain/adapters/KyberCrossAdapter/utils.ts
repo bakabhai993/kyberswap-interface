@@ -1,5 +1,9 @@
-import type { BridgeProvider, RoutePlan, TrackingExecution } from 'services/crossChain/adapters/KyberCrossAdapter/api'
-import type { GasDropPlan, KyberCrossRawQuote } from 'services/crossChain/adapters/KyberCrossAdapter/types'
+import type {
+  GasDropPlan,
+  KyberCrossRawQuote,
+  SwapPlan,
+  TrackingExecution,
+} from 'services/crossChain/adapters/KyberCrossAdapter/types'
 import { evmTransactionSchema } from 'services/crossChain/quote/rawQuote'
 import { normalizeAdapterName } from 'services/crossChain/utils'
 import { z } from 'zod'
@@ -26,28 +30,12 @@ const rawQuoteSchema = z
   .object({
     request_id: z.string().optional(),
     isNativeToken: z.boolean().optional(),
-    data: z.union([
-      z
-        .object({
-          ks_allowance_hub_address: z.string(),
-          route_plans: z
-            .array(
-              routeSummarySchema.extend({
-                expected_output_amount: z.string().regex(/^\d+$/),
-                min_output_amount: z.string().regex(/^\d+$/),
-                request: z.record(z.unknown()),
-              }),
-            )
-            .min(1),
-        })
-        .passthrough(),
-      z
-        .object({
-          route_plan: routeSummarySchema.extend({ expires_at: z.string().optional() }),
-          build: z.object({ tx: evmTransactionSchema }).passthrough(),
-        })
-        .passthrough(),
-    ]),
+    data: z
+      .object({
+        route_plan: routeSummarySchema.extend({ expires_at: z.string().optional() }),
+        build: z.object({ tx: evmTransactionSchema }).passthrough(),
+      })
+      .passthrough(),
   })
   .passthrough()
 
@@ -62,7 +50,7 @@ export const getKyberCrossRoutePlan = (rawQuote: unknown) => {
   if (!result.success) return undefined
 
   const data = (rawQuote as KyberCrossRawQuote).data
-  return data && ('route_plans' in data ? data.route_plans[0] : data.route_plan)
+  return data?.route_plan
 }
 
 // Persist only display fields, not build calldata, intents or opaque quote metadata.
@@ -70,10 +58,7 @@ export const getKyberCrossRouteSnapshot = (
   plan: NonNullable<ReturnType<typeof getKyberCrossRoutePlan>>,
 ): KyberCrossRouteSnapshot => {
   const snapshotSwap = (
-    value?: Pick<
-      NonNullable<RoutePlan['source_swap']>,
-      'token_in' | 'token_out' | 'input_amount' | 'expected_output_amount'
-    >,
+    value?: Pick<SwapPlan, 'token_in' | 'token_out' | 'input_amount' | 'expected_output_amount'>,
   ): KyberCrossPlannedSwap | undefined => {
     if (!value) return undefined
 
@@ -127,30 +112,6 @@ export const normalizeProvider = (provider?: string): NormalizedProvider | undef
   const normalizedProvider = normalizeAdapterName(provider)
 
   return normalizedProvider ? normalizedProviderMap[normalizedProvider] : undefined
-}
-
-const kyberCrossBridgeProviderMap: Partial<Record<NormalizedProvider, BridgeProvider>> = {
-  [NormalizedProvider.Across]: 'across',
-  [NormalizedProvider.Relay]: 'relay',
-  [NormalizedProvider.Mayan]: 'mayan',
-  [NormalizedProvider.NearIntents]: 'near_intents',
-  [NormalizedProvider.CctpV2]: 'cctp_v2',
-  [NormalizedProvider.CctpV2Fast]: 'cctp_v2_fast',
-  [NormalizedProvider.Ccip]: 'ccip',
-  [NormalizedProvider.Eco]: 'eco',
-  [NormalizedProvider.ArbitrumBridge]: 'arbitrum_bridge',
-}
-
-export const getKyberCrossBridgeProviders = (sources?: string[]): BridgeProvider[] | undefined => {
-  const providers =
-    sources
-      ?.map(source => {
-        const normalizedProvider = normalizeProvider(source)
-        return normalizedProvider ? kyberCrossBridgeProviderMap[normalizedProvider] : undefined
-      })
-      .filter((provider): provider is BridgeProvider => !!provider) || []
-
-  return providers.length ? providers : undefined
 }
 
 const getFinalReceivedAmount = (trackingExecution: TrackingExecution, hasGasDrop: boolean): string | undefined => {

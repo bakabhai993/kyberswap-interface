@@ -5,9 +5,8 @@ import { ComponentProps, act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 
+import { CrossChainSwapConfirmation } from 'components/SwapForm/CrossChain/Execution/CrossChainSwapConfirmation'
 import { NonEvmChain } from 'types/crossChain'
-
-import { CrossChainSwapConfirmation } from './CrossChainSwapConfirmation'
 
 vi.mock('components/Modal', () => ({ default: ({ isOpen, children }: any) => (isOpen ? <div>{children}</div> : null) }))
 vi.mock('components/Button', () => ({
@@ -35,7 +34,7 @@ vi.mock('components/SwapForm/CrossChain/Quote/CrossChainQuoteSummary', () => ({
   CrossChainQuoteSummaryRows: () => null,
 }))
 vi.mock('components/SwapForm/CrossChain/Quote/QuoteProviderName', () => ({ QuoteProviderName: () => null }))
-vi.mock('components/SwapForm/CrossChain/hooks/getQuoteWarning', () => ({ getQuoteWarning: () => undefined }))
+vi.mock('components/SwapForm/CrossChain/Quote/getQuoteWarning', () => ({ getQuoteWarning: () => undefined }))
 vi.mock('components/SwapForm/SwapModal/SwapReviewLayout', () => ({
   SwapReviewAmountCard: () => null,
   SwapReviewHeader: () => null,

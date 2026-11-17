@@ -66,10 +66,8 @@ export const HeaderRightMenu = ({
   // Stop market order sits under the Limit Order tab but has display settings of its own.
   const isStopMarketPage = pathname.startsWith(APP_PATHS.STOP_MARKET)
   const isSwapPage = isSwapLikePath(pathname) || activeMainTab === TAB.SWAP
-  const isCrossChainPage =
-    isCrossChainMode || pathname.startsWith(APP_PATHS.KYBER_CROSS) || activeMainTab === TAB.KYBER_CROSS
-  const defaultTab =
-    activeMainTab || (isSwapPage ? TAB.SWAP : isLimitPage ? TAB.LIMIT : isCrossChainPage ? TAB.KYBER_CROSS : TAB.SWAP)
+  const isCrossChainPage = isCrossChainMode
+  const defaultTab = activeMainTab || (isLimitPage ? TAB.LIMIT : TAB.SWAP)
 
   const supportsTokenInfo =
     !isCrossChainPage || (isSwapPage && (typeof inputChain === 'number' || typeof outputChain === 'number'))

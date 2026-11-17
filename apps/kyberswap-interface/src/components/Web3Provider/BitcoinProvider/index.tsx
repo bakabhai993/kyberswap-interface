@@ -72,7 +72,7 @@ export const BitcoinWalletProvider = ({ children }: { children: ReactNode }) => 
       setConnections(sessions)
 
       if (
-        [APP_PATHS.SWAP, APP_PATHS.KYBER_CROSS, APP_PATHS.PARTNER_SWAP, APP_PATHS.USER_SWAP].some(path =>
+        [APP_PATHS.SWAP, APP_PATHS.PARTNER_SWAP, APP_PATHS.USER_SWAP].some(path =>
           window.location.pathname.startsWith(path),
         )
       ) {

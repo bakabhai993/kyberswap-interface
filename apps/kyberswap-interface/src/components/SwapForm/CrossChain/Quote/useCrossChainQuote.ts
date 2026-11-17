@@ -6,19 +6,19 @@ import { isEvmCurrency, sortQuotesByNetOutput } from 'services/crossChain/quote/
 import { Quote } from 'services/crossChain/registry'
 import { useLazyCheckSameAssetQuery } from 'services/tokenCatalog'
 
-import { getQuoteWarning } from 'components/SwapForm/CrossChain/hooks/getQuoteWarning'
+import { getQuoteWarning } from 'components/SwapForm/CrossChain/Quote/getQuoteWarning'
 import {
   QUOTE_EXPIRY_TIME,
   getQuotesForMode,
   selectGasDropQuotes,
   selectOrdinaryQuotes,
-} from 'components/SwapForm/CrossChain/hooks/getQuotesForMode'
+} from 'components/SwapForm/CrossChain/Quote/getQuotesForMode'
 import {
   CrossChainQuoteInput,
   useCrossChainQuoteRequest,
-} from 'components/SwapForm/CrossChain/hooks/useCrossChainQuoteRequest'
-import { useQuotePool } from 'components/SwapForm/CrossChain/hooks/useQuotePool'
-import { QuoteLoadContext, useQuoteSession } from 'components/SwapForm/CrossChain/hooks/useQuoteSession'
+} from 'components/SwapForm/CrossChain/Quote/useCrossChainQuoteRequest'
+import { useQuotePool } from 'components/SwapForm/CrossChain/Quote/useQuotePool'
+import { QuoteLoadContext, useQuoteSession } from 'components/SwapForm/CrossChain/Quote/useQuoteSession'
 import { useAppSelector } from 'state/hooks'
 import { useUserSlippageTolerance } from 'state/user/hooks'
 import { isEvmChain } from 'types/crossChain'
@@ -33,7 +33,7 @@ const providerKey = (quote: Quote) => quote.adapter.getName()
  *
  * Three input-scoped pools keep full ordinary, Gas Drop and ordinary-without-KyberCross
  * results separate. The session owns selection/review and schedules refreshes; pools own
- * transport and cache. All requests use the aggregator, regardless of legacy mode settings.
+ * transport and cache. All cross-chain requests use the aggregator.
  *
  * Initial Gas Drop availability requires an eligible ordinary KyberCross route. Carrying
  * it across amount/slippage edits additionally requires an existing KyberCross Gas Drop

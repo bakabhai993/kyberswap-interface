@@ -5,7 +5,6 @@ import { PairCategory, getCurrencyAddress, sortQuotesByOutput } from 'services/c
 import { CrossChainSwapAdapterRegistry, Quote } from 'services/crossChain/registry'
 
 import { CROSSCHAIN_AGGREGATOR_API } from 'constants/env'
-import type { CrossChainQuoteMode } from 'state/crossChainSwap'
 import { Currency } from 'types/crossChain'
 
 const SSE_EVENT = {
@@ -32,17 +31,15 @@ type StreamQuotesParams = {
 }
 
 export const getSourceFilters = (
-  quoteMode: CrossChainQuoteMode,
   excludedSources: string[],
   category: PairCategory,
   currencyIn: Currency,
   currencyOut: Currency,
 ) => {
-  const selectableSources = CrossChainSwapFactory.getSelectableSources(quoteMode)
-  const filterSourcesBySupport = quoteMode === 'stream'
-  const supportedSources = filterSourcesBySupport
-    ? selectableSources.filter(source => source.canSupport?.(category, currencyIn, currencyOut) ?? true)
-    : selectableSources
+  const selectableSources = CrossChainSwapFactory.getSelectableSources()
+  const supportedSources = selectableSources.filter(
+    source => source.canSupport?.(category, currencyIn, currencyOut) ?? true,
+  )
   const includedSourceNames = supportedSources
     .filter(adapter => !excludedSources.includes(adapter.getName()))
     .map(adapter => adapter.getName())
@@ -50,12 +47,12 @@ export const getSourceFilters = (
     .filter(
       adapter =>
         excludedSources.includes(adapter.getName()) ||
-        (filterSourcesBySupport && !(adapter.canSupport?.(category, currencyIn, currencyOut) ?? true)),
+        !(adapter.canSupport?.(category, currencyIn, currencyOut) ?? true),
     )
     .map(adapter => adapter.getName())
 
   // KyberSwap is reserved for same-chain routing and is not a cross-chain source.
-  if (quoteMode === 'stream') excludedSourceNames.push('KyberSwap')
+  excludedSourceNames.push('KyberSwap')
 
   return { selectableSources, includedSourceNames, excludedSourceNames }
 }
@@ -87,7 +84,6 @@ const getStreamingUrl = ({
   })
 
   const { selectableSources, includedSourceNames, excludedSourceNames } = getSourceFilters(
-    'stream',
     excludedSources,
     category,
     currencyIn,

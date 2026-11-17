@@ -1,5 +1,5 @@
 import { ChainId } from '@kyberswap/ks-sdk-core'
-import { Trans, t } from '@lingui/macro'
+import { Trans } from '@lingui/macro'
 import { type ReactNode, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 
@@ -42,7 +42,6 @@ export const Header = ({
   const isStopMarketPage = pathname.startsWith(APP_PATHS.STOP_MARKET)
   const isLimitPage = !isStopMarketPage && (pathname.startsWith(APP_PATHS.LIMIT) || selectedTab === TAB.LIMIT)
   const isSwapPage = isSwapLikePath(pathname) || selectedTab == TAB.SWAP
-  const isCrossChainPage = pathname.startsWith(APP_PATHS.KYBER_CROSS) || selectedTab === TAB.KYBER_CROSS
 
   return (
     <>
@@ -99,15 +98,6 @@ export const Header = ({
                   , at the best available rate
                 </Trans>
               </span>
-            </>
-          )}
-          {isCrossChainPage && (
-            <>
-              <HiddenH1>
-                Swap tokens between EVMs, Bitcoin, Solana, and Near chains in one step - no manual bridging.
-              </HiddenH1>
-              <HiddenH2>Quotes from multiple providers, best rate picked automatically.</HiddenH2>
-              <span className="text-xs font-medium text-subText">{t`Swap between tokens on different chains`}</span>
             </>
           )}
         </HStack>

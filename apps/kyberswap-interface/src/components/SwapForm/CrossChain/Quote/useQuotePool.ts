@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useSyncExternalStore } from 'react'
 
-import { QUOTE_EXPIRY_TIME } from 'components/SwapForm/CrossChain/hooks/getQuotesForMode'
-import type { useCrossChainQuoteRequest } from 'components/SwapForm/CrossChain/hooks/useCrossChainQuoteRequest'
-import type { QuoteLoadContext, QuotePoolSnapshot } from 'components/SwapForm/CrossChain/hooks/useQuoteSession'
+import { QUOTE_EXPIRY_TIME } from 'components/SwapForm/CrossChain/Quote/getQuotesForMode'
+import type { useCrossChainQuoteRequest } from 'components/SwapForm/CrossChain/Quote/useCrossChainQuoteRequest'
+import type { QuoteLoadContext, QuotePoolSnapshot } from 'components/SwapForm/CrossChain/Quote/useQuoteSession'
 
 type PoolRun = {
   controller: AbortController

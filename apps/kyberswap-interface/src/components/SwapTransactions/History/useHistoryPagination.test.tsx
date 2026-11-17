@@ -20,6 +20,7 @@ import type { NormalizedTxResponse } from 'types/crossChain'
 vi.mock('hooks', () => ({ useActiveWeb3React: () => ({}) }))
 vi.mock('components/SwapWallets/SwapWalletContext', () => ({
   useSwapWallets: () => ({ inputAddress: sender, inputConnection: { family: 'evm' } }),
+  useSwapWalletSnapshot: () => ({ inputAddress: sender, inputFamily: 'evm' }),
 }))
 vi.mock('state/crossChainSwap/useRestoreMyNearWalletTransaction', () => ({
   useRestoreMyNearWalletTransaction: () => undefined,

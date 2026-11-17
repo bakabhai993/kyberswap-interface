@@ -13,19 +13,16 @@ export const isCrossChainPair = (from: Chain, to: Chain) => from !== to || typeo
 
 /** Write one pair representation: a path for single-chain, query parameters for cross-chain. */
 export const getTradeLocation = (
-  page: 'swap' | 'limit' | 'stop-market' | 'cross-chain' | 'kybercross',
+  page: 'swap' | 'limit' | 'stop-market' | 'cross-chain',
   pair: SwapPair,
   params = new URLSearchParams(),
 ) => {
   const search = new URLSearchParams(params)
   for (const key of ['chainId', 'toChain', 'inputCurrency', 'outputCurrency']) search.delete(key)
-  const crossChain =
-    page === 'kybercross' ||
-    page === 'cross-chain' ||
-    (page === 'swap' && isCrossChainPair(pair.fromChain, pair.toChain))
+  const crossChain = page === 'cross-chain' || (page === 'swap' && isCrossChainPair(pair.fromChain, pair.toChain))
   let pathname: string
   if (crossChain) {
-    pathname = page === 'kybercross' ? APP_PATHS.KYBER_CROSS : APP_PATHS.SWAP
+    pathname = APP_PATHS.SWAP
     search.set('from', typeof pair.fromChain === 'number' ? NETWORKS_INFO[pair.fromChain].route : pair.fromChain)
     search.set('to', typeof pair.toChain === 'number' ? NETWORKS_INFO[pair.toChain].route : pair.toChain)
     search.set('tokenIn', pair.tokenIn)

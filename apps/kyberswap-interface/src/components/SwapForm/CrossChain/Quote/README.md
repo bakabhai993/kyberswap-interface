@@ -11,11 +11,11 @@ from `services/crossChain/adapters/KyberCrossAdapter/constants`.
 
 | Owner                                                                                     | Responsibility                                                                                                                      |
 | ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| [`useCrossChainQuoteRequest`](../hooks/useCrossChainQuoteRequest.ts)                      | Input identity: pair, raw amount, slippage, sender/receiver and wallet request data. Mode is separate so toggles can reuse results. |
-| [`useCrossChainQuote`](../hooks/useCrossChainQuote.ts)                                    | Adds source exclusions, obtains pair prices/fees, chooses mode, estimates eligibility and combines Route Options.                   |
-| [`useQuotePool`](../hooks/useQuotePool.ts)                                                | One stream, cancellation, results and completion deadline per pool/input identity.                                                  |
-| [`useQuoteSession`](../hooks/useQuoteSession.ts)                                          | Active-pool subscription, debounce, selected provider, refresh scheduling and immutable review snapshot.                            |
-| [`getQuotesForMode`](../hooks/getQuotesForMode.ts)                                        | Aggregator-only requests and mode filtering; Gas Drop quotes require an actual allocation.                                          |
+| [`useCrossChainQuoteRequest`](useCrossChainQuoteRequest.ts)                               | Input identity: pair, raw amount, slippage, sender/receiver and wallet request data. Mode is separate so toggles can reuse results. |
+| [`useCrossChainQuote`](useCrossChainQuote.ts)                                             | Adds source exclusions, obtains pair prices/fees, chooses mode, estimates eligibility and combines Route Options.                   |
+| [`useQuotePool`](useQuotePool.ts)                                                         | One stream, cancellation, results and completion deadline per pool/input identity.                                                  |
+| [`useQuoteSession`](useQuoteSession.ts)                                                   | Active-pool subscription, debounce, selected provider, refresh scheduling and immutable review snapshot.                            |
+| [`getQuotesForMode`](getQuotesForMode.ts)                                                 | Aggregator-only requests and mode filtering; Gas Drop quotes require an actual allocation.                                          |
 | [`GasDropOption`](GasDrop.tsx) / [`CrossChainQuoteSelector`](CrossChainQuoteSelector.tsx) | Confirmation and route-selection UI. Delegate fetching and mode changes to the quote owner.                                         |
 
 The quote owner keeps three pools. **Full ordinary** includes KyberCross unless

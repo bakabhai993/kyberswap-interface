@@ -3,7 +3,7 @@ import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
-import type { TrackingExecution } from 'services/crossChain/adapters/KyberCrossAdapter/api'
+import type { TrackingExecution } from 'services/crossChain/adapters/KyberCrossAdapter/types'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 
 import KyberCrossTransactionDetail from 'components/SwapTransactions/TransactionDetail/KyberCrossTransactionDetail'
@@ -16,7 +16,7 @@ vi.mock('@tanstack/react-query', async importOriginal => ({
   useQuery: mocks.query,
 }))
 vi.mock('services/crossChain/factory', () => ({
-  CrossChainSwapFactory: { getKyberCrossBridgeSources: () => [] },
+  CrossChainSwapFactory: { getBridgeProviders: () => [] },
 }))
 vi.mock('services/crossChain/utils', () => ({
   getChainName: (chain: number) => String(chain),

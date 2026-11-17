@@ -4,27 +4,14 @@ import { ChevronRight } from 'react-feather'
 import { CrossChainSwapFactory } from 'services/crossChain/factory'
 
 import { SettingsAction, SettingsLabel, SettingsRow } from 'components/TransactionSettings/components'
-import { type CrossChainQuoteMode } from 'state/crossChainSwap'
 import { useAppSelector } from 'state/hooks'
 
 const EMPTY_SOURCES: string[] = []
 
-const CrossChainSourceSetting = ({
-  onClick,
-  quoteMode: mode,
-}: {
-  onClick: () => void
-  quoteMode?: CrossChainQuoteMode
-}) => {
-  const quoteMode = mode ?? 'stream'
-  const sources = useMemo(() => CrossChainSwapFactory.getSelectableSources(quoteMode), [quoteMode])
+const CrossChainSourceSetting = ({ onClick }: { onClick: () => void }) => {
+  const sources = useMemo(() => CrossChainSwapFactory.getSelectableSources(), [])
   const sourceNames = useMemo(() => sources.map(item => item.getName()), [sources])
-  const storedExcludedSources = useAppSelector(
-    state =>
-      (quoteMode === 'direct'
-        ? state.crossChainSwap.kyberCrossExcludedSources
-        : state.crossChainSwap.excludedSources) || EMPTY_SOURCES,
-  )
+  const storedExcludedSources = useAppSelector(state => state.crossChainSwap.excludedSources || EMPTY_SOURCES)
   const excludedSources = useMemo(
     () => storedExcludedSources.filter(source => sourceNames.includes(source)),
     [sourceNames, storedExcludedSources],

@@ -3,7 +3,7 @@ import { type ReactNode, useLayoutEffect } from 'react'
 import CrossChainSwapProvider, {
   type CrossChainSwapOptions,
   useOptionalCrossChainSwap,
-} from 'components/SwapForm/CrossChain/hooks/useCrossChainSwap'
+} from 'components/SwapForm/CrossChain/CrossChainSwapProvider'
 import { useSwapWallets } from 'components/SwapWallets/SwapWalletContext'
 import { SwapWalletProvider } from 'components/SwapWallets/SwapWalletProvider'
 import NonEvmProviders from 'components/Web3Provider/NonEvmProviders'

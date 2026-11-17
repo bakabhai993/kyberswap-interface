@@ -2,7 +2,7 @@ import { t } from '@lingui/macro'
 import { useQuery } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import { ArrowRight } from 'react-feather'
-import type { TrackingExecution } from 'services/crossChain/adapters/KyberCrossAdapter/api'
+import type { TrackingExecution } from 'services/crossChain/adapters/KyberCrossAdapter/types'
 import { isExecutionFinished, mapRouteStateToSwapStatus } from 'services/crossChain/adapters/KyberCrossAdapter/utils'
 import { CrossChainSwapFactory } from 'services/crossChain/factory'
 import { isEvmCurrency } from 'services/crossChain/quote/utils'
@@ -283,7 +283,7 @@ const ExecutionContent = ({ execution, tx, settlement, steps }: ExecutionContent
   const slippage = execution?.slippage_bps
   const fees = execution ? execution.data.fees : plan?.fees?.map(fee => ({ ...fee, fee_type: fee.type }))
   const bridgeName =
-    CrossChainSwapFactory.getKyberCrossBridgeSources()
+    CrossChainSwapFactory.getBridgeProviders()
       .find(source => normalizeAdapterName(source.getName()) === normalizeAdapterName(bridgeProvider || ''))
       ?.getName() ||
     bridgeProvider ||

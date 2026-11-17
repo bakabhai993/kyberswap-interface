@@ -20,7 +20,6 @@ import {
 } from 'components/TransactionSettings/components'
 import { TutorialIds } from 'components/Tutorial/TutorialSwap/constant'
 import useTracking, { TRACKING_EVENT_TYPE } from 'hooks/useTracking'
-import type { CrossChainQuoteMode } from 'state/crossChainSwap'
 import {
   useShowPricingChart,
   useShowTradeRoutes,
@@ -79,7 +78,6 @@ type SwapSettingsPanelProps = {
   /** Independent of quote mode: unified cross-chain also supports chart/route display preferences. */
   showDisplaySettings?: boolean
   recipientSettingsReady?: boolean
-  crossChainQuoteMode?: CrossChainQuoteMode
   highlightDegenMode?: boolean
   onBack: () => void
   onClickLiquiditySources: () => void
@@ -91,7 +89,6 @@ const SwapSettingsPanel = ({
   mode,
   showDisplaySettings = mode === 'single-chain',
   recipientSettingsReady = true,
-  crossChainQuoteMode,
   highlightDegenMode,
   onBack,
   onClickLiquiditySources,
@@ -139,7 +136,7 @@ const SwapSettingsPanel = ({
             {mode === 'single-chain' && <LiquiditySourcesSetting chainId={chainId} onClick={onClickLiquiditySources} />}
             {mode === 'cross-chain' && (
               <Suspense fallback={null}>
-                <CrossChainSourceSetting onClick={onClickCrossChainSources} quoteMode={crossChainQuoteMode} />
+                <CrossChainSourceSetting onClick={onClickCrossChainSources} />
               </Suspense>
             )}
           </SettingsSection>

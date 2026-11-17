@@ -1,6 +1,6 @@
 import { queryOptions, useQuery } from '@tanstack/react-query'
 import { kyberCrossApi } from 'services/crossChain/adapters/KyberCrossAdapter/api'
-import { chainIdToKyberCrossChainName } from 'services/crossChain/adapters/KyberCrossAdapter/types'
+import { chainIdToKyberCrossChainName } from 'services/crossChain/adapters/KyberCrossAdapter/chains'
 import { isExecutionFinished, mapRouteStateToSwapStatus } from 'services/crossChain/adapters/KyberCrossAdapter/utils'
 import { normalizeAdapterName } from 'services/crossChain/utils'
 import type { Hash } from 'viem'

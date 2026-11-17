@@ -13,14 +13,14 @@ import Divider from 'components/Divider'
 import { GasDropAmount } from 'components/GasDrop/GasDropAmount'
 import { NetworkLogo } from 'components/Logo'
 import { HStack, Stack } from 'components/Stack'
+import type { CrossChainSubmission } from 'components/SwapForm/CrossChain/Execution/useCrossChainExecution'
 import {
   CrossChainPriceImpactWarning,
   CrossChainQuoteSummaryRows,
 } from 'components/SwapForm/CrossChain/Quote/CrossChainQuoteSummary'
 import { QuoteProviderName } from 'components/SwapForm/CrossChain/Quote/QuoteProviderName'
-import { getQuoteWarning } from 'components/SwapForm/CrossChain/hooks/getQuoteWarning'
-import type { CrossChainSubmission } from 'components/SwapForm/CrossChain/hooks/useCrossChainExecution'
-import type { ReviewedQuote } from 'components/SwapForm/CrossChain/hooks/useQuoteSession'
+import { getQuoteWarning } from 'components/SwapForm/CrossChain/Quote/getQuoteWarning'
+import type { ReviewedQuote } from 'components/SwapForm/CrossChain/Quote/useQuoteSession'
 import { SwapReviewAmountCard, SwapReviewHeader } from 'components/SwapForm/SwapModal/SwapReviewLayout'
 import { SwapStatusAmount, SwapStatusAmounts } from 'components/SwapForm/SwapModal/SwapStatusAmounts'
 import TransactionConfirmationModal, {

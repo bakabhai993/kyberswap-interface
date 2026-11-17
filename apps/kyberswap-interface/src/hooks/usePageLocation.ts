@@ -12,14 +12,12 @@ const usePageLocation = () => {
     isPartnerSwap ||
     isUserSwap ||
     location.pathname.startsWith(APP_PATHS.LIMIT) ||
-    location.pathname.startsWith(APP_PATHS.STOP_MARKET) ||
-    location.pathname.startsWith(APP_PATHS.KYBER_CROSS)
+    location.pathname.startsWith(APP_PATHS.STOP_MARKET)
 
   return {
     pathname: location.pathname,
     isEmbeddedSwap: isPartnerSwap || isUserSwap,
     isSwapPage,
-    isCrossChain: location.pathname.startsWith(APP_PATHS.KYBER_CROSS),
   }
 }
 

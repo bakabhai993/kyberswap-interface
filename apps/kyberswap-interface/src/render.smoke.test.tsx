@@ -1,15 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
-
-const flags = vi.hoisted(() => ({ kyberCross: false }))
-vi.mock('constants/env', async importOriginal => ({
-  ...(await importOriginal<typeof import('constants/env')>()),
-  get ENABLE_KYBERCROSS_DIRECT() {
-    return flags.kyberCross
-  },
-}))
-afterEach(() => {
-  flags.kyberCross = false
-})
+import { describe, expect, it } from 'vitest'
 
 // Representative route trees must complete the same async static render used by distinct pages and the
 // shared product shells. This waits for React.lazy route chunks and validates real content, not only fallback UI.
@@ -132,20 +121,6 @@ describe('SSR render smoke', () => {
     const html = await renderRouteBodyHtml('/partner-swap?clientId=test&chainId=1&features=swap')
     expect(html).toContain('id="swap-currency-input"')
     expect(html).not.toContain('id="limit-button"')
-  })
-
-  it('gates both the KyberCross tab and route with ENABLE_KYBERCROSS_DIRECT', async () => {
-    const { renderRouteBodyHtml } = await import('entry-server')
-    const swap = await renderRouteBodyHtml('/swap/ethereum')
-    expect(swap).not.toContain('id="kybercross-nav-link"')
-    const disabled = await renderRouteBodyHtml('/kybercross?from=1&to=8453&tokenIn=ETH&tokenOut=ETH')
-    expect(disabled).not.toContain('id="swap-currency-input"')
-    flags.kyberCross = true
-    const enabled = await renderRouteBodyHtml('/kybercross?from=1&to=8453&tokenIn=ETH&tokenOut=ETH')
-    expect(enabled).toContain('id="kybercross-nav-link"')
-    expect(enabled).toContain('id="swap-currency-input"')
-    expect(enabled).toContain('id="swap-currency-output"')
-    expect(enabled).toContain('aria-label="Swap quote"')
   })
 
   it.each(ROUTES)('renders %s without throwing', async location => {

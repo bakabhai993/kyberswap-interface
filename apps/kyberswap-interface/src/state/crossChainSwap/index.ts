@@ -23,10 +23,7 @@ const trimHistory = (transactions: LocalTransaction[]) => {
   )
 }
 
-export type CrossChainQuoteMode = 'direct' | 'stream'
-
 export interface CrossChainSwapState {
-  kyberCrossExcludedSources: string[]
   transactions: LocalTransaction[]
   excludedSources: string[]
 }
@@ -41,7 +38,6 @@ type BroadcastTransaction = {
 const slice = createSlice({
   name: 'crossChainSwap',
   initialState: {
-    kyberCrossExcludedSources: [] as string[],
     transactions: [] as LocalTransaction[],
     excludedSources: [] as string[],
   } as CrossChainSwapState,
@@ -116,9 +112,6 @@ const slice = createSlice({
         Object.assign(current, update)
       }
     },
-    updateKyberCrossExcludedSources: (state, { payload }: { payload: string[] }) => {
-      state.kyberCrossExcludedSources = payload
-    },
     updateExcludedSources: (state, { payload }: { payload: string[] }) => {
       state.excludedSources = payload
     },
@@ -132,7 +125,6 @@ export const {
   finishTransactionSync,
   patchProviderTransactions,
   updateExcludedSources,
-  updateKyberCrossExcludedSources,
 } = slice.actions
 
 export default slice.reducer

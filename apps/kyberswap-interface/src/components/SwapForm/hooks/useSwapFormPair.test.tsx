@@ -76,16 +76,14 @@ const usdc = new WrappedTokenInfo({
 const weth = new Token(ChainId.BASE, '0x4200000000000000000000000000000000000006', 18, 'WETH')
 tokens.values = [usdc, weth]
 
-function Page({ getPairLocation }: { getPairLocation?: Parameters<typeof useSwapFormPair>[0] }) {
+function Page() {
   const location = useLocation()
   const navigate = useNavigate()
-  const pair = useSwapFormPair(getPairLocation)
+  const pair = useSwapFormPair()
   const [draft, setDraft] = useState(false)
   const activeTab =
     location.pathname.startsWith('/limit') || new URLSearchParams(location.search).get('tab') === TAB.LIMIT
       ? TAB.LIMIT
-      : location.pathname === '/kybercross'
-      ? TAB.KYBER_CROSS
       : TAB.SWAP
   return (
     <>
@@ -126,10 +124,6 @@ const render = async (url: string, previousUrl?: string) => {
             <Route path="/cross-chain" element={<LegacyCrossChainRedirect />} />
             <Route path="/swap/:network/:currency?" element={<SwapRoute />} />
             <Route path="/limit/:network/:currency?" element={<Page />} />
-            <Route
-              path="/kybercross"
-              element={<Page getPairLocation={(pair, params) => getTradeLocation('kybercross', pair, params)} />}
-            />
             <Route path="/partner-swap" element={<Page />} />
             <Route path="/user-swap/:tipsId?" element={<Page />} />
           </Routes>
@@ -369,7 +363,7 @@ describe('unified swap pair navigation', () => {
     expect(labels.includes('Limit Order')).toBe(feature === 'limit')
   })
 
-  it.each(['swap', 'kybercross'] as const)('writes only public pair parameters when navigating to %s', page => {
+  it.each(['swap'] as const)('writes only public pair parameters when navigating to %s', page => {
     const location = getTradeLocation(
       page,
       { fromChain: 1, toChain: 8453, tokenIn: 'ETH', tokenOut: usdc.address },
@@ -384,19 +378,6 @@ describe('unified swap pair navigation', () => {
     expect(params.has('outputCurrency')).toBe(false)
     expect(params.get('clientId')).toBe('partner')
     expect(params.get('feeAmount')).toBe('25')
-  })
-
-  it('lets a derivative retain its route while reusing pair selection and reversal', async () => {
-    await mount(`/kybercross?from=1&to=8453&tokenIn=ETH&tokenOut=${usdc.address}&input=12`)
-    await click('Select Base WETH')
-    const selectedUrl = new URL(url(), 'https://kyberswap.com')
-    expect(selectedUrl.pathname).toBe('/kybercross')
-    expect(selectedUrl.searchParams.get('from')).toBe('base')
-    expect(selectedUrl.searchParams.get('to')).toBe('base')
-    expect(selectedUrl.searchParams.get('input')).toBe('12')
-    await click('Reverse')
-    expect(new URL(url(), 'https://kyberswap.com').pathname).toBe('/kybercross')
-    expect(pairText()).toBe(`8453:${usdc.address} → 8453:${weth.address}`)
   })
 
   it('writes selections into the single-chain path using the legacy whitelist symbol', async () => {

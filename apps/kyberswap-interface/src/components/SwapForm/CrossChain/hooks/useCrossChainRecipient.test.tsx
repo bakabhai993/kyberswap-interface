@@ -101,8 +101,7 @@ it('keeps the EVM receiver independent from the app connection for non-EVM input
   expect(result.recipient).toBe('0xreceiver')
   expect(result.recipientInputEnabled).toBe(false)
 })
-it('preserves legacy EVM recipient behavior outside the wallet controller', async () => {
-  mocks.wallets = undefined
+it('keeps the EVM recipient draft when the app account changes', async () => {
   await render(1, 56)
   expect(result.recipient).toBe('0xapp')
   await act(async () => result.setRecipient('0xcustom'))

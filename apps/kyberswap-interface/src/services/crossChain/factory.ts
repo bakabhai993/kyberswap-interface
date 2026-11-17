@@ -8,11 +8,10 @@ import { MayanAdapter } from 'services/crossChain/adapters/MayanAdapter'
 import { NearIntentsAdapter } from 'services/crossChain/adapters/NearIntentsAdapter'
 import { RelayAdapter } from 'services/crossChain/adapters/RelayAdapter'
 import { SymbiosisAdapter } from 'services/crossChain/adapters/SymbiosisAdapter'
-import type { QuoteProvider, SwapProvider } from 'services/crossChain/adapters/types'
+import type { SwapProvider } from 'services/crossChain/adapters/types'
 import { CrossChainSwapAdapterRegistry } from 'services/crossChain/registry'
 
 import arbitrumIcon from 'assets/networks/arbitrum.svg'
-import type { CrossChainQuoteMode } from 'state/crossChainSwap'
 
 export type CrossChainSource = Pick<SwapProvider, 'getName'> & Partial<Pick<SwapProvider, 'getIcon' | 'canSupport'>>
 
@@ -71,7 +70,7 @@ export class CrossChainSwapFactory {
     return adapter
   }
 
-  static getKyberCrossBridgeSources(): CrossChainSource[] {
+  static getBridgeProviders(): CrossChainSource[] {
     return [
       CrossChainSwapFactory.getOrCreateAdapter('across'),
       CrossChainSwapFactory.getOrCreateAdapter('relay'),
@@ -85,22 +84,10 @@ export class CrossChainSwapFactory {
     ]
   }
 
-  static getSelectableSources(quoteMode: CrossChainQuoteMode): CrossChainSource[] {
-    if (quoteMode === 'direct') {
-      return CrossChainSwapFactory.getKyberCrossBridgeSources()
-    }
-
+  static getSelectableSources(): CrossChainSource[] {
     return CrossChainSwapFactory.getAllAdapters().filter(adapter => adapter.getName() !== 'KyberSwap')
   }
 
-  // Direct client quote adapters. When stream is disabled, KyberCross owns quote routing.
-  static getDirectQuoteAdapters(): QuoteProvider[] {
-    const adapter = CrossChainSwapFactory.getOrCreateAdapter('kybercross')
-    if (!(adapter instanceof KyberCrossAdapter)) throw new Error('Invalid KyberCross adapter')
-    return [adapter]
-  }
-
-  // Registry/status lookup needs every active adapter, even when quotes only use KyberCross.
   static getAllAdapters(): SwapProvider[] {
     return [
       CrossChainSwapFactory.getOrCreateAdapter('across'),
