@@ -41,14 +41,14 @@ const CrossChainSwapSources = ({ onBack }: Props) => {
 
   const applyExcludedSources = (next: string[]) => {
     dispatch(updateExcludedSources(next))
-    sourceNames.forEach(source => {
-      if (excludedSources.includes(source) === next.includes(source)) return
-      trackingHandler(TRACKING_EVENT_TYPE.SWAP_ROUTING_SOURCE_TOGGLED, {
-        source_type: 'provider',
-        mode: 'cross-chain',
-        source_name: source,
-        enabled: !next.includes(source),
-      })
+    const changed = sourceNames.filter(source => excludedSources.includes(source) !== next.includes(source))
+    if (!changed.length) return
+    trackingHandler(TRACKING_EVENT_TYPE.SWAP_ROUTING_SOURCE_TOGGLED, {
+      source_type: 'provider',
+      mode: 'cross-chain',
+      source_name: changed.length === 1 ? changed[0] : undefined,
+      count: changed.length,
+      enabled: !next.includes(changed[0]),
     })
   }
   const handleToggleSource = (source: string) =>

@@ -160,6 +160,7 @@ export const useSingleChainSwapReview = ({
     const isUserRejected = error.toLowerCase().includes('user rejected') || error.toLowerCase().includes('user denied')
 
     trackingHandler(TRACKING_EVENT_TYPE.SWAP_FAILED, {
+      mode: 'same-chain',
       from_token: currencyIn?.symbol,
       to_token: currencyOut?.symbol,
       pair: currencyIn?.symbol && currencyOut?.symbol ? `${currencyIn.symbol}/${currencyOut.symbol}` : undefined,

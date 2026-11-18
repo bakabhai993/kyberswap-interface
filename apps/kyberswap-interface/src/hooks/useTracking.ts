@@ -9,6 +9,7 @@ import { useFormo } from 'components/Analytics/formoContext'
 import { NETWORKS_INFO } from 'constants/networks'
 import { useActiveWeb3React } from 'hooks'
 import { sanitizeFormoPayload } from 'hooks/sanitizeFormoPayload'
+import { backendChainToChain } from 'state/crossChainSwap/model'
 import { Field } from 'state/swap/actions'
 import { useInputCurrency, useOutputCurrency } from 'state/swap/hooks'
 import { TRANSACTION_TYPE } from 'state/transactions/type'
@@ -458,7 +459,12 @@ export default function useTracking(currencies?: { [field in Field]?: Currency }
   const formoTrack = useCallback(
     (eventName: string, properties?: Record<string, any>) => {
       try {
-        analytics?.track(eventName, sanitizeFormoPayload(properties))
+        const sanitized = sanitizeFormoPayload(properties)
+        if (eventName === 'Swap Settled' && sanitized?.mode === 'cross-chain') {
+          // Cross-chain volume follows the input USD after price sanity checks.
+          sanitized.volume = sanitized.amount_in_usd
+        }
+        analytics?.track(eventName, sanitized)
       } catch {
         // Analytics is best effort and must not interrupt wallet or transaction state transitions.
       }
@@ -539,7 +545,17 @@ export default function useTracking(currencies?: { [field in Field]?: Currency }
           break
         case TRACKING_EVENT_TYPE.SWAP_SETTLED: {
           if (!payload.arbitrary) {
-            formoTrack('Swap Settled', payload)
+            if (payload.mode === 'cross-chain') {
+              const { from_chain, to_chain, partner, ...details } = payload
+              formoTrack('Swap Settled', {
+                ...details,
+                from_chain_id: backendChainToChain(String(from_chain)),
+                to_chain_id: backendChainToChain(String(to_chain)),
+                provider: partner,
+              })
+            } else {
+              formoTrack('Swap Settled', payload)
+            }
             break
           }
           const { arbitrary, actual_gas, gas_price, tx_hash } = payload

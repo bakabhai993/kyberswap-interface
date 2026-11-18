@@ -151,7 +151,10 @@ it('reports execution rejection once without resetting permit on ordinary dismis
 
   expect(session.review).toMatchObject({ phase: 'error', error: 'User rejected' })
   expect(mocks.track.mock.calls.filter(([event]) => event === 'failed')).toEqual([
-    ['failed', expect.objectContaining({ error_type: 'user_rejected', error_message: 'User rejected' })],
+    [
+      'failed',
+      expect.objectContaining({ mode: 'same-chain', error_type: 'user_rejected', error_message: 'User rejected' }),
+    ],
   ])
 
   await act(async () => controller.dismissReview())

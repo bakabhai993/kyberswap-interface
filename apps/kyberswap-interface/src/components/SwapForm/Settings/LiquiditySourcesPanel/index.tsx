@@ -58,15 +58,15 @@ const LiquiditySourcesPanel = ({ onBack, chainId }: Props) => {
 
   const applyExcludedDexes = (next: string[]) => {
     setExcludeDexes(next)
-    dexes?.forEach(dex => {
-      if (excludeDexes.includes(dex.id) === next.includes(dex.id)) return
-      trackingHandler(TRACKING_EVENT_TYPE.SWAP_ROUTING_SOURCE_TOGGLED, {
-        source_type: 'liquidity_source',
-        mode: 'same-chain',
-        source_name: dex.name,
-        enabled: !next.includes(dex.id),
-        chain_id: chainId,
-      })
+    const changed = dexes?.filter(dex => excludeDexes.includes(dex.id) !== next.includes(dex.id)) || []
+    if (!changed.length) return
+    trackingHandler(TRACKING_EVENT_TYPE.SWAP_ROUTING_SOURCE_TOGGLED, {
+      source_type: 'liquidity_source',
+      mode: 'same-chain',
+      source_name: changed.length === 1 ? changed[0].name : undefined,
+      count: changed.length,
+      enabled: !next.includes(changed[0].id),
+      chain_id: chainId,
     })
   }
   const handleToggleDex = (id: string) =>

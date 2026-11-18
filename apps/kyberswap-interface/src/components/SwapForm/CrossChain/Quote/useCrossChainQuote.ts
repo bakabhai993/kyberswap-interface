@@ -215,6 +215,7 @@ export const useCrossChainQuote = (input: CrossChainQuoteInput) => {
   const session = useQuoteSession({
     request,
     loadQuotes,
+    gasDropEnabled,
     refreshSeconds: QUOTE_EXPIRY_TIME / 1000,
     getQuoteKey: providerKey,
     selectQuotes: gasDropEnabled ? selectGasDropQuotes : selectOrdinaryQuotes,
@@ -231,13 +232,14 @@ export const useCrossChainQuote = (input: CrossChainQuoteInput) => {
     const quote = session.selectedQuote
     const enabled = gasDropEnabled && quote?.adapter.getName() === KyberCross && !!quote.quote.gasDrop
     if (enabled && quote) {
-      const payload = getQuoteTracking(quote)
+      const payload = getQuoteTracking({ ...quote, gasDropSettingEnabled: gasDropEnabled })
       if (!committedGasDrop.current) trackingHandler(TRACKING_EVENT_TYPE.SWAP_GAS_DROP_CHANGED, payload)
       committedGasDrop.current = payload
     } else if (!gasDropEnabled && committedGasDrop.current) {
       trackingHandler(TRACKING_EVENT_TYPE.SWAP_GAS_DROP_CHANGED, {
         ...committedGasDrop.current,
         gas_drop_enabled: false,
+        gas_drop_route: false,
         gas_drop_amount: undefined,
         gas_drop_unit: undefined,
       })

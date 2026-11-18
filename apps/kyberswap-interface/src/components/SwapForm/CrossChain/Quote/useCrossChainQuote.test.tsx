@@ -10,6 +10,7 @@ import { useCrossChainQuote } from 'components/SwapForm/CrossChain/Quote/useCros
 const mocks = vi.hoisted(() => ({
   wallets: undefined as any,
   connection: {},
+  track: vi.fn(),
   checkSameAsset: vi.fn(),
   getQuotes: vi.fn(),
   tokenInUsd: 1,
@@ -24,7 +25,10 @@ vi.mock('@solana/wallet-adapter-react', () => ({
 }))
 vi.mock('components/Web3Provider/BitcoinProvider', () => ({ useBitcoinWallet: () => ({}) }))
 vi.mock('hooks/useGatedWalletClient', () => ({ useGatedWalletClient: () => ({}) }))
-vi.mock('hooks/useTracking', () => ({ default: () => ({ trackingHandler: vi.fn() }), TRACKING_EVENT_TYPE: {} }))
+vi.mock('hooks/useTracking', () => ({
+  default: () => ({ trackingHandler: mocks.track }),
+  TRACKING_EVENT_TYPE: { SWAP_REVIEW_SHOWN: 'review' },
+}))
 vi.mock('services/tokenCatalog', () => ({ useLazyCheckSameAssetQuery: () => [mocks.checkSameAsset] }))
 vi.mock('state/hooks', () => ({
   useAppSelector: (select: (state: typeof mocks.state) => unknown) => select(mocks.state),
@@ -1060,6 +1064,10 @@ describe('Gas Drop route selection', () => {
     expect(state.selectedQuote?.quote.quoteParams.gasDrop).toBe(true)
     await act(async () => state.openReview(state.selectedQuote as Quote))
     expect(state.reviewQuote?.quote.quoteParams.gasDrop).toBe(true)
+    expect(mocks.track).toHaveBeenCalledWith(
+      'review',
+      expect.objectContaining({ gas_drop_enabled: true, gas_drop_route: true }),
+    )
     expect(mocks.getQuotes).toHaveBeenCalledTimes(2)
   })
 

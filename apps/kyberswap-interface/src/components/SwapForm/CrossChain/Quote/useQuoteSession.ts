@@ -6,7 +6,7 @@ import type { useCrossChainQuoteRequest } from 'components/SwapForm/CrossChain/Q
 import { getQuoteTracking } from 'components/SwapForm/CrossChain/quoteTracking'
 import useTracking, { TRACKING_EVENT_TYPE } from 'hooks/useTracking'
 
-export type ReviewedQuote = Quote & { category: PairCategory }
+export type ReviewedQuote = Quote & { category: PairCategory; gasDropSettingEnabled: boolean }
 
 const EMPTY_QUOTE_STATE = {
   quotes: [] as Quote[],
@@ -35,6 +35,7 @@ export type QuotePoolSnapshot = Pick<
 type Props = {
   request: ReturnType<typeof useCrossChainQuoteRequest>
   loadQuotes: (context: QuoteLoadContext) => Promise<void>
+  gasDropEnabled?: boolean
   refreshSeconds: number
   getQuoteKey: (quote: Quote) => string
   selectQuotes?: (quotes: Quote[]) => Quote[]
@@ -56,6 +57,7 @@ type Props = {
 export const useQuoteSession = ({
   request,
   loadQuotes,
+  gasDropEnabled = false,
   refreshSeconds,
   getQuoteKey,
   selectQuotes,
@@ -128,7 +130,7 @@ export const useQuoteSession = ({
       const selected = available.find(item => getQuoteKey(item) === previous.selectedKey) || available[0]
 
       return previous.request === request && !previous.loading && selected === quote
-        ? { ...previous, reviewQuote: { ...quote, category: previous.category } }
+        ? { ...previous, reviewQuote: { ...quote, category: previous.category, gasDropSettingEnabled: gasDropEnabled } }
         : previous
     })
   }

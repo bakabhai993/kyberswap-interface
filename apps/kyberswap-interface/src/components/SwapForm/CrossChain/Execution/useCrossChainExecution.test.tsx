@@ -496,3 +496,25 @@ it('does not classify an accepted order without a source hash as a failed attemp
   expect(mocks.track).not.toHaveBeenCalledWith('failed', expect.anything())
   expect(mocks.track).not.toHaveBeenCalledWith('init', expect.anything())
 })
+
+it.each([
+  [true, true],
+  [true, false],
+  [false, false],
+  [false, true],
+])('tracks gas drop setting %s and submitted route %s separately', async (settingEnabled, enabled) => {
+  const quote = { ...makeQuote(), gasDropSettingEnabled: settingEnabled }
+  quote.quote.gasDrop = enabled
+    ? { amount: '1000000000000000', minAmount: '900000000000000', inputToken: '0xgas', amountUsd: 2 }
+    : undefined
+  mocks.execute.mockImplementation(async (...args) => {
+    args[6]('source-hash')
+    return mocks.enqueue.mock.calls[0][0].transaction
+  })
+  await render(quote)
+  await act(async () => execution.submitSwap())
+  expect(mocks.track).toHaveBeenCalledWith(
+    'init',
+    expect.objectContaining({ gas_drop_enabled: settingEnabled, gas_drop_route: enabled }),
+  )
+})

@@ -86,6 +86,9 @@ export const useBackendTransactionUpdater = () => {
           )
           handlers.current.trackingHandler(TRACKING_EVENT_TYPE.SWAP_SETTLED, {
             ...details,
+            // Formo volume uses recorded input USD; actual output USD is unavailable.
+            amount_in_usd:
+              entry.backend.inputUsd ?? (entry.backend.quoteId === entry.quoteId ? tx.amountInUsd : undefined),
             mode: 'cross-chain',
             outcome: tx.status === 'Success' ? 'SUCCESS' : tx.status === 'Refunded' ? 'REFUNDED' : 'FAILED',
           })

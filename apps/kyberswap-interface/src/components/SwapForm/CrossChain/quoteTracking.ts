@@ -4,8 +4,12 @@ import { formatUnits } from 'viem'
 
 import { NativeCurrencies } from 'constants/tokens'
 
-export const getQuoteTracking = ({ quote, adapter }: Quote) => {
-  const { fromChain, toChain, fromToken, toToken, amount, gasDrop } = quote.quoteParams
+export const getQuoteTracking = ({
+  quote,
+  adapter,
+  gasDropSettingEnabled,
+}: Quote & { gasDropSettingEnabled?: boolean }) => {
+  const { fromChain, toChain, fromToken, toToken, amount } = quote.quoteParams
   const native = NativeCurrencies[toChain as ChainId]
   return {
     mode: 'cross-chain',
@@ -18,7 +22,8 @@ export const getQuoteTracking = ({ quote, adapter }: Quote) => {
     amount_in_usd: quote.inputUsd,
     amount_out_usd: quote.outputUsd,
     provider: adapter.getName(),
-    gas_drop_enabled: !!gasDrop && !!quote.gasDrop,
+    gas_drop_enabled: gasDropSettingEnabled,
+    gas_drop_route: !!quote.gasDrop,
     gas_drop_amount: quote.gasDrop && native ? formatUnits(BigInt(quote.gasDrop.amount), native.decimals) : undefined,
     gas_drop_unit: quote.gasDrop && native ? native.symbol : undefined,
   }
