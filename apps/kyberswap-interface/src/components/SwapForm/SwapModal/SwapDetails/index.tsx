@@ -7,8 +7,7 @@ import { Stack } from 'components/Stack'
 import MEVProtection from 'components/SwapForm/Settings/MEVProtection'
 import { useSwapFormContext } from 'components/SwapForm/SwapFormContext'
 import { DetailLabel, DetailRow } from 'components/SwapForm/SwapModal/SwapDetails/DetailRow'
-import { SwapFeeAndRecipientDetails, SwapGasDetails } from 'components/SwapForm/SwapModal/SwapDetails/SwapCosts'
-import { getERC8056DisplayAmount } from 'hooks/useERC8056Token'
+import { SwapFeeAndRecipientDetails } from 'components/SwapForm/SwapModal/SwapDetails/SwapCosts'
 import { usePairCategory } from 'state/swap/hooks'
 import { useSlippageSettingByPage } from 'state/user/hooks'
 import { ExternalLink } from 'theme'
@@ -37,15 +36,10 @@ export type Props = {
   minimumAmountOut: CurrencyAmount<Currency> | undefined
 } & Optional<Pick<DetailedRouteSummary, 'gasUsd' | 'executionPrice' | 'priceImpact'>>
 
-const SwapDetails = ({ isLoading, gasUsd, minimumAmountOut, priceImpact, buildData }: Props) => {
-  const { slippage, routeSummary, outputERC8056Info } = useSwapFormContext()
+const SwapDetails = ({ isLoading, minimumAmountOut, priceImpact, buildData }: Props) => {
+  const { slippage, routeSummary } = useSwapFormContext()
   const { rawSlippage } = useSlippageSettingByPage()
   const cat = usePairCategory()
-
-  const currencyOut = routeSummary?.parsedAmountOut?.currency
-  const amountOut =
-    currencyOut &&
-    getERC8056DisplayAmount(outputERC8056Info, CurrencyAmount.fromRawAmount(currencyOut, buildData?.amountOut || '0'))
 
   const priceImpactResult = checkPriceImpact(priceImpact)
 
@@ -90,20 +84,6 @@ const SwapDetails = ({ isLoading, gasUsd, minimumAmountOut, priceImpact, buildDa
 
       <DetailRow
         isLoading={isLoading}
-        skeletonWidth="108px"
-        label={
-          <span className="min-w-max text-xs text-subText">
-            <Trans>Maximum Receiving</Trans>
-          </span>
-        }
-      >
-        <div className="text-xs font-medium text-text">
-          {amountOut ? <CurrencyAmountText amount={amountOut} /> : '--'}
-        </div>
-      </DetailRow>
-
-      <DetailRow
-        isLoading={isLoading}
         label={
           <DetailLabel
             tooltip={
@@ -138,8 +118,6 @@ const SwapDetails = ({ isLoading, gasUsd, minimumAmountOut, priceImpact, buildDa
           {priceImpactResult.isInvalid || typeof priceImpact !== 'number' ? '--' : formatPriceImpact(priceImpact)}
         </p>
       </DetailRow>
-
-      <SwapGasDetails isLoading={isLoading} gasUsd={gasUsd} buildData={buildData} />
 
       <DetailRow
         label={

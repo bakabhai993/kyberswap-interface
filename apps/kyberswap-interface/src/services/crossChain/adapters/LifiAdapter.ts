@@ -149,10 +149,9 @@ export class LifiAdapter extends BaseSwapAdapter {
       txHash: p.sourceTxHash,
     })
 
-    // Prefer the received value after gas; fall back to amount when value is absent or zero.
+    // Amount is the received token quantity; value is the transaction's native value.
     const receivingData = (res as any)?.receiving
-    const actualAmountOut =
-      receivingData?.value && receivingData.value !== '0' ? receivingData.value : receivingData?.amount
+    const actualAmountOut = receivingData?.amount
 
     return {
       txHash: (res as any)?.receiving?.txHash || '',
