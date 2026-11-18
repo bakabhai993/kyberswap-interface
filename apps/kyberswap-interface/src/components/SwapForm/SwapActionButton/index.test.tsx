@@ -47,6 +47,10 @@ vi.mock('components/SwapForm/SingleChain/useSingleChainSwapReview', () => ({
   useSingleChainSwapReview: () => ({ priceImpactAction: 'swap', openReview: mocks.openReview }),
 }))
 
+const inputToken = new Token(1, '0x0000000000000000000000000000000000000001', 18)
+const outputToken = new Token(1, '0x0000000000000000000000000000000000000002', 18)
+const inputAmount = CurrencyAmount.fromRawAmount(inputToken, '100')
+
 let container: HTMLDivElement
 let root: ReturnType<typeof createRoot>
 const render = (props: Partial<ComponentProps<typeof SwapActionButton>> = {}) =>
@@ -57,6 +61,9 @@ const render = (props: Partial<ComponentProps<typeof SwapActionButton>> = {}) =>
           {...({ review: { phase: 'closed' }, wrapType: 0, isGettingRoute: false } as ComponentProps<
             typeof SwapActionButton
           >)}
+          currencyIn={inputToken}
+          currencyOut={outputToken}
+          parsedAmountFromTypedValue={inputAmount}
           {...props}
         />
       </I18nProvider>,
@@ -76,22 +83,37 @@ afterEach(async () => {
   await act(async () => root.unmount())
   vi.unstubAllGlobals()
 })
-it.each(['wallet', 'tokens', 'quote'] as const)(
-  'waits for %s before allowing connection, then unblocks',
-  async state => {
-    mocks.restoring = state === 'wallet'
-    await render({ isCurrencyLoading: state === 'tokens', isGettingRoute: state === 'quote' })
-    expect(container.querySelector('button')?.disabled).toBe(true)
-    await act(async () => container.querySelector('button')?.click())
-    expect(mocks.connect).not.toHaveBeenCalled()
+it.each(['wallet', 'tokens'] as const)('waits for %s before allowing connection, then unblocks', async state => {
+  mocks.restoring = state === 'wallet'
+  await render({ isCurrencyLoading: state === 'tokens', isGettingRoute: false })
+  expect(container.querySelector('button')?.disabled).toBe(true)
+  await act(async () => container.querySelector('button')?.click())
+  expect(mocks.connect).not.toHaveBeenCalled()
 
-    mocks.restoring = false
-    await render()
-    expect(container.querySelector('button')?.disabled).toBe(false)
-    await act(async () => container.querySelector('button')?.click())
-    expect(mocks.connect).toHaveBeenCalledTimes(1)
-  },
-)
+  mocks.restoring = false
+  await render()
+  expect(container.querySelector('button')?.disabled).toBe(false)
+  await act(async () => container.querySelector('button')?.click())
+  expect(mocks.connect).toHaveBeenCalledTimes(1)
+})
+it('keeps Connect available while quotes load', async () => {
+  await render({ isGettingRoute: true })
+  expect(container.querySelector('button')?.disabled).toBe(false)
+  await act(async () => container.querySelector('button')?.click())
+  expect(mocks.connect).toHaveBeenCalledOnce()
+})
+
+it.each([
+  [{ currencyOut: undefined }, 'Select a token'],
+  [{ currencyOut: inputToken }, 'Select a different pair'],
+  [{ parsedAmountFromTypedValue: undefined }, 'Enter an amount'],
+] as const)('validates the pair and amount before connecting: %s', async (props, label) => {
+  await render(props)
+  expect(container.querySelectorAll('button')).toHaveLength(1)
+  expect(container.querySelector('button')?.textContent).toBe(label)
+  expect(container.querySelector('button')?.disabled).toBe(true)
+})
+
 it('does not replace a connected wrap action with the wallet restoration fallback', async () => {
   mocks.account = '0xconnected'
   mocks.restoring = true
@@ -112,6 +134,7 @@ it.each([undefined, '100'])('blocks duplicate-token swaps with amount %s', async
     parsedAmountFromTypedValue: value ? CurrencyAmount.fromRawAmount(currency, value) : undefined,
   })
   const button = container.querySelector('button')
+  expect(container.querySelectorAll('button')).toHaveLength(1)
   expect(button?.textContent).toBe('Select a different pair')
   expect(button?.disabled).toBe(true)
   await act(async () => button?.click())

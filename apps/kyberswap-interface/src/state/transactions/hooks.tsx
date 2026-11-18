@@ -20,7 +20,7 @@ import { Hash } from 'utils/viem'
 type LegacyTx = { to?: string | null; nonce?: number; data?: string }
 
 // helper that can take a viem transaction response and add it to the list of transactions
-export const useTransactionAdder = (): ((tx: TransactionHistory) => void) => {
+export const useTransactionAdder = (): ((tx: TransactionHistory) => Promise<void>) => {
   const { chainId, account } = useActiveWeb3React()
   const dispatch = useDispatch<AppDispatch>()
   const blockNumber = useBlockNumber()

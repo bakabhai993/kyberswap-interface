@@ -1,15 +1,21 @@
 import { ChainId, CurrencyAmount } from '@kyberswap/ks-sdk-core'
-import { t } from '@lingui/macro'
+import { Trans, t } from '@lingui/macro'
+import { useState } from 'react'
+import { KyberCross } from 'services/crossChain/adapters/KyberCrossAdapter/constants'
 import { isEvmCurrency } from 'services/crossChain/quote/utils'
 import { isQuoteExecutable } from 'services/crossChain/utils'
 
 import { ButtonPrimary } from 'components/Button'
 import Dots from 'components/Dots'
+import { HStack, Stack } from 'components/Stack'
 import { useCrossChainSwap } from 'components/SwapForm/CrossChain/CrossChainSwapProvider'
 import { CrossChainSwapConfirmation } from 'components/SwapForm/CrossChain/Execution/CrossChainSwapConfirmation'
 import { useCrossChainApproval } from 'components/SwapForm/CrossChain/Execution/useCrossChainApproval'
+import { QuoteProviderName } from 'components/SwapForm/CrossChain/Quote/QuoteProviderName'
 import { useCrossChainBalance } from 'components/SwapForm/CrossChain/hooks/useCrossChainBalance'
+import AllowanceSelector, { AllowanceType } from 'components/SwapForm/SwapActionButton/AllowanceSelector'
 import SwapButtonWithPriceImpact from 'components/SwapForm/SwapActionButton/SwapButtonWithPriceImpact'
+import { getCrossChainAction } from 'components/SwapForm/swapAction'
 import { useSwapWallets } from 'components/SwapWallets/SwapWalletContext'
 import { ZERO_ADDRESS } from 'constants/index'
 import { useActiveWeb3React } from 'hooks'
@@ -68,6 +74,9 @@ export const CrossChainSwapAction = () => {
       spender: selectedQuote?.quote.contractAddress,
     })
 
+  const [approvalType, setApprovalType] = useState(AllowanceType.EXACT)
+  const canChooseAllowance = isFromEvm && selectedQuote?.adapter.getName() === KyberCross
+
   const isFindingRoute = loading || (allLoading && !selectedQuote)
   const isSelectedQuoteExecutable = !isReadOnly && isQuoteExecutable(selectedQuote, sender, receiver)
 
@@ -94,116 +103,36 @@ export const CrossChainSwapAction = () => {
     void openReview(revalidateAllowance)
   }
 
-  // The first unmet prerequisite determines the action; keep this priority order.
-  const {
-    label,
-    disabled = false,
-    busy = false,
-    readyToReview = false,
-    onClick,
-  } = (() => {
-    if (isApproving) {
-      return {
-        label: t`Approving`,
-        busy: true,
-        disabled: true,
-      }
-    }
+  const action = getCrossChainAction({
+    hasTokens: !!fromChainId && !!toChainId && !!currencyIn && !!currencyOut,
+    pairError: restrictedCurrency ? restrictedTokenMessage(restrictedCurrency.symbol) : undefined,
+    hasAmount: !!amountInWei && amountInWei !== '0',
+    connected: !!wallets?.inputAddress,
+    wrongNetwork: isFromEvm && chainId !== fromChainId,
+    selectTokenLabel: t`Please select a token`,
+    enterAmountLabel: t`Please input an amount`,
+    approving: isApproving,
+    recipientError: wallets?.inputAddress ? recipientMessage : undefined,
+    findingRoute: isFindingRoute,
+    checkingApproval: isChecking,
+    hasQuote: !!selectedQuote,
+    insufficientBalance: isFromEvm
+      ? !balance || !!inputAmount?.greaterThan(balance)
+      : nonEvmBalance === undefined || BigInt(nonEvmBalance) < BigInt(amountInWei || '0'),
+    executable: isSelectedQuoteExecutable,
+    needsApproval:
+      approvalState === ApprovalState.NOT_APPROVED && selectedQuote?.quote.contractAddress !== ZERO_ADDRESS,
+  })
 
-    // Recipient failures must not be presented as route refresh/loading failures.
-    if (wallets?.inputAddress && recipientMessage) {
-      return {
-        label: recipientMessage,
-        disabled: true,
-      }
-    }
-
-    if (isFindingRoute) {
-      return {
-        label: t`Finding the best route`,
-        busy: true,
-        disabled: true,
-      }
-    }
-
-    if (isChecking) {
-      return {
-        label: t`Checking approval`,
-        busy: true,
-        disabled: true,
-      }
-    }
-
-    if (!fromChainId || !toChainId || !currencyIn || !currencyOut) {
-      return {
-        label: t`Please select a token`,
-        disabled: true,
-      }
-    }
-
-    if (restrictedCurrency) {
-      return {
-        label: restrictedTokenMessage(restrictedCurrency.symbol),
-        disabled: true,
-      }
-    }
-
-    if (!amountInWei || amountInWei === '0') {
-      return {
-        label: t`Please input an amount`,
-        disabled: true,
-      }
-    }
-
-    if (!wallets?.inputAddress) return { label: connectWalletLabel, onClick: wallets?.connectInput }
-
-    if (!selectedQuote) return { label: t`No route found`, disabled: true }
-
-    const hasInsufficientBalance = isFromEvm
-      ? !balance || inputAmount?.greaterThan(balance)
-      : nonEvmBalance === undefined || BigInt(nonEvmBalance) < BigInt(amountInWei)
-
-    if (hasInsufficientBalance) {
-      return {
-        label: t`Insufficient Balance`,
-        disabled: true,
-      }
-    }
-
-    if (isFromEvm && chainId !== fromChainId) {
-      return {
-        label: t`Switch Network`,
-        onClick: () => changeNetwork(fromChainId as ChainId),
-      }
-    }
-
-    if (!isSelectedQuoteExecutable) {
-      return {
-        label: t`Refreshing route`,
-        busy: true,
-        disabled: true,
-      }
-    }
-
-    if (approvalState === ApprovalState.NOT_APPROVED && selectedQuote.quote.contractAddress !== ZERO_ADDRESS) {
-      return {
-        label: t`Approve`,
-        disabled: isRevalidating,
-        onClick: approve,
-      }
-    }
-
-    return {
-      label: t`Review the Cross-chain Swap`,
-      readyToReview: true,
-      disabled: isRevalidating,
-      onClick: requestReview,
-    }
-  })()
+  const showAllowanceSelector =
+    (action.type === 'approve' || (action.type === 'blocked' && isApproving && action.busy)) && canChooseAllowance
+  const showRouteProvider = !loading && !!selectedQuote
 
   const handleButtonClick = () => {
-    if (loading) return
-    onClick?.()
+    if (action.type === 'connect') wallets?.connectInput()
+    else if (action.type === 'switch-network') void changeNetwork(fromChainId as ChainId)
+    else if (action.type === 'approve')
+      void approve({ infinite: canChooseAllowance && approvalType === AllowanceType.INFINITE })
   }
 
   return (
@@ -216,20 +145,57 @@ export const CrossChainSwapAction = () => {
         onConfirm={confirmSwap}
         onDismiss={closeReview}
       />
-      {readyToReview ? (
-        <SwapButtonWithPriceImpact
-          isProcessingSwap={showPreview || isSubmitting}
-          showLoading={isRevalidating}
-          priceImpactAction={priceImpactAction}
-          isApproved
-          hasRoute={isSelectedQuoteExecutable}
-          onClick={requestReview}
-        />
-      ) : (
-        <ButtonPrimary disabled={disabled} onClick={handleButtonClick}>
-          {busy ? <Dots>{label}</Dots> : label}
-        </ButtonPrimary>
-      )}
+      <Stack className="gap-2">
+        {action.type === 'review' ? (
+          <SwapButtonWithPriceImpact
+            isProcessingSwap={showPreview || isSubmitting}
+            showLoading={isRevalidating}
+            priceImpactAction={priceImpactAction}
+            isApproved
+            hasRoute={isSelectedQuoteExecutable}
+            onClick={requestReview}
+          />
+        ) : (
+          <ButtonPrimary
+            disabled={action.type === 'blocked' || (action.type === 'approve' && isRevalidating)}
+            onClick={handleButtonClick}
+          >
+            {action.type === 'blocked' ? (
+              action.busy ? (
+                <Dots>{action.label}</Dots>
+              ) : (
+                action.label
+              )
+            ) : action.type === 'connect' ? (
+              connectWalletLabel
+            ) : action.type === 'switch-network' ? (
+              t`Switch Network`
+            ) : (
+              t`Approve`
+            )}
+          </ButtonPrimary>
+        )}
+        {(showRouteProvider || showAllowanceSelector) && (
+          <HStack
+            className={`items-center gap-2 ${
+              showAllowanceSelector ? (showRouteProvider ? 'justify-between' : 'justify-end') : 'justify-center'
+            }`}
+          >
+            {showRouteProvider && selectedQuote && (
+              <span className="text-center text-xs font-medium text-gray">
+                <Trans>Routed via</Trans> <QuoteProviderName quote={selectedQuote} showIcon={false} />
+              </span>
+            )}
+            {showAllowanceSelector && (
+              <AllowanceSelector
+                value={approvalType}
+                onChange={setApprovalType}
+                disabled={action.type === 'blocked' || isRevalidating}
+              />
+            )}
+          </HStack>
+        )}
+      </Stack>
     </>
   )
 }

@@ -140,6 +140,8 @@ export type TransactionExtraInfo = (
     outputDecimals: number
     recipient: string
   }
+  /** An approve(0) reset, not permission to spend. */
+  approvalReset?: boolean
   actuallySuccess?: boolean
   needCheckSubgraph?: boolean
   arbitrary?: any // To store anything arbitrary, so it has any type

@@ -24,6 +24,7 @@ const mocks = vi.hoisted(() => ({
   sources: '',
   amount: '1',
   account: '0xsender',
+  walletChain: 1,
   wrapType: 0,
   build: vi.fn(),
 }))
@@ -38,7 +39,7 @@ vi.mock('components/SwapForm/hooks/useSelectedDexes', () => ({ default: () => mo
 vi.mock('constants/env', () => ({ AGGREGATOR_API: 'https://example.test' }))
 vi.mock('constants/index', () => ({ INPUT_DEBOUNCE_TIME: 100 }))
 vi.mock('constants/networks', () => ({ MAINNET_NETWORKS: [1], NETWORKS_INFO: { 1: { aggregatorRoute: 'ethereum' } } }))
-vi.mock('hooks', () => ({ useActiveWeb3React: () => ({ chainId: 1, account: mocks.account }) }))
+vi.mock('hooks', () => ({ useActiveWeb3React: () => ({ chainId: mocks.walletChain, account: mocks.account }) }))
 vi.mock('hooks/useKyberSwapConfig', () => ({ useKyberswapGlobalConfig: () => ({}) }))
 vi.mock('state/authen/hooks', () => ({ useSessionInfo: () => ({}) }))
 vi.mock('state/lists/wrappedTokenInfo', () => ({ WrappedTokenInfo: class {} }))
@@ -130,6 +131,7 @@ const Harness = ({
   state = useGetRoute({
     currencyIn,
     currencyOut: output,
+    customChain: 1,
     parsedAmount: amounts[index],
     autoRefresh,
     isProcessingSwap: paused,
@@ -171,6 +173,7 @@ beforeEach(() => {
   mocks.sources = ''
   mocks.amount = '1'
   mocks.account = '0xsender'
+  mocks.walletChain = 1
   mocks.wrapType = 0
   mocks.build.mockClear()
   queryClient = new QueryClient()
@@ -182,6 +185,24 @@ afterEach(async () => {
   onlineManager.setOnline(true)
   vi.useRealTimers()
   vi.unstubAllGlobals()
+})
+
+it('retains the route when connecting, changing accounts or switching wallet networks', async () => {
+  mocks.account = ''
+  await render()
+  const quote = state.result.data
+  expect(quote).toEqual(response)
+  for (const [account, chain] of [
+    ['0xsender', 8453],
+    ['0xchanged', 1],
+  ] as const) {
+    mocks.account = account
+    mocks.walletChain = chain
+    await render()
+    expect(state.result.data).toBe(quote)
+    expect(state.isLoading).toBe(false)
+  }
+  expect(mocks.trigger).toHaveBeenCalledOnce()
 })
 
 it('blocks duplicate tokens before fetching fees or routes, including manual and automatic refresh', async () => {

@@ -175,6 +175,8 @@ const DescriptionApproveClaim = (transaction: TransactionDetails) => {
   const { summary = '' } = extraInfo as TransactionExtraBaseInfo
   const plus = [TRANSACTION_TYPE.CLAIM_REWARD].includes(type)
 
+  if (extraInfo.approvalReset) return <PrimaryText>{t`Reset ${tokenSymbol} allowance`}</PrimaryText>
+
   return summary ? (
     <PrimaryText>{summary}</PrimaryText>
   ) : (
@@ -310,7 +312,7 @@ const TransactionItem = forwardRef<HTMLDivElement, Prop>(function TransactionIte
               <Icon txs={transaction} />
             </div>
           )}
-          <span className="text-sm text-text">{type}</span>
+          <span className="text-sm text-text">{transaction.extraInfo?.approvalReset ? t`Reset Allowance` : type}</span>
           <ExternalLinkIcon color="var(--ks-subText)" href={getEtherscanLink(chainId, hash, 'transaction')} />
         </Row>
         <Status transaction={transaction} />

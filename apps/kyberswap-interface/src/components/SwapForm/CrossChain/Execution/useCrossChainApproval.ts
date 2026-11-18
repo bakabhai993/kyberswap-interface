@@ -140,46 +140,49 @@ export const useCrossChainApproval = ({ amount, fromChainId, spender }: UseCross
     [refetchAllowance],
   )
 
-  const approve = useCallback(async (): Promise<ApprovalStatus> => {
-    if (!amount || !allowanceScope || requiredAllowance === undefined) return ApprovalStatus.SKIPPED
+  const approve = useCallback(
+    async ({ infinite = false }: { infinite?: boolean } = {}): Promise<ApprovalStatus> => {
+      if (!amount || !allowanceScope || requiredAllowance === undefined) return ApprovalStatus.SKIPPED
 
-    const allowance = await getLatestAllowance()
-    if (allowance === undefined || requiredAllowance <= allowance) return ApprovalStatus.SKIPPED
+      const allowance = await getLatestAllowance()
+      if (allowance === undefined || requiredAllowance <= allowance) return ApprovalStatus.SKIPPED
 
-    trackingHandler(TRACKING_EVENT_TYPE.TOKEN_APPROVAL_INITIATED, {
-      mode: 'cross-chain',
-      chain_id: fromChainId,
-      token_address: tokenAddress,
-      spender_address: spender,
-    })
-    setApprovalInProgressScope(allowanceScope)
-    let status = ApprovalStatus.FAILED
+      trackingHandler(TRACKING_EVENT_TYPE.TOKEN_APPROVAL_INITIATED, {
+        mode: 'cross-chain',
+        chain_id: fromChainId,
+        token_address: tokenAddress,
+        spender_address: spender,
+      })
+      setApprovalInProgressScope(allowanceScope)
+      let status = ApprovalStatus.FAILED
 
-    try {
-      status = await approveCallback(amount)
-      return status
-    } finally {
-      if (status === ApprovalStatus.FAILED || status === ApprovalStatus.REJECTED)
-        trackingHandler(TRACKING_EVENT_TYPE.TOKEN_APPROVAL_FAILED, {
-          mode: 'cross-chain',
-          chain_id: fromChainId,
-          token_address: tokenAddress,
-          spender_address: spender,
-        })
-      if (status !== ApprovalStatus.SUBMITTED) clearApprovalInProgress()
-    }
-  }, [
-    allowanceScope,
-    amount,
-    approveCallback,
-    clearApprovalInProgress,
-    getLatestAllowance,
-    requiredAllowance,
-    trackingHandler,
-    fromChainId,
-    tokenAddress,
-    spender,
-  ])
+      try {
+        status = await approveCallback(infinite ? undefined : amount)
+        return status
+      } finally {
+        if (status === ApprovalStatus.FAILED || status === ApprovalStatus.REJECTED)
+          trackingHandler(TRACKING_EVENT_TYPE.TOKEN_APPROVAL_FAILED, {
+            mode: 'cross-chain',
+            chain_id: fromChainId,
+            token_address: tokenAddress,
+            spender_address: spender,
+          })
+        if (status !== ApprovalStatus.SUBMITTED) clearApprovalInProgress()
+      }
+    },
+    [
+      allowanceScope,
+      amount,
+      approveCallback,
+      clearApprovalInProgress,
+      getLatestAllowance,
+      requiredAllowance,
+      trackingHandler,
+      fromChainId,
+      tokenAddress,
+      spender,
+    ],
+  )
 
   // Fail closed when the latest allowance cannot be read before Review.
   const revalidateAllowance = useCallback(async () => {

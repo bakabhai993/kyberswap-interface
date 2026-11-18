@@ -1505,6 +1505,26 @@ describe('unified quote session after aggregator integration', () => {
     })
   })
 
+  it('replaces read-only quotes on connect and retains quotes when only the wallet connection object changes', async () => {
+    const input = { pair, amount: '100', sender: 'placeholder', receiver: 'recipient', isReadOnly: true }
+    await act(async () => root.render(<Harness {...input} />))
+    await flushQuotes()
+    const previous = mocks.getQuotes.mock.calls[0][0] as QuoteRequest
+    await act(async () => root.render(<Harness {...input} sender="connected-wallet" isReadOnly={false} />))
+    expect(previous.signal.aborted).toBe(true)
+    expect(state.quotes).toEqual([])
+    await flushQuotes()
+    expect(mocks.getQuotes.mock.calls.at(-1)?.[0]).toMatchObject({
+      isReadOnly: false,
+      params: { sender: 'connected-wallet', recipient: 'recipient' },
+    })
+    const calls = mocks.getQuotes.mock.calls.length
+    mocks.wallets = { inputAddress: 'connected-wallet' }
+    await act(async () => root.render(<Harness {...input} sender="connected-wallet" isReadOnly={false} />))
+    await flushQuotes()
+    expect(mocks.getQuotes).toHaveBeenCalledTimes(calls)
+  })
+
   it('invalidates the reviewed quote when receiver changes and requests the exact new recipient', async () => {
     await act(async () => render('100', 'wallet-receiver'))
     await flushQuotes()

@@ -42,6 +42,7 @@ const summary2Token = (txs: TransactionDetails, withType = true) => {
 const summaryApprove = (txs: TransactionDetails) => {
   const { tokenSymbol } = (txs.extraInfo || {}) as TransactionExtraInfo1Token
   const { summary } = (txs.extraInfo || {}) as TransactionExtraBaseInfo
+  if (txs.extraInfo?.approvalReset) return t`Reset ${tokenSymbol} allowance`
   return `${txs.type} ${summary ?? tokenSymbol}`
 }
 

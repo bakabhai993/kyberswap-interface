@@ -333,6 +333,7 @@ export default function Updater(): null {
             break
           }
           case TRANSACTION_TYPE.APPROVE: {
+            if (transaction.extraInfo?.approvalReset) break
             const extraInfo = transaction.extraInfo as TransactionExtraInfo1Token | undefined
             trackingHandler(TRACKING_EVENT_TYPE.TOKEN_APPROVAL_COMPLETED, {
               token_symbol: extraInfo?.tokenSymbol,

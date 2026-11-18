@@ -13,6 +13,11 @@ import { NonEvmChain } from 'types/crossChain'
 
 const mocks = vi.hoisted(() => ({
   degen: false,
+  inputAddress: 'sender',
+  connect: vi.fn(),
+  chainId: 1,
+  fromChainId: 'bitcoin' as string | number,
+  switchNetwork: vi.fn(),
   loading: false,
   setParams: vi.fn(),
   openReview: vi.fn(),
@@ -20,7 +25,7 @@ const mocks = vi.hoisted(() => ({
   confirmSwap: vi.fn(),
   invalidateQuotes: vi.fn(),
   allowance: vi.fn(async () => true),
-  selectedQuote: { quote: { priceImpact: 11 as number | null } },
+  selectedQuote: { adapter: { getName: () => 'KyberCross' }, quote: { priceImpact: 11 as number | null } },
   reviewQuote: null as unknown,
 }))
 // Model store notifications even when the engine's input props are unchanged.
@@ -51,7 +56,7 @@ vi.mock('components/SwapForm/CrossChain/Execution/CrossChainSwapConfirmation', (
 }))
 vi.mock('components/SwapForm/CrossChain/hooks/useCrossChainPair', () => ({
   useCrossChainPair: () => ({
-    fromChainId: 'bitcoin',
+    fromChainId: mocks.fromChainId,
     toChainId: 1,
     currencyIn: { symbol: 'BTC' },
     currencyOut: { symbol: 'ETH' },
@@ -84,15 +89,19 @@ vi.mock('components/SwapForm/CrossChain/Execution/useCrossChainExecution', () =>
 vi.mock('components/SwapForm/CrossChain/Execution/useCrossChainApproval', () => ({
   useCrossChainApproval: () => ({ approvalState: 3, revalidateAllowance: mocks.allowance }),
 }))
-vi.mock('components/SwapForm/CrossChain/hooks/useCrossChainBalance', () => ({ useCrossChainBalance: () => '100' }))
-vi.mock('components/SwapWallets/SwapWalletContext', () => ({ useSwapWallets: () => ({ inputAddress: 'sender' }) }))
-vi.mock('hooks', () => ({ useActiveWeb3React: () => ({ chainId: 1 }) }))
+vi.mock('components/SwapForm/CrossChain/hooks/useCrossChainBalance', () => ({
+  useCrossChainBalance: () => '100',
+}))
+vi.mock('components/SwapWallets/SwapWalletContext', () => ({
+  useSwapWallets: () => ({ inputAddress: mocks.inputAddress, connectInput: mocks.connect }),
+}))
+vi.mock('hooks', () => ({ useActiveWeb3React: () => ({ chainId: mocks.chainId }) }))
 vi.mock('hooks/useApproveCallback', () => ({ ApprovalState: { NOT_APPROVED: 1 } }))
 vi.mock('hooks/useRestrictedTokens', () => ({
   useIsTokenAddressRestricted: () => () => false,
   restrictedTokenMessage: vi.fn(),
 }))
-vi.mock('hooks/web3/useChangeNetwork', () => ({ useChangeNetwork: () => ({ changeNetwork: vi.fn() }) }))
+vi.mock('hooks/web3/useChangeNetwork', () => ({ useChangeNetwork: () => ({ changeNetwork: mocks.switchNetwork }) }))
 vi.mock('state/wallet/hooks', () => ({ useCurrencyBalance: vi.fn() }))
 vi.mock('services/crossChain/quote/utils', () => ({ isEvmCurrency: () => false }))
 vi.mock('services/crossChain/utils', () => ({ isQuoteExecutable: () => true }))
@@ -131,8 +140,11 @@ beforeEach(() => {
   vi.clearAllMocks()
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
   mocks.degen = false
+  mocks.inputAddress = 'sender'
+  mocks.chainId = 1
+  mocks.fromChainId = 'bitcoin'
   mocks.loading = false
-  mocks.selectedQuote = { quote: { priceImpact: 11 } }
+  mocks.selectedQuote = { adapter: { getName: () => 'KyberCross' }, quote: { priceImpact: 11 } }
   mocks.allowance.mockResolvedValue(true)
   mocks.reviewQuote = null
   container = document.createElement('div')
@@ -142,6 +154,24 @@ afterEach(async () => {
   await act(async () => root.unmount())
   vi.unstubAllGlobals()
 })
+it('keeps wallet connection actionable while routes are loading', async () => {
+  mocks.inputAddress = ''
+  mocks.loading = true
+  await render()
+  expect(container.querySelector('button')?.disabled).toBe(false)
+  await click()
+  expect(mocks.connect).toHaveBeenCalledOnce()
+})
+
+it('prioritizes network switching over route and balance loading', async () => {
+  mocks.fromChainId = 8453
+  mocks.loading = true
+  await render()
+  expect(container.querySelector('button')?.textContent).toBe('Switch Network')
+  await click()
+  expect(mocks.switchNetwork).toHaveBeenCalledWith(8453)
+})
+
 it.each([11, NaN])('gates PI %s before review, then reviews after enabling Degen Mode', async priceImpact => {
   mocks.selectedQuote.quote.priceImpact = priceImpact
   await render()
@@ -196,6 +226,9 @@ it('checks current Degen Mode after allowance resolves and ignores repeated clic
   await click()
   expect(mocks.allowance).toHaveBeenCalledOnce()
   mocks.degen = false
+  mocks.inputAddress = 'sender'
+  mocks.chainId = 1
+  mocks.fromChainId = 'bitcoin'
   await render()
   await act(async () => resolveAllowance(true))
   expect(mocks.openReview).not.toHaveBeenCalled()
@@ -213,8 +246,11 @@ it('ignores allowance completion for a replaced quote', async () => {
   mocks.degen = true
   await render()
   await click()
-  mocks.selectedQuote = { quote: { priceImpact: 12 } }
+  mocks.selectedQuote = { adapter: { getName: () => 'KyberCross' }, quote: { priceImpact: 12 } }
   mocks.degen = false
+  mocks.inputAddress = 'sender'
+  mocks.chainId = 1
+  mocks.fromChainId = 'bitcoin'
   await render()
   await act(async () => resolveAllowance(true))
   expect(mocks.openReview).not.toHaveBeenCalled()

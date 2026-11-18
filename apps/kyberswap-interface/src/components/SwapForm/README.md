@@ -27,6 +27,11 @@ Signing connections belong to [SwapWallets](../SwapWallets/); committed token
 selection belongs to the pair owner, while [TokenSelectorModal](../TokenSelectorModal/README.md)
 owns browsing and selection interaction.
 
+`swapAction.ts` owns CTA priority: both engines share form and wallet prerequisites,
+then apply their execution requirements. Each resolver returns one action for the
+UI to render; connect, approval, wrap and review handlers stay with their existing
+owners. Change CTA precedence here rather than duplicating guards in JSX.
+
 ## Form and loading boundaries
 
 The cross-chain wallet providers and engine load on first use and stay mounted
@@ -72,6 +77,12 @@ captures the reviewed provider and Gas Drop option; source broadcast is distinct
 settlement (`SUCCESS`, `FAILED`, `REFUNDED`). Settings and route events follow committed
 changes and user interactions, never default route selection. The detailed Gas Drop
 prompt name in the contract is `Swap Gas Drop Switch`.
+
+Single-chain and KyberCross share a controlled allowance selector. Each action owns
+its selection: single-chain defaults to Infinite, KyberCross to Exact; other
+cross-chain providers always use Exact. The shared approval hook owns scoped
+allowance reads and transaction submission. Zero-reset approvals remain pending
+until confirmed and require another approval to grant spending permission.
 
 ## Recipients and extension points
 

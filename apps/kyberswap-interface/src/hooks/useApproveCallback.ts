@@ -64,44 +64,54 @@ export function useApproveCallback({
   const token = amount?.currency.wrapped
   const pendingApproval = useHasPendingApproval(token?.address, spender)
 
-  const [currentAllowance, setAllowance] = useState<TokenAmount | undefined>(undefined)
-  const getAllowance = useCallback(async () => {
-    if (!token || !account || !spender || !chainId) return
-    const res = (await readContract(wagmiConfig, {
-      address: token.address as Address,
-      abi: ERC20_ABI,
-      functionName: 'allowance',
-      args: [account, spender],
-      chainId: chainId as number,
-    })) as bigint
-    setAllowance(TokenAmount.fromRawAmount(token, res.toString()))
-  }, [account, spender, token, chainId])
+  const allowanceScope =
+    token && account && spender && chainId
+      ? `${chainId}:${account}:${token.address}:${spender}`.toLowerCase()
+      : undefined
+  const [allowanceResult, setAllowanceResult] = useState<{ scope: string; amount: TokenAmount }>()
+  const currentAllowance = allowanceResult?.scope === allowanceScope ? allowanceResult?.amount : undefined
 
   useEffect(() => {
-    getAllowance()
-  }, [getAllowance, pendingApproval])
+    if (!token || !account || !spender || !chainId || !allowanceScope || amount?.currency.isNative) return
+    let cancelled = false
+
+    const refreshAllowance = async () => {
+      try {
+        const allowance = (await readContract(wagmiConfig, {
+          address: token.address as Address,
+          abi: ERC20_ABI,
+          functionName: 'allowance',
+          args: [account, spender],
+          chainId: chainId as number,
+        })) as bigint
+        if (!cancelled) {
+          setAllowanceResult({ scope: allowanceScope, amount: TokenAmount.fromRawAmount(token, allowance.toString()) })
+        }
+      } catch {
+        if (!cancelled) setAllowanceResult(undefined)
+      }
+    }
+
+    void refreshAllowance()
+    return () => {
+      cancelled = true
+    }
+  }, [account, spender, token, chainId, allowanceScope, amount?.currency.isNative, pendingApproval])
 
   // check the current approval status
   const approvalState: ApprovalState = useMemo(() => {
     if (!amount || !spender) return ApprovalState.UNKNOWN
     if (amount.currency.isNative) return ApprovalState.APPROVED
+    if (pendingApproval) return ApprovalState.PENDING
     // we might not have enough data to know whether or not we need to approve
     if (!currentAllowance) return ApprovalState.UNKNOWN
 
     // Handle farm approval.
     if (amount.quotient.toString() === maxUint256.toString()) {
-      return currentAllowance.equalTo(JSBI.BigInt(0))
-        ? pendingApproval
-          ? ApprovalState.PENDING
-          : ApprovalState.NOT_APPROVED
-        : ApprovalState.APPROVED
+      return currentAllowance.equalTo(JSBI.BigInt(0)) ? ApprovalState.NOT_APPROVED : ApprovalState.APPROVED
     }
 
-    return currentAllowance.lessThan(amount)
-      ? pendingApproval
-        ? ApprovalState.PENDING
-        : ApprovalState.NOT_APPROVED
-      : ApprovalState.APPROVED
+    return currentAllowance.lessThan(amount) ? ApprovalState.NOT_APPROVED : ApprovalState.APPROVED
   }, [amount, currentAllowance, pendingApproval, spender])
   const notify = useNotify()
 
@@ -153,6 +163,7 @@ export function useApproveCallback({
           })
 
         let response
+        let approvalReset = false
         try {
           const initialAmount =
             customAmount instanceof CurrencyAmount ? BigInt(customAmount.quotient.toString()) : maxUint256
@@ -165,30 +176,22 @@ export function useApproveCallback({
             return ApprovalStatus.REJECTED
           }
           try {
+            if (customAmount?.quotient.toString() === amount.quotient.toString()) throw e
             response = await sendApprove(BigInt(amount.quotient.toString()))
           } catch (e2) {
             if (didUserReject(e2)) {
               return ApprovalStatus.REJECTED
             }
-            // Last-ditch fallback: reset allowance to 0 (USDT-style tokens reject
-            // approve() when the current allowance is non-zero). The user will need
-            // to retrigger approve to the desired amount — don't surface this as a
-            // successful "Approve" in the wallet history, since the allowance is now
-            // 0 and the caller's flow has not been granted.
-            try {
-              await sendApprove(0n)
-            } catch (e3) {
-              if (didUserReject(e3)) {
-                return ApprovalStatus.REJECTED
-              }
-              throw e3
-            }
-            return ApprovalStatus.FAILED
+            // USDT-style tokens require a confirmed zero allowance before setting a new one.
+            // Track this transaction so callers stay pending until its receipt, then ask again.
+            response = await sendApprove(0n)
+            approvalReset = true
           }
         }
 
         if (response?.hash) {
-          addTransactionWithType({
+          // Keep the caller busy until the store owns the pending transaction.
+          await addTransactionWithType({
             hash: response.hash,
             type: TRANSACTION_TYPE.APPROVE,
             extraInfo: {
@@ -196,12 +199,15 @@ export function useApproveCallback({
               tokenAddress: token.address,
               contract: spender,
               trackingPayload,
+              approvalReset,
             },
           })
-          return ApprovalStatus.SUBMITTED
+          // A reset is tracked, but has not submitted the requested spending permission.
+          return approvalReset ? ApprovalStatus.FAILED : ApprovalStatus.SUBMITTED
         }
         return ApprovalStatus.FAILED
       } catch (error) {
+        if (didUserReject(error)) return ApprovalStatus.REJECTED
         const message = friendlyError(error)
         console.error('Approve token error:', { message, error })
         onApprovalError?.({

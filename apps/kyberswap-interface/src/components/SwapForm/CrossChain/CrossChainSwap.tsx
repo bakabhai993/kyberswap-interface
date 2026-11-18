@@ -1,4 +1,3 @@
-import { Trans } from '@lingui/macro'
 import { useState } from 'react'
 
 import { BitcoinConnectModal } from 'components/Header/web3/WalletModal/BitcoinConnectModal'
@@ -10,7 +9,6 @@ import { CrossChainSwapAction } from 'components/SwapForm/CrossChain/Execution/C
 import { CrossChainQuoteDetails } from 'components/SwapForm/CrossChain/Quote/CrossChainQuoteDetails'
 import { CrossChainPriceImpactWarning } from 'components/SwapForm/CrossChain/Quote/CrossChainQuoteSummary'
 import { GasDropOption } from 'components/SwapForm/CrossChain/Quote/GasDrop'
-import { QuoteProviderName } from 'components/SwapForm/CrossChain/Quote/QuoteProviderName'
 import { useCrossChainWalletIntent } from 'components/SwapWallets/useCrossChainWalletIntent'
 import { isEvmChain } from 'types/crossChain'
 
@@ -34,8 +32,7 @@ export const CrossChainOutputFooter = () => {
 
 /** Cross-chain information and execution, independent of the shared fields. */
 const CrossChainSwap = () => {
-  const { currencyOut, fromChainId, toChainId, selectedQuote, loading, warning, recipientInputEnabled } =
-    useCrossChainSwap()
+  const { currencyOut, fromChainId, toChainId, warning, recipientInputEnabled } = useCrossChainSwap()
   const [showBitcoin, setShowBitcoin] = useState(false)
   const walletIntentModal = useCrossChainWalletIntent(fromChainId, () => setShowBitcoin(true))
   const output = currencyOut && 'isNative' in currencyOut ? currencyOut : undefined
@@ -53,14 +50,7 @@ const CrossChainSwap = () => {
         <HoneypotWarning message={message} />
         <CrossChainPriceImpactWarning warning={warning} />
       </Stack>
-      <Stack className="gap-2">
-        <CrossChainSwapAction />
-        {!loading && selectedQuote && (
-          <span className="text-center text-xs font-medium text-gray">
-            <Trans>Routed via</Trans> <QuoteProviderName quote={selectedQuote} showIcon={false} />
-          </span>
-        )}
-      </Stack>
+      <CrossChainSwapAction />
       <BitcoinConnectModal isOpen={showBitcoin} onDismiss={() => setShowBitcoin(false)} />
     </>
   )
